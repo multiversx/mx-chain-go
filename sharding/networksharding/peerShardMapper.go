@@ -18,6 +18,7 @@ import (
 
 const maxNumPidsPerPk = 3
 const uint32Size = 4
+const int64Size = 8
 const defaultShardId = uint32(0)
 const indexNotFound = -1
 
@@ -38,6 +39,7 @@ var _ p2p.PeerShardResolver = (*PeerShardMapper)(nil)
 type PeerShardMapper struct {
 	peerIdPkCache            storage.Cacher
 	pkPeerIdCache            storage.Cacher
+	pkTimestampCache         storage.Cacher
 	fallbackPkShardCache     storage.Cacher
 	fallbackPidShardCache    storage.Cacher
 	peerIdSubTypeCache       storage.Cacher
@@ -85,9 +87,15 @@ func NewPeerShardMapper(arg ArgPeerShardMapper) (*PeerShardMapper, error) {
 		return nil, err
 	}
 
+	pkTimestamp, err := cache.NewLRUCache(arg.PeerIdPkCache.MaxSize())
+	if err != nil {
+		return nil, err
+	}
+
 	return &PeerShardMapper{
 		peerIdPkCache:         arg.PeerIdPkCache,
 		pkPeerIdCache:         pkPeerId,
+		pkTimestampCache:      pkTimestamp,
 		fallbackPkShardCache:  arg.FallbackPkShardCache,
 		fallbackPidShardCache: arg.FallbackPidShardCache,
 		peerIdSubTypeCache:    peerIdSubTypeCache,
@@ -161,10 +169,25 @@ func (psm *PeerShardMapper) getPeerInfoWithNodesCoordinator(pid core.PeerID) (*c
 	}
 
 	return &core.P2PPeerInfo{
-		PeerType: core.ValidatorPeer,
-		ShardID:  shardId,
-		PkBytes:  pkBuff,
+		PeerType:      core.ValidatorPeer,
+		ShardID:       shardId,
+		PkBytes:       pkBuff,
+		AuthTimestamp: psm.getTimestampForPk(pkBuff),
 	}, true
+}
+
+func (psm *PeerShardMapper) getTimestampForPk(pkBytes []byte) int64 {
+	timestamp, ok := psm.pkTimestampCache.Get(pkBytes)
+	if !ok {
+		return 0
+	}
+
+	timestampInt, ok := timestamp.(int64)
+	if !ok {
+		return 0
+	}
+
+	return timestampInt
 }
 
 func (psm *PeerShardMapper) getShardIDSearchingPkInFallbackCache(pkBuff []byte) (shardId uint32, ok bool) {
@@ -231,11 +254,13 @@ func (psm *PeerShardMapper) getPeerInfoSearchingPidInFallbackCache(pid core.Peer
 // UpdatePeerIDPublicKeyPair updates the public key - peer ID pair in the corresponding maps
 // It also uses the intermediate pkPeerId cache that will prevent having thousands of peer ID's with
 // the same MultiversX PK that will make the node prone to an eclipse attack
-func (psm *PeerShardMapper) UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte) {
+func (psm *PeerShardMapper) UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte, timestamp int64) {
 	isNew := psm.updatePeerIDPublicKey(pid, pk)
 	if isNew {
 		peerLog.Trace("new peer mapping", "pid", pid.Pretty(), "pk", pk)
 	}
+
+	psm.pkTimestampCache.Put(pk, timestamp, int64Size)
 }
 
 // UpdatePeerIDInfo updates the public keys and the shard ID for the peer ID in the corresponding maps

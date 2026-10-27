@@ -10,6 +10,9 @@ var ErrInvalidAppContext = errors.New("invalid app context")
 // ErrInvalidJSONRequest signals an error in json request formatting
 var ErrInvalidJSONRequest = errors.New("invalid json request")
 
+// ErrCallValueTooLong signals that the provided call value exceeds the accepted length
+var ErrCallValueTooLong = errors.New("call value is too long")
+
 // ErrCouldNotGetAccount signals that a requested account could not be retrieved
 var ErrCouldNotGetAccount = errors.New("could not get requested account")
 
@@ -93,6 +96,9 @@ var ErrGetTransaction = errors.New("getting transaction failed")
 
 // ErrGetSmartContractResults signals an error happening when trying to fetch smart contract results
 var ErrGetSmartContractResults = errors.New("getting smart contract results failed")
+
+// ErrGetVirtualNonce signals an error happening when trying to get the virtual nonce of an account
+var ErrGetVirtualNonce = errors.New("getting virtual nonce of account failed")
 
 // ErrGetBlock signals an error happening when trying to fetch a block
 var ErrGetBlock = errors.New("getting block failed")

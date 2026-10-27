@@ -84,7 +84,7 @@ func (ss *stateStatistics) Persister(epoch uint32) uint64 {
 	return ss.numPersister[epoch]
 }
 
-// IncrWitePersister will increment persister write counter
+// IncrWritePersister will increment persister write counter
 func (ss *stateStatistics) IncrWritePersister(epoch uint32) {
 	ss.mutPersisters.Lock()
 	defer ss.mutPersisters.Unlock()

@@ -6,13 +6,14 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool/headersCache"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewDataPoolFromConfig(t *testing.T) {
@@ -136,6 +137,27 @@ func TestNewDataPoolFromConfig_BadConfigShouldErr(t *testing.T) {
 	require.Nil(t, holder)
 	require.True(t, errors.Is(err, storage.ErrInvalidConfig))
 	require.True(t, strings.Contains(err.Error(), "the cache for the validator info results"))
+
+	args = getGoodArgs()
+	args.Config.ExecutedMiniBlocksCache.Type = "invalid cache type"
+	holder, err = NewDataPoolFromConfig(args)
+	require.Nil(t, holder)
+	require.True(t, errors.Is(err, storage.ErrNotSupportedCacheType))
+	require.True(t, strings.Contains(err.Error(), "the cache for the executed mini blocks"))
+
+	args = getGoodArgs()
+	args.Config.PostProcessTransactionsCache.Type = "invalid cache type"
+	holder, err = NewDataPoolFromConfig(args)
+	require.Nil(t, holder)
+	require.True(t, errors.Is(err, storage.ErrNotSupportedCacheType))
+	require.True(t, strings.Contains(err.Error(), "the cache for the post process transactions"))
+
+	args = getGoodArgs()
+	args.Config.DirectSentTransactions.CacheExpiryInSec = 0
+	holder, err = NewDataPoolFromConfig(args)
+	require.Nil(t, holder)
+	require.Error(t, err)
+	require.True(t, strings.Contains(err.Error(), "the cache for the direct sent transactions"))
 }
 
 func getGoodArgs() ArgsDataPool {

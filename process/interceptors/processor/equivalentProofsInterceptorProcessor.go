@@ -2,6 +2,7 @@ package processor
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 )
 
@@ -22,8 +23,8 @@ func (epip *equivalentProofsInterceptorProcessor) Validate(_ process.Intercepted
 
 // Save returns nil
 // proof is added after validity checks, at intercepted data level
-func (epip *equivalentProofsInterceptorProcessor) Save(_ process.InterceptedData, _ core.PeerID, _ string) error {
-	return nil
+func (epip *equivalentProofsInterceptorProcessor) Save(_ process.InterceptedData, _ core.PeerID, _ string, _ p2p.BroadcastMethod) (bool, error) {
+	return true, nil
 }
 
 // RegisterHandler registers a callback function to be notified of incoming equivalent proofs

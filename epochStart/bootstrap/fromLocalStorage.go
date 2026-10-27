@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -71,9 +72,20 @@ func (e *epochStartBootstrap) getShardIDForLatestEpoch() (uint32, bool, error) {
 		return 0, false, err
 	}
 
+	epochBeforeFallback := e.baseData.lastEpoch
 	e.epochStartMeta, err = e.getEpochStartMetaFromStorage(storer)
 	if err != nil {
 		return 0, false, err
+	}
+
+	// if the lookup fell back to an older epoch, make sure the nodes coordinator config (loaded above from
+	// the latest bootstrap data) actually contains that epoch; otherwise the returned parameters would pair
+	// an older epoch with a newer-epoch validator set. Erroring here makes bootstrap continue from network.
+	if e.baseData.lastEpoch != epochBeforeFallback {
+		err = e.checkNodesConfigForEpoch(e.baseData.lastEpoch)
+		if err != nil {
+			return 0, false, err
+		}
 	}
 
 	e.baseData.numberOfShards = uint32(len(e.epochStartMeta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers()))
@@ -94,6 +106,9 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 	newShardId, isShuffledOut, err := e.getShardIDForLatestEpoch()
 	if err != nil {
 		return Parameters{}, err
+	}
+	if isShuffledOut && e.isRecoveryCheckpointSelected() {
+		return Parameters{}, common.ErrInvalidRecoveryCheckpoint
 	}
 
 	if !isShuffledOut {
@@ -127,6 +142,11 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 	log.Debug("prepareEpochFromStorage for shuffled out", "initial shard id", e.baseData.shardId, "new shard id", newShardId)
 	e.baseData.shardId = newShardId
 
+	e.shardCoordinator, err = sharding.NewMultiShardCoordinator(e.baseData.numberOfShards, e.baseData.shardId)
+	if err != nil {
+		return Parameters{}, err
+	}
+
 	err = e.createRequestHandler()
 	if err != nil {
 		return Parameters{}, err
@@ -155,16 +175,11 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 	}
 
 	prevEpochStartMetaHash := e.epochStartMeta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash()
-	prevEpochStartMeta, ok := e.syncedHeaders[string(prevEpochStartMetaHash)].(*block.MetaBlock)
+	prevEpochStartMeta, ok := e.syncedHeaders[string(prevEpochStartMetaHash)].(data.MetaHeaderHandler)
 	if !ok {
 		return Parameters{}, epochStart.ErrWrongTypeAssertion
 	}
 	e.prevEpochStartMeta = prevEpochStartMeta
-
-	e.shardCoordinator, err = sharding.NewMultiShardCoordinator(e.baseData.numberOfShards, e.baseData.shardId)
-	if err != nil {
-		return Parameters{}, err
-	}
 
 	consensusTopic := common.ConsensusTopic + e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId())
 	err = e.mainMessenger.CreateTopic(consensusTopic, true)
@@ -192,6 +207,8 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 		NumOfShards: e.shardCoordinator.NumberOfShards(),
 		NodesConfig: e.nodesConfig,
 	}
+	e.setEpochStartMetrics()
+
 	return parameters, nil
 }
 
@@ -229,7 +246,7 @@ func checkIfPubkeyIsInMap(
 	for shardIdStr, validatorList := range allShardList {
 		isValidatorInList := checkIfValidatorIsInList(pubKey, validatorList)
 		if isValidatorInList {
-			shardId, err := strconv.ParseInt(shardIdStr, 10, 64)
+			shardId, err := strconv.ParseUint(shardIdStr, 10, 32)
 			if err != nil {
 				log.Error("checkIfIsValidatorForEpoch parsing string to int error should not happen", "err", err)
 				return 0, false
@@ -253,6 +270,22 @@ func checkIfValidatorIsInList(
 	return false
 }
 
+func (e *epochStartBootstrap) getHighestStoredRound() (int64, error) {
+	storer, err := e.storageOpenerHandler.GetMostRecentStorageUnit(e.generalConfig.BootstrapStorage.DB)
+	if err != nil {
+		return 0, err
+	}
+	defer func() {
+		log.LogIfError(storer.Close())
+	}()
+
+	bootStorer, err := bootstrapStorage.NewBootstrapStorer(e.coreComponentsHolder.InternalMarshalizer(), storer)
+	if err != nil {
+		return 0, err
+	}
+	return bootStorer.GetHighestRound(), nil
+}
+
 func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*bootstrapStorage.BootstrapData, nodesCoordinator.NodesCoordinatorRegistryHandler, error) {
 	bootStorer, err := bootstrapStorage.NewBootstrapStorer(e.coreComponentsHolder.InternalMarshalizer(), storer)
 	if err != nil {
@@ -260,9 +293,28 @@ func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*boot
 	}
 
 	highestRound := bootStorer.GetHighestRound()
+	var checkpoint *common.RecoveryCheckpoint
+	if e.generalConfig.HardforkRecoveryCheckpoint.Enabled {
+		checkpoint, err = common.NewRecoveryCheckpoint(&e.generalConfig)
+		if err != nil {
+			return nil, nil, err
+		}
+		if highestRound >= int64(checkpoint.Round) && uint64(highestRound) <= checkpoint.ExcludedEnd {
+			highestRound = int64(checkpoint.Round)
+		}
+	}
 	bootstrapData, err := bootStorer.Get(highestRound)
 	if err != nil {
 		return nil, nil, err
+	}
+	if checkpoint != nil {
+		if uint64(highestRound) == checkpoint.Round {
+			expectedHash, ok := checkpoint.HeaderHash(e.baseData.shardId)
+			if !ok || !bytes.Equal(bootstrapData.LastHeader.Hash, expectedHash) || bootstrapData.LastHeader.ShardId != e.baseData.shardId {
+				return nil, nil, common.ErrInvalidRecoveryCheckpoint
+			}
+		}
+		e.baseData.lastRound = highestRound
 	}
 
 	ncInternalkey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), bootstrapData.NodesCoordinatorConfigKey...)
@@ -280,19 +332,52 @@ func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*boot
 	return &bootstrapData, config, nil
 }
 
+func (e *epochStartBootstrap) isRecoveryCheckpointSelected() bool {
+	checkpoint := e.generalConfig.HardforkRecoveryCheckpoint
+	return checkpoint.Enabled && e.baseData.lastRound == int64(checkpoint.Round)
+}
+
 func (e *epochStartBootstrap) getEpochStartMetaFromStorage(storer storage.Storer) (data.MetaHeaderHandler, error) {
-	epochIdentifier := core.EpochStartIdentifier(e.baseData.lastEpoch)
-	epochStartMetaBlock, err := storer.SearchFirst([]byte(epochIdentifier))
-	if err != nil {
+	initialEpoch := e.baseData.lastEpoch
+	for epoch := initialEpoch; ; epoch-- {
+		epochIdentifier := core.EpochStartIdentifier(epoch)
+		epochStartMetaBlock, err := storer.SearchFirst([]byte(epochIdentifier))
+		if err == nil {
+			metaBlock, errUnmarshal := process.UnmarshalMetaHeader(e.coreComponentsHolder.InternalMarshalizer(), epochStartMetaBlock)
+			if errUnmarshal != nil {
+				return nil, errUnmarshal
+			}
+
+			e.baseData.lastEpoch = epoch
+			return metaBlock, nil
+		}
+
 		log.Debug("getEpochStartMetaFromStorage", "key", epochIdentifier, "error", err)
-		return nil, err
+		if e.isRecoveryCheckpointSelected() {
+			return nil, err
+		}
+		if epoch == 0 {
+			return nil, err
+		}
+
+		log.Warn("getEpochStartMetaFromStorage: epoch start metablock missing, falling back to previous epoch",
+			"missing epoch", epoch,
+			"fallback epoch", epoch-1,
+		)
+	}
+}
+
+// checkNodesConfigForEpoch ensures the loaded nodes coordinator config contains an entry for the given
+// epoch, so the validator/shard assignment is not taken from a different epoch than the one we bootstrap.
+func (e *epochStartBootstrap) checkNodesConfigForEpoch(epoch uint32) error {
+	if e.nodesConfig == nil {
+		return fmt.Errorf("%w: epoch %d", epochStart.ErrMissingNodesConfigForBootstrapEpoch, epoch)
 	}
 
-	metaBlock := &block.MetaBlock{}
-	err = e.coreComponentsHolder.InternalMarshalizer().Unmarshal(metaBlock, epochStartMetaBlock)
-	if err != nil {
-		return nil, err
+	epochIDasString := fmt.Sprint(epoch)
+	if _, ok := e.nodesConfig.GetEpochsConfig()[epochIDasString]; !ok {
+		return fmt.Errorf("%w: epoch %d", epochStart.ErrMissingNodesConfigForBootstrapEpoch, epoch)
 	}
 
-	return metaBlock, nil
+	return nil
 }

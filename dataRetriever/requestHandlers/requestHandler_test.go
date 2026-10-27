@@ -4,23 +4,35 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
-	"github.com/multiversx/mx-chain-go/storage/cache"
-	dataRetrieverMocks "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/storage/cache"
+	dataRetrieverMocks "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 )
 
 var timeoutSendRequests = time.Second * 2
 var errExpected = errors.New("expected error")
+
+func createHashes(numHashes int) [][]byte {
+	hashes := make([][]byte, numHashes)
+	for index := range hashes {
+		hashes[index] = []byte(fmt.Sprintf("hash-%d", index))
+	}
+
+	return hashes
+}
 
 func createRequestersFinderStubThatShouldNotBeCalled(tb testing.TB) *dataRetrieverMocks.RequestersFinderStub {
 	return &dataRetrieverMocks.RequestersFinderStub{
@@ -52,6 +64,7 @@ func TestNewResolverRequestHandler(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		assert.Nil(t, rrh)
@@ -67,6 +80,7 @@ func TestNewResolverRequestHandler(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		assert.Nil(t, rrh)
@@ -82,6 +96,7 @@ func TestNewResolverRequestHandler(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		assert.Nil(t, rrh)
@@ -97,6 +112,7 @@ func TestNewResolverRequestHandler(t *testing.T) {
 			0,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		assert.Nil(t, rrh)
@@ -112,6 +128,7 @@ func TestNewResolverRequestHandler(t *testing.T) {
 			1,
 			0,
 			time.Millisecond-time.Nanosecond,
+			time.Millisecond,
 		)
 
 		assert.Nil(t, rrh)
@@ -127,6 +144,7 @@ func TestNewResolverRequestHandler(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		assert.Nil(t, err)
@@ -159,9 +177,10 @@ func TestResolverRequestHandler_RequestTransaction(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
-		rrh.RequestTransaction(0, make([][]byte, 0))
+		rrh.RequestTransactions(0, make([][]byte, 0))
 	})
 	t.Run("error when getting cross shard requester should not panic", func(t *testing.T) {
 		t.Parallel()
@@ -184,9 +203,10 @@ func TestResolverRequestHandler_RequestTransaction(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
-		rrh.RequestTransaction(0, [][]byte{[]byte("txHash")})
+		rrh.RequestTransactions(0, [][]byte{[]byte("txHash")})
 	})
 	t.Run("uncastable requester should not panic", func(t *testing.T) {
 		t.Parallel()
@@ -211,9 +231,10 @@ func TestResolverRequestHandler_RequestTransaction(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
-		rrh.RequestTransaction(0, [][]byte{[]byte("txHash")})
+		rrh.RequestTransactions(0, [][]byte{[]byte("txHash")})
 	})
 	t.Run("should request", func(t *testing.T) {
 		t.Parallel()
@@ -237,9 +258,10 @@ func TestResolverRequestHandler_RequestTransaction(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
-		rrh.RequestTransaction(0, [][]byte{[]byte("txHash")})
+		rrh.RequestTransactions(0, [][]byte{[]byte("txHash")})
 
 		select {
 		case <-chTxRequested:
@@ -273,21 +295,22 @@ func TestResolverRequestHandler_RequestTransaction(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
-		rrh.RequestTransaction(0, [][]byte{[]byte("txHash")})
-		rrh.RequestTransaction(1, [][]byte{[]byte("txHash")})
-		rrh.RequestTransaction(0, [][]byte{[]byte("txHash")})
-		rrh.RequestTransaction(1, [][]byte{[]byte("txHash")})
+		rrh.RequestTransactions(0, [][]byte{[]byte("txHash")})
+		rrh.RequestTransactions(1, [][]byte{[]byte("txHash")})
+		rrh.RequestTransactions(0, [][]byte{[]byte("txHash")})
+		rrh.RequestTransactions(1, [][]byte{[]byte("txHash")})
 
 		time.Sleep(time.Second) // let the go routines finish
 		assert.Equal(t, uint32(2), atomic.LoadUint32(&numRequests))
 		time.Sleep(time.Second) // sweep will take effect
 
-		rrh.RequestTransaction(0, [][]byte{[]byte("txHash")})
-		rrh.RequestTransaction(1, [][]byte{[]byte("txHash")})
-		rrh.RequestTransaction(0, [][]byte{[]byte("txHash")})
-		rrh.RequestTransaction(1, [][]byte{[]byte("txHash")})
+		rrh.RequestTransactions(0, [][]byte{[]byte("txHash")})
+		rrh.RequestTransactions(1, [][]byte{[]byte("txHash")})
+		rrh.RequestTransactions(0, [][]byte{[]byte("txHash")})
+		rrh.RequestTransactions(1, [][]byte{[]byte("txHash")})
 
 		time.Sleep(time.Second) // let the go routines finish
 		assert.Equal(t, uint32(4), atomic.LoadUint32(&numRequests))
@@ -321,9 +344,50 @@ func TestResolverRequestHandler_RequestTransaction(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
-		rrh.RequestTransaction(0, [][]byte{[]byte("txHash")})
+		rrh.RequestTransactions(0, [][]byte{[]byte("txHash")})
+
+		select {
+		case <-chTxRequested:
+		case <-time.After(timeoutSendRequests):
+			assert.Fail(t, "timeout while waiting to call RequestDataFromHashArray")
+		}
+
+		time.Sleep(time.Second)
+	})
+}
+
+func TestResolverRequestHandler_RequestTransactionsForEpoch(t *testing.T) {
+	t.Run("should request for given epoch", func(t *testing.T) {
+		t.Parallel()
+
+		requestEpoch := uint32(1)
+		chTxRequested := make(chan struct{})
+		txRequester := &dataRetrieverMocks.HashSliceRequesterStub{
+			RequestDataFromHashArrayCalled: func(hashes [][]byte, epoch uint32) error {
+				require.Equal(t, requestEpoch, epoch)
+				chTxRequested <- struct{}{}
+				return nil
+			},
+		}
+
+		rrh, _ := NewResolverRequestHandler(
+			&dataRetrieverMocks.RequestersFinderStub{
+				CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (requester dataRetriever.Requester, e error) {
+					return txRequester, nil
+				},
+			},
+			&mock.RequestedItemsHandlerStub{},
+			&mock.WhiteListHandlerStub{},
+			1,
+			0,
+			time.Second,
+			time.Millisecond,
+		)
+
+		rrh.RequestTransactionsForEpoch(0, [][]byte{[]byte("txHash")}, requestEpoch)
 
 		select {
 		case <-chTxRequested:
@@ -364,6 +428,7 @@ func TestResolverRequestHandler_RequestMiniBlock(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestMiniBlock(0, make([]byte, 0))
@@ -389,6 +454,7 @@ func TestResolverRequestHandler_RequestMiniBlock(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestMiniBlock(0, make([]byte, 0))
@@ -420,6 +486,7 @@ func TestResolverRequestHandler_RequestMiniBlock(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestMiniBlock(0, []byte("mbHash"))
@@ -446,6 +513,7 @@ func TestResolverRequestHandler_RequestMiniBlock(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestMiniBlock(0, []byte("mbHash"))
@@ -474,6 +542,7 @@ func TestResolverRequestHandler_RequestMiniBlock(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.SetEpoch(expectedEpoch)
@@ -499,6 +568,7 @@ func TestResolverRequestHandler_RequestShardHeader(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestShardHeader(0, make([]byte, 0))
@@ -513,6 +583,7 @@ func TestResolverRequestHandler_RequestShardHeader(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestShardHeader(1, make([]byte, 0))
@@ -537,6 +608,7 @@ func TestResolverRequestHandler_RequestShardHeader(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestShardHeader(0, []byte("hdrHash"))
@@ -563,6 +635,7 @@ func TestResolverRequestHandler_RequestShardHeader(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestShardHeader(0, []byte("hdrHash"))
@@ -588,6 +661,7 @@ func TestResolverRequestHandler_RequestMetaHeader(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestMetaHeader([]byte("hdrHash"))
@@ -613,6 +687,7 @@ func TestResolverRequestHandler_RequestMetaHeader(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestMetaHeader([]byte("hdrHash"))
@@ -631,6 +706,7 @@ func TestResolverRequestHandler_RequestMetaHeader(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestMetaHeader([]byte("hdrHash"))
@@ -655,6 +731,7 @@ func TestResolverRequestHandler_RequestMetaHeader(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestMetaHeader([]byte("hdrHash"))
@@ -681,9 +758,45 @@ func TestResolverRequestHandler_RequestMetaHeader(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestMetaHeader([]byte("hdrHash"))
+
+		assert.True(t, wasCalled)
+	})
+}
+
+func TestResolverRequestHandler_RequestMetaHeaderForEpoch(t *testing.T) {
+	t.Parallel()
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		requestEpoch := uint32(1)
+		wasCalled := false
+		mbRequester := &dataRetrieverMocks.HeaderRequesterStub{
+			RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
+				require.Equal(t, requestEpoch, epoch)
+				wasCalled = true
+				return nil
+			},
+		}
+
+		rrh, _ := NewResolverRequestHandler(
+			&dataRetrieverMocks.RequestersFinderStub{
+				MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, e error) {
+					return mbRequester, nil
+				},
+			},
+			&mock.RequestedItemsHandlerStub{},
+			&mock.WhiteListHandlerStub{},
+			1,
+			0,
+			time.Second,
+			time.Millisecond,
+		)
+
+		rrh.RequestMetaHeaderForEpoch([]byte("hdrHash"), requestEpoch)
 
 		assert.True(t, wasCalled)
 	})
@@ -708,6 +821,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonce(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestShardHeaderByNonce(0, 0)
@@ -729,6 +843,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonce(t *testing.T) {
 			1,
 			core.MetachainShardId,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestShardHeaderByNonce(1, 0)
@@ -755,6 +870,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonce(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestShardHeaderByNonce(0, 0)
@@ -782,6 +898,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonce(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestShardHeaderByNonce(0, 0)
@@ -813,6 +930,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonce(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestShardHeaderByNonce(0, 0)
@@ -839,6 +957,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonce(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestShardHeaderByNonce(0, 0)
@@ -864,6 +983,7 @@ func TestResolverRequestHandler_RequestMetaHeaderByNonce(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestMetaHeaderByNonce(0)
@@ -886,6 +1006,7 @@ func TestResolverRequestHandler_RequestMetaHeaderByNonce(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestMetaHeaderByNonce(0)
@@ -910,6 +1031,7 @@ func TestResolverRequestHandler_RequestMetaHeaderByNonce(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestMetaHeaderByNonce(0)
@@ -936,9 +1058,46 @@ func TestResolverRequestHandler_RequestMetaHeaderByNonce(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestMetaHeaderByNonce(0)
+
+		assert.True(t, wasCalled)
+	})
+}
+
+func TestResolverRequestHandler_RequestMetaHeaderByNonceForEpoch(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		requestEpoch := uint32(1)
+		wasCalled := false
+		hdrRequester := &dataRetrieverMocks.HeaderRequesterStub{
+			RequestDataFromNonceCalled: func(nonce uint64, epoch uint32) error {
+				wasCalled = true
+				require.Equal(t, requestEpoch, epoch)
+				return nil
+			},
+		}
+
+		rrh, _ := NewResolverRequestHandler(
+			&dataRetrieverMocks.RequestersFinderStub{
+				MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, e error) {
+					return hdrRequester, nil
+				},
+			},
+			&mock.RequestedItemsHandlerStub{},
+			&mock.WhiteListHandlerStub{},
+			100,
+			0,
+			time.Second,
+			time.Millisecond,
+		)
+
+		rrh.RequestMetaHeaderByNonceForEpoch(0, requestEpoch)
 
 		assert.True(t, wasCalled)
 	})
@@ -965,6 +1124,7 @@ func TestResolverRequestHandler_RequestScrErrorWhenGettingCrossShardRequesterSho
 		1,
 		0,
 		time.Second,
+		time.Millisecond,
 	)
 
 	rrh.RequestUnsignedTransactions(0, make([][]byte, 0))
@@ -993,6 +1153,7 @@ func TestResolverRequestHandler_RequestScrWrongResolverShouldNotPanic(t *testing
 		1,
 		0,
 		time.Second,
+		time.Millisecond,
 	)
 
 	rrh.RequestUnsignedTransactions(0, make([][]byte, 0))
@@ -1020,6 +1181,7 @@ func TestResolverRequestHandler_RequestScrShouldRequestScr(t *testing.T) {
 		1,
 		0,
 		time.Second,
+		time.Millisecond,
 	)
 
 	rrh.RequestUnsignedTransactions(0, [][]byte{[]byte("txHash")})
@@ -1029,8 +1191,42 @@ func TestResolverRequestHandler_RequestScrShouldRequestScr(t *testing.T) {
 	case <-time.After(timeoutSendRequests):
 		assert.Fail(t, "timeout while waiting to call RequestDataFromHashArray")
 	}
+}
 
-	time.Sleep(time.Second)
+func TestResolverRequestHandler_RequestScrForEpochShouldRequestScr(t *testing.T) {
+	t.Parallel()
+
+	requestEpoch := uint32(1)
+	chTxRequested := make(chan struct{})
+	txRequester := &dataRetrieverMocks.HashSliceRequesterStub{
+		RequestDataFromHashArrayCalled: func(hashes [][]byte, epoch uint32) error {
+			require.Equal(t, requestEpoch, epoch)
+			chTxRequested <- struct{}{}
+			return nil
+		},
+	}
+
+	rrh, _ := NewResolverRequestHandler(
+		&dataRetrieverMocks.RequestersFinderStub{
+			CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (requester dataRetriever.Requester, e error) {
+				return txRequester, nil
+			},
+		},
+		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerStub{},
+		1,
+		0,
+		time.Second,
+		time.Millisecond,
+	)
+
+	rrh.RequestUnsignedTransactionsForEpoch(0, [][]byte{[]byte("txHash")}, requestEpoch)
+
+	select {
+	case <-chTxRequested:
+	case <-time.After(timeoutSendRequests):
+		assert.Fail(t, "timeout while waiting to call RequestDataFromHashArray")
+	}
 }
 
 func TestResolverRequestHandler_RequestScrErrorsOnRequestShouldNotPanic(t *testing.T) {
@@ -1062,6 +1258,7 @@ func TestResolverRequestHandler_RequestScrErrorsOnRequestShouldNotPanic(t *testi
 		1,
 		0,
 		time.Second,
+		time.Millisecond,
 	)
 
 	rrh.RequestUnsignedTransactions(0, [][]byte{[]byte("txHash")})
@@ -1071,8 +1268,6 @@ func TestResolverRequestHandler_RequestScrErrorsOnRequestShouldNotPanic(t *testi
 	case <-time.After(timeoutSendRequests):
 		assert.Fail(t, "timeout while waiting to call RequestDataFromHashArray")
 	}
-
-	time.Sleep(time.Second)
 }
 
 func TestResolverRequestHandler_RequestRewardShouldRequestReward(t *testing.T) {
@@ -1097,6 +1292,7 @@ func TestResolverRequestHandler_RequestRewardShouldRequestReward(t *testing.T) {
 		1,
 		0,
 		time.Second,
+		time.Millisecond,
 	)
 
 	rrh.RequestRewardTransactions(0, [][]byte{[]byte("txHash")})
@@ -1106,8 +1302,42 @@ func TestResolverRequestHandler_RequestRewardShouldRequestReward(t *testing.T) {
 	case <-time.After(timeoutSendRequests):
 		assert.Fail(t, "timeout while waiting to call RequestDataFromHashArray")
 	}
+}
 
-	time.Sleep(time.Second)
+func TestResolverRequestHandler_RequestRewardForEpochShouldRequestReward(t *testing.T) {
+	t.Parallel()
+
+	requestEpoch := uint32(1)
+	chTxRequested := make(chan struct{})
+	txRequester := &dataRetrieverMocks.HashSliceRequesterStub{
+		RequestDataFromHashArrayCalled: func(hashes [][]byte, epoch uint32) error {
+			require.Equal(t, requestEpoch, epoch)
+			chTxRequested <- struct{}{}
+			return nil
+		},
+	}
+
+	rrh, _ := NewResolverRequestHandler(
+		&dataRetrieverMocks.RequestersFinderStub{
+			CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (requester dataRetriever.Requester, e error) {
+				return txRequester, nil
+			},
+		},
+		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerStub{},
+		1,
+		0,
+		time.Second,
+		time.Millisecond,
+	)
+
+	rrh.RequestRewardTransactionsForEpoch(0, [][]byte{[]byte("txHash")}, requestEpoch)
+
+	select {
+	case <-chTxRequested:
+	case <-time.After(timeoutSendRequests):
+		assert.Fail(t, "timeout while waiting to call RequestDataFromHashArray")
+	}
 }
 
 func TestRequestTrieNodes(t *testing.T) {
@@ -1117,7 +1347,7 @@ func TestRequestTrieNodes(t *testing.T) {
 		t.Parallel()
 
 		chTxRequested := make(chan struct{})
-		requesterMock := &dataRetrieverMocks.HashSliceRequesterStub{
+		requesterMock := &dataRetrieverMocks.TrieNodeRequesterStub{
 			RequestDataFromHashArrayCalled: func(hash [][]byte, epoch uint32) error {
 				chTxRequested <- struct{}{}
 				return nil
@@ -1135,6 +1365,7 @@ func TestRequestTrieNodes(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestTrieNodes(0, [][]byte{[]byte("hash")}, "topic")
@@ -1163,6 +1394,7 @@ func TestRequestTrieNodes(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestTrieNodes(core.MetachainShardId, [][]byte{[]byte("hash")}, "topic")
@@ -1183,6 +1415,7 @@ func TestRequestTrieNodes(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestTrieNodes(core.MetachainShardId, [][]byte{}, "topic")
@@ -1211,6 +1444,7 @@ func TestResolverRequestHandler_RequestStartOfEpochMetaBlock(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestStartOfEpochMetaBlock(0)
@@ -1231,6 +1465,7 @@ func TestResolverRequestHandler_RequestStartOfEpochMetaBlock(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestStartOfEpochMetaBlock(0)
@@ -1252,6 +1487,7 @@ func TestResolverRequestHandler_RequestStartOfEpochMetaBlock(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestStartOfEpochMetaBlock(0)
@@ -1279,6 +1515,7 @@ func TestResolverRequestHandler_RequestStartOfEpochMetaBlock(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestStartOfEpochMetaBlock(0)
@@ -1310,6 +1547,7 @@ func TestResolverRequestHandler_RequestStartOfEpochMetaBlock(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestStartOfEpochMetaBlock(0)
@@ -1320,7 +1558,7 @@ func TestResolverRequestHandler_RequestStartOfEpochMetaBlock(t *testing.T) {
 func TestResolverRequestHandler_RequestTrieNodeRequestFails(t *testing.T) {
 	chTxRequested := make(chan struct{})
 	localErr := errors.New("local error")
-	requesterMock := &dataRetrieverMocks.ChunkRequesterStub{
+	requesterMock := &dataRetrieverMocks.TrieNodeRequesterStub{
 		RequestDataFromReferenceAndChunkCalled: func(hash []byte, chunkIndex uint32) error {
 			chTxRequested <- struct{}{}
 			return localErr
@@ -1338,6 +1576,7 @@ func TestResolverRequestHandler_RequestTrieNodeRequestFails(t *testing.T) {
 		1,
 		0,
 		time.Second,
+		time.Millisecond,
 	)
 
 	rrh.RequestTrieNode([]byte("hash"), "topic", 1)
@@ -1352,7 +1591,7 @@ func TestResolverRequestHandler_RequestTrieNodeRequestFails(t *testing.T) {
 
 func TestResolverRequestHandler_RequestTrieNodeShouldWork(t *testing.T) {
 	chTxRequested := make(chan struct{})
-	requesterMock := &dataRetrieverMocks.ChunkRequesterStub{
+	requesterMock := &dataRetrieverMocks.TrieNodeRequesterStub{
 		RequestDataFromReferenceAndChunkCalled: func(hash []byte, chunkIndex uint32) error {
 			chTxRequested <- struct{}{}
 			return nil
@@ -1370,6 +1609,7 @@ func TestResolverRequestHandler_RequestTrieNodeShouldWork(t *testing.T) {
 		1,
 		0,
 		time.Second,
+		time.Millisecond,
 	)
 
 	rrh.RequestTrieNode([]byte("hash"), "topic", 1)
@@ -1397,6 +1637,7 @@ func TestResolverRequestHandler_RequestTrieNodeNilResolver(t *testing.T) {
 		1,
 		0,
 		time.Second,
+		time.Millisecond,
 	)
 
 	rrh.RequestTrieNode([]byte("hash"), "topic", 1)
@@ -1419,6 +1660,7 @@ func TestResolverRequestHandler_RequestTrieNodeNotAValidResolver(t *testing.T) {
 		1,
 		0,
 		time.Second,
+		time.Millisecond,
 	)
 
 	rrh.RequestTrieNode([]byte("hash"), "topic", 1)
@@ -1452,6 +1694,7 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsByHashes(t *testing.T)
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestPeerAuthenticationsByHashes(providedShardId, providedHashes)
@@ -1473,6 +1716,7 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsByHashes(t *testing.T)
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestPeerAuthenticationsByHashes(providedShardId, providedHashes)
@@ -1505,6 +1749,7 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsByHashes(t *testing.T)
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestPeerAuthenticationsByHashes(providedShardId, providedHashes)
@@ -1521,10 +1766,13 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsByHashes(t *testing.T)
 		}()
 
 		wasCalled := false
+		wasWhitelisted := false
+		longPublicKey := bytes.Repeat([]byte("p"), common.MaxPeerAuthenticationPublicKeyIdentifierLen+8)
+		providedHashesForTest := [][]byte{longPublicKey, []byte("h2")}
 		paRequester := &dataRetrieverMocks.HashSliceRequesterStub{
 			RequestDataFromHashArrayCalled: func(hashes [][]byte, epoch uint32) error {
 				wasCalled = true
-				assert.Equal(t, providedHashes, hashes)
+				assert.Equal(t, providedHashesForTest, hashes)
 				return nil
 			},
 		}
@@ -1536,15 +1784,67 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsByHashes(t *testing.T)
 				},
 			},
 			&mock.RequestedItemsHandlerStub{},
-			&mock.WhiteListHandlerStub{},
+			&mock.WhiteListHandlerStub{
+				AddCalled: func(keys [][]byte) {
+					wasWhitelisted = true
+					assert.Equal(t, [][]byte{longPublicKey[:common.MaxPeerAuthenticationPublicKeyIdentifierLen], []byte("h2")}, keys)
+				},
+			},
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
-		rrh.RequestPeerAuthenticationsByHashes(providedShardId, providedHashes)
+		rrh.RequestPeerAuthenticationsByHashes(providedShardId, providedHashesForTest)
 		assert.True(t, wasCalled)
+		assert.True(t, wasWhitelisted)
 	})
+}
+
+func TestResolverRequestHandler_RequestPeerAuthenticationsByHashesShouldBatch(t *testing.T) {
+	t.Parallel()
+
+	providedHashes := createHashes(common.MaxHashesInRequest + 1)
+	requestEpoch := uint32(7)
+	requestedBatches := make([][][]byte, 0)
+	peerAuthRequester := &dataRetrieverMocks.HashSliceRequesterStub{
+		RequestDataFromHashArrayCalled: func(hashes [][]byte, epoch uint32) error {
+			require.Equal(t, requestEpoch, epoch)
+			requestedBatches = append(requestedBatches, hashes)
+			return nil
+		},
+	}
+
+	var whitelistedIdentifiers [][]byte
+	rrh, _ := NewResolverRequestHandler(
+		&dataRetrieverMocks.RequestersFinderStub{
+			MetaChainRequesterCalled: func(baseTopic string) (dataRetriever.Requester, error) {
+				require.Equal(t, common.PeerAuthenticationTopic, baseTopic)
+				return peerAuthRequester, nil
+			},
+		},
+		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerStub{
+			AddCalled: func(keys [][]byte) {
+				whitelistedIdentifiers = keys
+			},
+		},
+		1,
+		0,
+		time.Second,
+		time.Millisecond,
+	)
+
+	rrh.RequestPeerAuthenticationsByHashesForEpoch(3, providedHashes, requestEpoch)
+
+	require.Len(t, requestedBatches, 2)
+	require.Equal(t, providedHashes[:common.MaxHashesInRequest], requestedBatches[0])
+	require.Equal(t, providedHashes[common.MaxHashesInRequest:], requestedBatches[1])
+	require.Len(t, whitelistedIdentifiers, len(providedHashes))
+	for index, hash := range providedHashes {
+		require.Equal(t, common.PeerAuthenticationPublicKeyIdentifier(hash), whitelistedIdentifiers[index])
+	}
 }
 
 func TestResolverRequestHandler_RequestValidatorInfo(t *testing.T) {
@@ -1570,6 +1870,7 @@ func TestResolverRequestHandler_RequestValidatorInfo(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestValidatorInfo(providedHash)
@@ -1597,6 +1898,7 @@ func TestResolverRequestHandler_RequestValidatorInfo(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestValidatorInfo(providedHash)
@@ -1628,6 +1930,7 @@ func TestResolverRequestHandler_RequestValidatorInfo(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestValidatorInfo(providedHash)
@@ -1657,11 +1960,72 @@ func TestResolverRequestHandler_RequestValidatorInfo(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestValidatorInfo(providedHash)
 		assert.True(t, wasCalled)
 	})
+}
+
+func TestResolverRequestHandler_RequestValidatorsInfoShouldBatchAndTrackSuccessfulRequests(t *testing.T) {
+	t.Parallel()
+
+	providedHashes := createHashes(2*common.MaxHashesInRequest + 1)
+	requestEpoch := uint32(8)
+	requestedBatches := make([][][]byte, 0)
+	validatorInfoRequester := &dataRetrieverMocks.HashSliceRequesterStub{
+		RequestDataFromHashArrayCalled: func(hashes [][]byte, epoch uint32) error {
+			require.Equal(t, requestEpoch, epoch)
+			requestedBatches = append(requestedBatches, hashes)
+			if len(requestedBatches) == 2 {
+				return errExpected
+			}
+
+			return nil
+		},
+	}
+
+	trackedHashes := make(map[string]struct{})
+	var whitelistedHashes [][]byte
+	rrh, _ := NewResolverRequestHandler(
+		&dataRetrieverMocks.RequestersFinderStub{
+			MetaChainRequesterCalled: func(baseTopic string) (dataRetriever.Requester, error) {
+				require.Equal(t, common.ValidatorInfoTopic, baseTopic)
+				return validatorInfoRequester, nil
+			},
+		},
+		&mock.RequestedItemsHandlerStub{
+			AddCalled: func(key string) error {
+				trackedHashes[key] = struct{}{}
+				return nil
+			},
+		},
+		&mock.WhiteListHandlerStub{
+			AddCalled: func(keys [][]byte) {
+				whitelistedHashes = keys
+			},
+		},
+		1,
+		0,
+		time.Second,
+		time.Millisecond,
+	)
+
+	rrh.RequestValidatorsInfoForEpoch(providedHashes, requestEpoch)
+
+	require.Len(t, requestedBatches, 3)
+	require.Equal(t, providedHashes[:common.MaxHashesInRequest], requestedBatches[0])
+	require.Equal(t, providedHashes[common.MaxHashesInRequest:2*common.MaxHashesInRequest], requestedBatches[1])
+	require.Equal(t, providedHashes[2*common.MaxHashesInRequest:], requestedBatches[2])
+	require.Equal(t, providedHashes, whitelistedHashes)
+	require.Len(t, trackedHashes, common.MaxHashesInRequest+1)
+	_, firstBatchTracked := trackedHashes[string(providedHashes[0])+uniqueValidatorInfoSuffix]
+	require.True(t, firstBatchTracked)
+	_, failedBatchTracked := trackedHashes[string(providedHashes[common.MaxHashesInRequest])+uniqueValidatorInfoSuffix]
+	require.False(t, failedBatchTracked)
+	_, finalBatchTracked := trackedHashes[string(providedHashes[2*common.MaxHashesInRequest])+uniqueValidatorInfoSuffix]
+	require.True(t, finalBatchTracked)
 }
 
 func TestResolverRequestHandler_RequestValidatorsInfo(t *testing.T) {
@@ -1682,6 +2046,7 @@ func TestResolverRequestHandler_RequestValidatorsInfo(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestValidatorsInfo([][]byte{})
@@ -1709,6 +2074,7 @@ func TestResolverRequestHandler_RequestValidatorsInfo(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestValidatorsInfo([][]byte{providedHash})
@@ -1740,6 +2106,7 @@ func TestResolverRequestHandler_RequestValidatorsInfo(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestValidatorsInfo([][]byte{providedHash})
@@ -1765,6 +2132,7 @@ func TestResolverRequestHandler_RequestValidatorsInfo(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestValidatorsInfo([][]byte{providedHash})
@@ -1795,6 +2163,7 @@ func TestResolverRequestHandler_RequestValidatorsInfo(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestValidatorsInfo(providedHashes)
@@ -1820,6 +2189,7 @@ func TestResolverRequestHandler_RequestMiniblocks(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestMiniBlocks(0, [][]byte{})
@@ -1838,6 +2208,7 @@ func TestResolverRequestHandler_RequestMiniblocks(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestMiniBlocks(0, [][]byte{[]byte("mbHash")})
@@ -1861,6 +2232,7 @@ func TestResolverRequestHandler_RequestMiniblocks(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestMiniBlocks(0, [][]byte{[]byte("mbHash")})
@@ -1884,6 +2256,7 @@ func TestResolverRequestHandler_RequestMiniblocks(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestMiniBlocks(0, [][]byte{[]byte("mbHash")})
@@ -1902,10 +2275,94 @@ func TestResolverRequestHandler_RequestMiniblocks(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestMiniBlocks(0, [][]byte{[]byte("mbHash")})
 	})
+	t.Run("should deduplicate hashes within the same batch", func(t *testing.T) {
+		t.Parallel()
+
+		duplicateHash := []byte("mbHash")
+		numCalls := uint32(0)
+		var receivedHashes [][]byte
+		mbRequester := &dataRetrieverMocks.HashSliceRequesterStub{
+			RequestDataFromHashArrayCalled: func(hashes [][]byte, epoch uint32) error {
+				atomic.AddUint32(&numCalls, 1)
+				receivedHashes = hashes
+				return nil
+			},
+		}
+		rrh, _ := NewResolverRequestHandler(
+			&dataRetrieverMocks.RequestersFinderStub{
+				CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (dataRetriever.Requester, error) {
+					return mbRequester, nil
+				},
+			},
+			&mock.RequestedItemsHandlerStub{},
+			&mock.WhiteListHandlerStub{},
+			100,
+			0,
+			time.Second,
+			time.Millisecond,
+		)
+
+		rrh.RequestMiniBlocks(0, [][]byte{duplicateHash, duplicateHash, duplicateHash})
+		assert.Equal(t, uint32(1), atomic.LoadUint32(&numCalls))
+		require.Len(t, receivedHashes, 1)
+		assert.Equal(t, duplicateHash, receivedHashes[0])
+	})
+}
+
+func TestResolverRequestHandler_RequestMiniblocksShouldBatch(t *testing.T) {
+	t.Parallel()
+
+	providedHashes := createHashes(common.MaxHashesInRequest + 1)
+	requestEpoch := uint32(9)
+	destinationShard := uint32(2)
+	requestedBatches := make([][][]byte, 0)
+	miniBlocksRequester := &dataRetrieverMocks.HashSliceRequesterStub{
+		RequestDataFromHashArrayCalled: func(hashes [][]byte, epoch uint32) error {
+			require.Equal(t, requestEpoch, epoch)
+			requestedBatches = append(requestedBatches, hashes)
+			return nil
+		},
+	}
+
+	trackedHashes := make(map[string]struct{})
+	var whitelistedHashes [][]byte
+	rrh, _ := NewResolverRequestHandler(
+		&dataRetrieverMocks.RequestersFinderStub{
+			CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (dataRetriever.Requester, error) {
+				require.Equal(t, factory.MiniBlocksTopic, baseTopic)
+				require.Equal(t, destinationShard, crossShard)
+				return miniBlocksRequester, nil
+			},
+		},
+		&mock.RequestedItemsHandlerStub{
+			AddCalled: func(key string) error {
+				trackedHashes[key] = struct{}{}
+				return nil
+			},
+		},
+		&mock.WhiteListHandlerStub{
+			AddCalled: func(keys [][]byte) {
+				whitelistedHashes = keys
+			},
+		},
+		1,
+		0,
+		time.Second,
+		time.Millisecond,
+	)
+
+	rrh.RequestMiniBlocksForEpoch(destinationShard, providedHashes, requestEpoch)
+
+	require.Len(t, requestedBatches, 2)
+	require.Equal(t, providedHashes[:common.MaxHashesInRequest], requestedBatches[0])
+	require.Equal(t, providedHashes[common.MaxHashesInRequest:], requestedBatches[1])
+	require.Equal(t, providedHashes, whitelistedHashes)
+	require.Len(t, trackedHashes, len(providedHashes))
 }
 
 func TestResolverRequestHandler_RequestInterval(t *testing.T) {
@@ -1918,6 +2375,7 @@ func TestResolverRequestHandler_RequestInterval(t *testing.T) {
 		100,
 		0,
 		time.Second,
+		time.Millisecond,
 	)
 	require.Equal(t, time.Second, rrh.RequestInterval())
 }
@@ -1939,6 +2397,7 @@ func TestResolverRequestHandler_NumPeersToQuery(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		_, _, err := rrh.GetNumPeersToQuery("key")
@@ -1971,6 +2430,7 @@ func TestResolverRequestHandler_NumPeersToQuery(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		intra, cross, err := rrh.GetNumPeersToQuery("key")
@@ -1996,6 +2456,7 @@ func TestResolverRequestHandler_IsInterfaceNil(t *testing.T) {
 		100,
 		0,
 		time.Second,
+		time.Millisecond,
 	)
 	require.False(t, rrh.IsInterfaceNil())
 }
@@ -2027,6 +2488,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestEquivalentProofByHash(core.MetachainShardId, providedHash)
@@ -2046,6 +2508,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestEquivalentProofByHash(1, providedHash)
@@ -2069,6 +2532,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 			100,
 			core.MetachainShardId,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestEquivalentProofByHash(core.MetachainShardId, providedHash)
@@ -2092,6 +2556,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestEquivalentProofByHash(1, providedHash)
@@ -2119,6 +2584,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 			100,
 			core.MetachainShardId,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestEquivalentProofByHash(core.MetachainShardId, providedHash)
@@ -2145,6 +2611,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestEquivalentProofByHash(0, providedHash)
@@ -2175,6 +2642,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 			100,
 			core.MetachainShardId,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestEquivalentProofByHash(core.MetachainShardId, providedHash)
@@ -2204,6 +2672,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestEquivalentProofByHash(0, providedHash)
@@ -2234,9 +2703,559 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 			100,
 			core.MetachainShardId,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestEquivalentProofByHash(0, providedHash)
 		assert.True(t, wasCalled)
+	})
+}
+
+func TestResolverRequestHandler_RequestEquivalentProofByNonce(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nonce already requested should work", func(t *testing.T) {
+		t.Parallel()
+
+		nonce := uint64(10)
+		rrh, _ := NewResolverRequestHandler(
+			&dataRetrieverMocks.RequestersFinderStub{
+				MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, e error) {
+					require.Fail(t, "should not have been called")
+					return nil, nil
+				},
+			},
+			&mock.RequestedItemsHandlerStub{
+				HasCalled: func(key string) bool {
+					return true
+				},
+			},
+			&mock.WhiteListHandlerStub{
+				AddCalled: func(keys [][]byte) {
+					require.Fail(t, "should not have been called")
+				},
+			},
+			100,
+			0,
+			time.Second,
+			time.Millisecond,
+		)
+
+		rrh.RequestEquivalentProofByNonce(core.MetachainShardId, nonce)
+	})
+	t.Run("invalid cross-shard request should early exit", func(t *testing.T) {
+		t.Parallel()
+
+		nonce := uint64(10)
+		rrh, _ := NewResolverRequestHandler(
+			&dataRetrieverMocks.RequestersFinderStub{},
+			&mock.RequestedItemsHandlerStub{},
+			&mock.WhiteListHandlerStub{
+				AddCalled: func(keys [][]byte) {
+					require.Fail(t, "should not have been called")
+				},
+			},
+			100,
+			0,
+			time.Second,
+			time.Millisecond,
+		)
+
+		rrh.RequestEquivalentProofByNonce(1, nonce)
+	})
+	t.Run("missing metachain requester should early exit", func(t *testing.T) {
+		t.Parallel()
+
+		nonce := uint64(10)
+		rrh, _ := NewResolverRequestHandler(
+			&dataRetrieverMocks.RequestersFinderStub{
+				MetaChainRequesterCalled: func(baseTopic string) (dataRetriever.Requester, error) {
+					return nil, errExpected
+				},
+			},
+			&mock.RequestedItemsHandlerStub{},
+			&mock.WhiteListHandlerStub{
+				AddCalled: func(keys [][]byte) {
+					require.Fail(t, "should not have been called")
+				},
+			},
+			100,
+			core.MetachainShardId,
+			time.Second,
+			time.Millisecond,
+		)
+
+		rrh.RequestEquivalentProofByNonce(core.MetachainShardId, nonce)
+	})
+	t.Run("missing cross-shard requester should early exit", func(t *testing.T) {
+		t.Parallel()
+
+		nonce := uint64(10)
+		rrh, _ := NewResolverRequestHandler(
+			&dataRetrieverMocks.RequestersFinderStub{
+				CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (dataRetriever.Requester, error) {
+					return nil, errExpected
+				},
+			},
+			&mock.RequestedItemsHandlerStub{},
+			&mock.WhiteListHandlerStub{
+				AddCalled: func(keys [][]byte) {
+					require.Fail(t, "should not have been called")
+				},
+			},
+			100,
+			0,
+			time.Second,
+			time.Millisecond,
+		)
+
+		rrh.RequestEquivalentProofByNonce(1, nonce)
+	})
+	t.Run("MetaChainRequester returns error", func(t *testing.T) {
+		t.Parallel()
+
+		nonce := uint64(10)
+		res := &dataRetrieverMocks.EquivalentProofRequesterStub{
+			RequestDataFromNonceCalled: func(key []byte, epoch uint32) error {
+				require.Fail(t, "should not have been called")
+
+				return nil
+			},
+		}
+
+		rrh, _ := NewResolverRequestHandler(
+			&dataRetrieverMocks.RequestersFinderStub{
+				MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, e error) {
+					return res, errExpected
+				},
+			},
+			&mock.RequestedItemsHandlerStub{},
+			&mock.WhiteListHandlerStub{},
+			100,
+			core.MetachainShardId,
+			time.Second,
+			time.Millisecond,
+		)
+
+		rrh.RequestEquivalentProofByNonce(core.MetachainShardId, nonce)
+	})
+	t.Run("CrossChainRequester returns error", func(t *testing.T) {
+		t.Parallel()
+
+		nonce := uint64(10)
+		res := &dataRetrieverMocks.EquivalentProofRequesterStub{
+			RequestDataFromNonceCalled: func(hash []byte, epoch uint32) error {
+				require.Fail(t, "should not have been called")
+				return nil
+			},
+		}
+
+		rrh, _ := NewResolverRequestHandler(
+			&dataRetrieverMocks.RequestersFinderStub{
+				CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (dataRetriever.Requester, error) {
+					return res, errExpected
+				},
+			},
+			&mock.RequestedItemsHandlerStub{},
+			&mock.WhiteListHandlerStub{},
+			100,
+			0,
+			time.Second,
+			time.Millisecond,
+		)
+
+		rrh.RequestEquivalentProofByNonce(0, nonce)
+	})
+	t.Run("RequestDataFromNonce returns error", func(t *testing.T) {
+		t.Parallel()
+
+		shardID := core.MetachainShardId
+		requestNonce := uint64(10)
+		expectedRequestKey := common.GetEquivalentProofNonceShardKey(requestNonce, shardID)
+		res := &dataRetrieverMocks.EquivalentProofRequesterStub{
+			RequestDataFromNonceCalled: func(nonceShardKey []byte, epoch uint32) error {
+				require.Equal(t, []byte(expectedRequestKey), nonceShardKey)
+				return errExpected
+			},
+		}
+
+		rrh, _ := NewResolverRequestHandler(
+			&dataRetrieverMocks.RequestersFinderStub{
+				MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, e error) {
+					return res, nil
+				},
+			},
+			&mock.RequestedItemsHandlerStub{
+				AddCalled: func(key string) error {
+					require.Fail(t, "should not have been called")
+					return nil
+				},
+			},
+			&mock.WhiteListHandlerStub{},
+			100,
+			core.MetachainShardId,
+			time.Second,
+			time.Millisecond,
+		)
+
+		rrh.RequestEquivalentProofByNonce(shardID, requestNonce)
+	})
+	t.Run("should work shard 0 requesting from 0", func(t *testing.T) {
+		t.Parallel()
+
+		shardID := uint32(0)
+		requestNonce := uint64(10)
+		expectedRequestKey := common.GetEquivalentProofNonceShardKey(requestNonce, shardID)
+		wasCalled := atomic.Bool{}
+		res := &dataRetrieverMocks.EquivalentProofRequesterStub{
+			RequestDataFromNonceCalled: func(nonceShardKey []byte, epoch uint32) error {
+				require.Equal(t, []byte(expectedRequestKey), nonceShardKey)
+				wasCalled.Store(true)
+				return nil
+			},
+		}
+
+		rrh, _ := NewResolverRequestHandler(
+			&dataRetrieverMocks.RequestersFinderStub{
+				CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (dataRetriever.Requester, error) {
+					return res, nil
+				},
+			},
+			&mock.RequestedItemsHandlerStub{},
+			&mock.WhiteListHandlerStub{},
+			100,
+			0,
+			time.Second,
+			time.Millisecond,
+		)
+
+		rrh.RequestEquivalentProofByNonce(shardID, requestNonce)
+		time.Sleep(time.Millisecond * 20)
+		require.True(t, wasCalled.Load())
+	})
+}
+
+func (rrh *resolverRequestHandler) numInFlightProofsByNonce() int {
+	rrh.mutInFlightProofsByNonce.Lock()
+	defer rrh.mutInFlightProofsByNonce.Unlock()
+
+	return len(rrh.inFlightProofsByNonce)
+}
+
+func waitUntil(tb testing.TB, condition func() bool, failMessage string) {
+	deadline := time.Now().Add(timeoutSendRequests)
+	for time.Now().Before(deadline) {
+		if condition() {
+			return
+		}
+		time.Sleep(time.Millisecond)
+	}
+	require.Fail(tb, failMessage)
+}
+
+func waitForNoInFlightProofsByNonce(tb testing.TB, rrh *resolverRequestHandler) {
+	waitUntil(tb, func() bool { return rrh.numInFlightProofsByNonce() == 0 }, "in-flight proof-by-nonce reservation leaked")
+}
+
+func waitForCounter(tb testing.TB, counter *atomic.Int32, expected int32) {
+	waitUntil(tb, func() bool { return counter.Load() == expected }, fmt.Sprintf("counter did not reach %d", expected))
+}
+
+type proofByNonceCoalescingTestArgs struct {
+	requestedItems     dataRetriever.RequestedItemsHandler
+	whiteList          dataRetriever.WhiteListHandler
+	requestDelay       time.Duration
+	requestInterval    time.Duration
+	requester          dataRetriever.Requester
+	requesterErr       error
+	shardID            uint32
+	numWhiteListedKeys *atomic.Int32
+}
+
+func newProofByNonceCoalescingHandler(args proofByNonceCoalescingTestArgs) *resolverRequestHandler {
+	if args.requestedItems == nil {
+		args.requestedItems = cache.NewTimeCache(time.Second)
+	}
+	if args.whiteList == nil {
+		args.whiteList = &mock.WhiteListHandlerStub{
+			AddCalled: func(keys [][]byte) {
+				if args.numWhiteListedKeys != nil {
+					args.numWhiteListedKeys.Add(int32(len(keys)))
+				}
+			},
+		}
+	}
+	if args.requestInterval == 0 {
+		args.requestInterval = time.Second
+	}
+	rrh, _ := NewResolverRequestHandler(
+		&dataRetrieverMocks.RequestersFinderStub{
+			MetaChainRequesterCalled: func(baseTopic string) (dataRetriever.Requester, error) {
+				return args.requester, args.requesterErr
+			},
+			CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (dataRetriever.Requester, error) {
+				return args.requester, args.requesterErr
+			},
+		},
+		args.requestedItems,
+		args.whiteList,
+		100,
+		args.shardID,
+		args.requestInterval,
+		args.requestDelay,
+	)
+
+	return rrh
+}
+
+func TestResolverRequestHandler_RequestEquivalentProofByNonceCoalescing(t *testing.T) {
+	t.Parallel()
+
+	t.Run("many simultaneous callers produce exactly one network call and one whitelist add", func(t *testing.T) {
+		t.Parallel()
+
+		numSends := atomic.Int32{}
+		numWhiteListed := atomic.Int32{}
+		rrh := newProofByNonceCoalescingHandler(proofByNonceCoalescingTestArgs{
+			requestDelay:       50 * time.Millisecond,
+			numWhiteListedKeys: &numWhiteListed,
+			requester: &dataRetrieverMocks.EquivalentProofRequesterStub{
+				RequestDataFromNonceCalled: func(_ []byte, _ uint32) error {
+					numSends.Add(1)
+					return nil
+				},
+			},
+		})
+
+		wg := sync.WaitGroup{}
+		for i := 0; i < 64; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				rrh.RequestEquivalentProofByNonce(0, 10)
+			}()
+		}
+		wg.Wait()
+		waitForCounter(t, &numSends, 1)
+		waitForNoInFlightProofsByNonce(t, rrh)
+
+		require.Equal(t, int32(1), numSends.Load())
+		require.Equal(t, int32(1), numWhiteListed.Load())
+	})
+	t.Run("winner and duplicate callers return promptly while the request is in progress", func(t *testing.T) {
+		t.Parallel()
+
+		releaseSend := make(chan struct{})
+		numSends := atomic.Int32{}
+		rrh := newProofByNonceCoalescingHandler(proofByNonceCoalescingTestArgs{
+			requestDelay: 500 * time.Millisecond,
+			requester: &dataRetrieverMocks.EquivalentProofRequesterStub{
+				RequestDataFromNonceCalled: func(_ []byte, _ uint32) error {
+					numSends.Add(1)
+					<-releaseSend
+					return nil
+				},
+			},
+		})
+
+		start := time.Now()
+		rrh.RequestEquivalentProofByNonce(0, 10)
+		rrh.RequestEquivalentProofByNonce(0, 10)
+		rrh.RequestEquivalentProofByNonce(0, 10)
+		require.Less(t, time.Since(start), 250*time.Millisecond)
+		require.Zero(t, numSends.Load())
+		waitForCounter(t, &numSends, 1)
+		require.Equal(t, 1, rrh.numInFlightProofsByNonce())
+
+		close(releaseSend)
+		waitForNoInFlightProofsByNonce(t, rrh)
+		require.Equal(t, int32(1), numSends.Load())
+	})
+	t.Run("different nonces and shards are independent", func(t *testing.T) {
+		t.Parallel()
+
+		numSends := atomic.Int32{}
+		rrh := newProofByNonceCoalescingHandler(proofByNonceCoalescingTestArgs{
+			requestDelay: 20 * time.Millisecond,
+			shardID:      core.MetachainShardId,
+			requester: &dataRetrieverMocks.EquivalentProofRequesterStub{
+				RequestDataFromNonceCalled: func(_ []byte, _ uint32) error {
+					numSends.Add(1)
+					return nil
+				},
+			},
+		})
+
+		for i := 0; i < 5; i++ {
+			rrh.RequestEquivalentProofByNonce(0, 10)
+			rrh.RequestEquivalentProofByNonce(0, 11)
+			rrh.RequestEquivalentProofByNonce(1, 10)
+			rrh.RequestEquivalentProofByNonce(core.MetachainShardId, 10)
+		}
+		waitForCounter(t, &numSends, 4)
+		waitForNoInFlightProofsByNonce(t, rrh)
+	})
+	t.Run("cached key sends nothing and releases its reservation", func(t *testing.T) {
+		t.Parallel()
+
+		rrh := newProofByNonceCoalescingHandler(proofByNonceCoalescingTestArgs{
+			requestedItems: &mock.RequestedItemsHandlerStub{
+				HasCalled: func(key string) bool { return true },
+			},
+			whiteList: &mock.WhiteListHandlerStub{
+				AddCalled: func(keys [][]byte) { require.Fail(t, "should not whitelist") },
+			},
+			requester: &dataRetrieverMocks.EquivalentProofRequesterStub{
+				RequestDataFromNonceCalled: func(_ []byte, _ uint32) error {
+					require.Fail(t, "should not send")
+					return nil
+				},
+			},
+		})
+
+		rrh.RequestEquivalentProofByNonce(0, 10)
+		waitForNoInFlightProofsByNonce(t, rrh)
+	})
+	for _, failure := range []struct {
+		name         string
+		requester    dataRetriever.Requester
+		requesterErr error
+	}{
+		{name: "requester lookup failure", requester: &dataRetrieverMocks.EquivalentProofRequesterStub{}, requesterErr: errExpected},
+		{name: "wrong requester type", requester: &dataRetrieverMocks.RequesterStub{}},
+	} {
+		t.Run(failure.name+" releases the reservation and a later call retries", func(t *testing.T) {
+			t.Parallel()
+
+			numSends := atomic.Int32{}
+			rrh := newProofByNonceCoalescingHandler(proofByNonceCoalescingTestArgs{
+				requester:    failure.requester,
+				requesterErr: failure.requesterErr,
+			})
+
+			rrh.RequestEquivalentProofByNonce(0, 10)
+			waitForNoInFlightProofsByNonce(t, rrh)
+			require.Zero(t, numSends.Load())
+
+			rrh.requestersFinder = &dataRetrieverMocks.RequestersFinderStub{
+				CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (dataRetriever.Requester, error) {
+					return &dataRetrieverMocks.EquivalentProofRequesterStub{
+						RequestDataFromNonceCalled: func(_ []byte, _ uint32) error {
+							numSends.Add(1)
+							return nil
+						},
+					}, nil
+				},
+			}
+			rrh.RequestEquivalentProofByNonce(0, 10)
+			waitForCounter(t, &numSends, 1)
+			waitForNoInFlightProofsByNonce(t, rrh)
+		})
+	}
+	t.Run("send failure does not cache the key and a later call sends successfully", func(t *testing.T) {
+		t.Parallel()
+
+		numSends := atomic.Int32{}
+		requestedItems := cache.NewTimeCache(time.Second)
+		key := common.GetEquivalentProofNonceShardKey(10, 0)
+		rrh := newProofByNonceCoalescingHandler(proofByNonceCoalescingTestArgs{
+			requestedItems: requestedItems,
+			requester: &dataRetrieverMocks.EquivalentProofRequesterStub{
+				RequestDataFromNonceCalled: func(_ []byte, _ uint32) error {
+					if numSends.Add(1) == 1 {
+						return errExpected
+					}
+					return nil
+				},
+			},
+		})
+
+		rrh.RequestEquivalentProofByNonce(0, 10)
+		waitForCounter(t, &numSends, 1)
+		waitForNoInFlightProofsByNonce(t, rrh)
+		require.False(t, requestedItems.Has(key+uniqueEquivalentProofSuffix))
+
+		rrh.RequestEquivalentProofByNonce(0, 10)
+		waitForCounter(t, &numSends, 2)
+		waitForNoInFlightProofsByNonce(t, rrh)
+		require.True(t, requestedItems.Has(key+uniqueEquivalentProofSuffix))
+	})
+	t.Run("successful request caches the key while the reservation is still held", func(t *testing.T) {
+		t.Parallel()
+
+		var rrh *resolverRequestHandler
+		addedWhileReserved := atomic.Bool{}
+		added := make(chan struct{})
+		rrh = newProofByNonceCoalescingHandler(proofByNonceCoalescingTestArgs{
+			requestedItems: &mock.RequestedItemsHandlerStub{
+				AddCalled: func(key string) error {
+					addedWhileReserved.Store(rrh.numInFlightProofsByNonce() == 1)
+					close(added)
+					return nil
+				},
+			},
+			requester: &dataRetrieverMocks.EquivalentProofRequesterStub{},
+		})
+
+		rrh.RequestEquivalentProofByNonce(0, 10)
+		select {
+		case <-added:
+		case <-time.After(timeoutSendRequests):
+			require.Fail(t, "key was not added")
+		}
+		require.True(t, addedWhileReserved.Load())
+		waitForNoInFlightProofsByNonce(t, rrh)
+	})
+	t.Run("successful request stays suppressed for the cache span and is eligible after expiry and sweep", func(t *testing.T) {
+		t.Parallel()
+
+		numSends := atomic.Int32{}
+		rrh := newProofByNonceCoalescingHandler(proofByNonceCoalescingTestArgs{
+			requestedItems:  cache.NewTimeCache(500 * time.Millisecond),
+			requestInterval: time.Millisecond,
+			requester: &dataRetrieverMocks.EquivalentProofRequesterStub{
+				RequestDataFromNonceCalled: func(_ []byte, _ uint32) error {
+					numSends.Add(1)
+					return nil
+				},
+			},
+		})
+
+		rrh.RequestEquivalentProofByNonce(0, 10)
+		waitForCounter(t, &numSends, 1)
+		waitForNoInFlightProofsByNonce(t, rrh)
+
+		rrh.RequestEquivalentProofByNonce(0, 10)
+		waitForNoInFlightProofsByNonce(t, rrh)
+		require.Equal(t, int32(1), numSends.Load())
+
+		time.Sleep(700 * time.Millisecond)
+		rrh.RequestEquivalentProofByNonce(0, 10)
+		waitForCounter(t, &numSends, 2)
+		waitForNoInFlightProofsByNonce(t, rrh)
+	})
+	t.Run("calls arriving during the delay do not reach the requester", func(t *testing.T) {
+		t.Parallel()
+
+		numSends := atomic.Int32{}
+		rrh := newProofByNonceCoalescingHandler(proofByNonceCoalescingTestArgs{
+			requestDelay: 100 * time.Millisecond,
+			requester: &dataRetrieverMocks.EquivalentProofRequesterStub{
+				RequestDataFromNonceCalled: func(_ []byte, _ uint32) error {
+					numSends.Add(1)
+					return nil
+				},
+			},
+		})
+
+		rrh.RequestEquivalentProofByNonce(0, 10)
+		for i := 0; i < 10; i++ {
+			time.Sleep(5 * time.Millisecond)
+			rrh.RequestEquivalentProofByNonce(0, 10)
+		}
+		waitForCounter(t, &numSends, 1)
+		waitForNoInFlightProofsByNonce(t, rrh)
+		time.Sleep(20 * time.Millisecond)
+		require.Equal(t, int32(1), numSends.Load())
 	})
 }

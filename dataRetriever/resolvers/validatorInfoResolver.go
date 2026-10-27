@@ -1,8 +1,8 @@
 package resolvers
 
 import (
-	"encoding/hex"
 	"fmt"
+	"runtime/debug"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -90,8 +90,15 @@ func checkArgs(args ArgValidatorInfoResolver) error {
 
 // ProcessReceivedMessage represents the callback func from the p2p.Messenger that is called each time a new message is received
 // (for the topic this validator was registered to, usually a request topic)
-func (res *validatorInfoResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
-	err := res.canProcessMessage(message, fromConnectedPeer)
+func (res *validatorInfoResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) (msg []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			logTrieNodes.Error("panic recovered", "peer", fromConnectedPeer, "panic", r, "stack", string(debug.Stack()))
+			err = fmt.Errorf("panic in validatorInfoResolver.ProcessReceivedMessage: %v", r)
+		}
+	}()
+
+	err = res.canProcessMessage(message, fromConnectedPeer)
 	if err != nil {
 		return nil, err
 	}
@@ -106,9 +113,13 @@ func (res *validatorInfoResolver) ProcessReceivedMessage(message p2p.MessageP2P,
 
 	switch rd.Type {
 	case dataRetriever.HashType:
+		err = validateRequestedHashSize(rd.Value)
+		if err != nil {
+			return nil, err
+		}
 		err = res.resolveHashRequest(rd.Value, rd.Epoch, fromConnectedPeer, source)
 	case dataRetriever.HashArrayType:
-		err = res.resolveMultipleHashesRequest(rd.Value, rd.Epoch, fromConnectedPeer, source)
+		err = res.resolveMultipleHashesRequest(rd.Value, rd.Epoch, fromConnectedPeer, source, message.SeqNo())
 	default:
 		err = fmt.Errorf("%w for value %s", dataRetriever.ErrRequestTypeNotImplemented, logger.DisplayByteSlice(rd.Value))
 	}
@@ -130,21 +141,25 @@ func (res *validatorInfoResolver) resolveHashRequest(hash []byte, epoch uint32, 
 }
 
 // resolveMultipleHashesRequest sends the response for a hash array type request
-func (res *validatorInfoResolver) resolveMultipleHashesRequest(hashesBuff []byte, epoch uint32, pid core.PeerID, source p2p.MessageHandler) error {
-	b := batch.Batch{}
-	err := res.marshalizer.Unmarshal(&b, hashesBuff)
+func (res *validatorInfoResolver) resolveMultipleHashesRequest(
+	hashesBuff []byte,
+	epoch uint32,
+	pid core.PeerID,
+	source p2p.MessageHandler,
+	sequence []byte,
+) error {
+	hashes, err := res.parseRequestedHashesWithPartialResponse(hashesBuff, pid, sequence)
 	if err != nil {
 		return err
 	}
-	hashes := b.Data
+	err = validateRequestedHashesSize(hashes)
+	if err != nil {
+		return err
+	}
 
 	validatorInfoForHashes, err := res.fetchValidatorInfoForHashes(hashes, epoch)
 	if err != nil {
-		outputHashes := ""
-		for _, hash := range hashes {
-			outputHashes += hex.EncodeToString(hash) + " "
-		}
-		return fmt.Errorf("resolveMultipleHashesRequest error %w from buff %s", err, outputHashes)
+		return fmt.Errorf("resolveMultipleHashesRequest error %w for %d hashes", err, len(hashes))
 	}
 
 	return res.sendValidatorInfoForHashes(validatorInfoForHashes, pid, source)
@@ -167,19 +182,19 @@ func (res *validatorInfoResolver) sendValidatorInfoForHashes(validatorInfoForHas
 }
 
 func (res *validatorInfoResolver) fetchValidatorInfoForHashes(hashes [][]byte, epoch uint32) ([][]byte, error) {
-	validatorInfos := make([][]byte, 0)
+	reply := newHashArrayReply()
 	for _, hash := range hashes {
 		validatorInfoForHash, _ := res.fetchValidatorInfoByteSlice(hash, epoch)
-		if validatorInfoForHash != nil {
-			validatorInfos = append(validatorInfos, validatorInfoForHash)
+		if validatorInfoForHash != nil && !reply.add(validatorInfoForHash) {
+			break
 		}
 	}
 
-	if len(validatorInfos) == 0 {
+	if len(reply.data) == 0 {
 		return nil, dataRetriever.ErrValidatorInfoNotFound
 	}
 
-	return validatorInfos, nil
+	return reply.data, nil
 }
 
 func (res *validatorInfoResolver) fetchValidatorInfoByteSlice(hash []byte, epoch uint32) ([]byte, error) {

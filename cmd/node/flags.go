@@ -6,12 +6,13 @@ import (
 	"os"
 	"runtime"
 
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/urfave/cli"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/operationmodes"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/facade"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	"github.com/urfave/cli"
 )
 
 var (
@@ -408,6 +409,19 @@ var (
 		Name:  "p2p-prometheus-metrics",
 		Usage: "Boolean option for enabling the /debug/metrics/prometheus route for p2p prometheus metrics",
 	}
+
+	// stateAccessesTypesToCollect defines a flag for collecting specified types of state accesses
+	// If enabled, it will override the configuration
+	stateAccessesTypesToCollect = cli.StringSliceFlag{
+		Name:  "state-accesses-types-to-collect",
+		Usage: "String slice option for enabling collecting specified state accesses types. Can be (READ, WRITE)",
+	}
+
+	// printPrettifiedHeader defines a flag for enabling prettified header logging
+	printPrettifiedHeader = cli.BoolFlag{
+		Name:  "print-prettified-header",
+		Usage: "Boolean option for enabling the logging of prettified headers in consensus",
+	}
 )
 
 func getFlags() []cli.Flag {
@@ -470,6 +484,8 @@ func getFlags() []cli.Flag {
 		operationMode,
 		repopulateTokensSupplies,
 		p2pPrometheusMetrics,
+		stateAccessesTypesToCollect,
+		printPrettifiedHeader,
 	}
 }
 
@@ -499,6 +515,7 @@ func getFlagsConfig(ctx *cli.Context, log logger.Logger) *config.ContextFlagsCon
 	flagsConfig.OperationMode = ctx.GlobalString(operationMode.Name)
 	flagsConfig.RepopulateTokensSupplies = ctx.GlobalBool(repopulateTokensSupplies.Name)
 	flagsConfig.P2PPrometheusMetricsEnabled = ctx.GlobalBool(p2pPrometheusMetrics.Name)
+	flagsConfig.PrintPrettifiedHeader = ctx.GlobalBool(printPrettifiedHeader.Name)
 
 	if ctx.GlobalBool(noKey.Name) {
 		log.Warn("the provided -no-key option is deprecated and will soon be removed. To start a node without " +

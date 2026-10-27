@@ -8,22 +8,22 @@ import (
 // SnapshotPruningStorerStub -
 type SnapshotPruningStorerStub struct {
 	*testscommon.MemDbMock
-	GetFromOldEpochsWithoutAddingToCacheCalled func(key []byte, maxEpochToSearchFrom uint32) ([]byte, core.OptionalUint32, error)
-	GetFromLastEpochCalled                     func(key []byte) ([]byte, error)
-	GetFromCurrentEpochCalled                  func(key []byte) ([]byte, error)
-	GetFromEpochCalled                         func(key []byte, epoch uint32) ([]byte, error)
-	PutInEpochCalled                           func(key []byte, data []byte, epoch uint32) error
-	PutInEpochWithoutCacheCalled               func(key []byte, data []byte, epoch uint32) error
-	GetLatestStorageEpochCalled                func() (uint32, error)
-	RemoveFromCurrentEpochCalled               func(key []byte) error
-	CloseCalled                                func() error
-	RemoveFromAllActiveEpochsCalled            func(key []byte) error
+	GetWithoutAddingToCacheCalled   func(key []byte, maxEpochToSearchFrom uint32) ([]byte, core.OptionalUint32, error)
+	GetFromLastEpochCalled          func(key []byte) ([]byte, error)
+	GetFromCurrentEpochCalled       func(key []byte) ([]byte, error)
+	GetFromEpochCalled              func(key []byte, epoch uint32) ([]byte, error)
+	PutInEpochCalled                func(key []byte, data []byte, epoch uint32) error
+	PutInEpochWithoutCacheCalled    func(key []byte, data []byte, epoch uint32) error
+	GetLatestStorageEpochCalled     func() (uint32, error)
+	RemoveFromCurrentEpochCalled    func(key []byte) error
+	CloseCalled                     func() error
+	RemoveFromAllActiveEpochsCalled func(key []byte) error
 }
 
-// GetFromOldEpochsWithoutAddingToCache -
-func (spss *SnapshotPruningStorerStub) GetFromOldEpochsWithoutAddingToCache(key []byte, maxEpochToSearchFrom uint32) ([]byte, core.OptionalUint32, error) {
-	if spss.GetFromOldEpochsWithoutAddingToCacheCalled != nil {
-		return spss.GetFromOldEpochsWithoutAddingToCacheCalled(key, maxEpochToSearchFrom)
+// GetWithoutAddingToCache -
+func (spss *SnapshotPruningStorerStub) GetWithoutAddingToCache(key []byte, maxEpochToSearchFrom uint32) ([]byte, core.OptionalUint32, error) {
+	if spss.GetWithoutAddingToCacheCalled != nil {
+		return spss.GetWithoutAddingToCacheCalled(key, maxEpochToSearchFrom)
 	}
 
 	return nil, core.OptionalUint32{}, nil

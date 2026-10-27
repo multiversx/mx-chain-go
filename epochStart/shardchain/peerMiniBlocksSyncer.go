@@ -8,6 +8,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
@@ -17,8 +19,8 @@ import (
 
 var _ process.ValidatorInfoSyncer = (*peerMiniBlockSyncer)(nil)
 
-// waitTime defines the time in seconds to wait after a request has been done
-const waitTime = 5 * time.Second
+// waitTime defines the time to wait after a request has been sent
+const waitTime = 300 * time.Millisecond
 
 // ArgPeerMiniBlockSyncer holds all dependencies required to create a peerMiniBlockSyncer
 type ArgPeerMiniBlockSyncer struct {
@@ -61,8 +63,8 @@ func NewPeerMiniBlockSyncer(arguments ArgPeerMiniBlockSyncer) (*peerMiniBlockSyn
 		requestHandler:     arguments.RequestHandler,
 	}
 
-	//TODO: change the registerHandler for the miniblockPool to call
-	//directly with hash and value - like func (sp *shardProcessor) receivedMetaBlock
+	// TODO: change the registerHandler for the miniblockPool to call
+	// directly with hash and value - like func (sp *shardProcessor) receivedMetaBlock
 	p.miniBlocksPool.RegisterHandler(p.receivedMiniBlock, core.UniqueIdentifier())
 	p.validatorsInfoPool.RegisterOnAdded(p.receivedValidatorInfo)
 
@@ -91,14 +93,20 @@ func (p *peerMiniBlockSyncer) SyncMiniBlocks(headerHandler data.HeaderHandler) (
 
 	p.initMiniBlocks()
 
-	p.computeMissingPeerBlocks(headerHandler)
+	err := p.computeMissingPeerBlocks(headerHandler)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	allMissingPeerMiniBlocksHashes, err := p.retrieveMissingMiniBlocks()
 	if err != nil {
 		return allMissingPeerMiniBlocksHashes, nil, err
 	}
 
-	peerBlockBody := p.getAllPeerMiniBlocks(headerHandler)
+	peerBlockBody, err := p.getAllPeerMiniBlocks(headerHandler)
+	if err != nil {
+		return allMissingPeerMiniBlocksHashes, nil, err
+	}
 
 	return nil, peerBlockBody, nil
 }
@@ -188,14 +196,20 @@ func (p *peerMiniBlockSyncer) receivedValidatorInfo(key []byte, val interface{})
 	}
 }
 
-func (p *peerMiniBlockSyncer) getAllPeerMiniBlocks(metaBlock data.HeaderHandler) data.BodyHandler {
+func (p *peerMiniBlockSyncer) getAllPeerMiniBlocks(metaBlock data.HeaderHandler) (data.BodyHandler, error) {
 	p.mutMiniBlocksForBlock.Lock()
 	defer p.mutMiniBlocksForBlock.Unlock()
 
 	peerBlockBody := &block.Body{
 		MiniBlocks: make([]*block.MiniBlock, 0),
 	}
-	for _, peerMiniBlock := range metaBlock.GetMiniBlockHeaderHandlers() {
+
+	mbHeaders, err := common.GetMiniBlockHeadersFromExecResult(metaBlock)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, peerMiniBlock := range mbHeaders {
 		if peerMiniBlock.GetTypeInt32() != int32(block.PeerBlock) {
 			continue
 		}
@@ -204,7 +218,7 @@ func (p *peerMiniBlockSyncer) getAllPeerMiniBlocks(metaBlock data.HeaderHandler)
 		peerBlockBody.MiniBlocks = append(peerBlockBody.MiniBlocks, mb)
 	}
 
-	return peerBlockBody
+	return peerBlockBody, nil
 }
 
 func (p *peerMiniBlockSyncer) getAllValidatorsInfo(body *block.Body) map[string]*state.ShardValidatorInfo {
@@ -226,12 +240,18 @@ func (p *peerMiniBlockSyncer) getAllValidatorsInfo(body *block.Body) map[string]
 	return validatorsInfo
 }
 
-func (p *peerMiniBlockSyncer) computeMissingPeerBlocks(metaBlock data.HeaderHandler) {
+func (p *peerMiniBlockSyncer) computeMissingPeerBlocks(metaBlock data.HeaderHandler) error {
 	p.mutMiniBlocksForBlock.Lock()
 	defer p.mutMiniBlocksForBlock.Unlock()
 
 	numMissingPeerMiniBlocks := uint32(0)
-	for _, mb := range metaBlock.GetMiniBlockHeaderHandlers() {
+
+	mbHeaders, err := common.GetMiniBlockHeadersFromExecResult(metaBlock)
+	if err != nil {
+		return err
+	}
+
+	for _, mb := range mbHeaders {
 		if mb.GetTypeInt32() != int32(block.PeerBlock) {
 			continue
 		}
@@ -254,6 +274,7 @@ func (p *peerMiniBlockSyncer) computeMissingPeerBlocks(metaBlock data.HeaderHand
 	}
 
 	p.numMissingPeerMiniBlocks = numMissingPeerMiniBlocks
+	return nil
 }
 
 func (p *peerMiniBlockSyncer) computeMissingValidatorsInfo(body *block.Body) {

@@ -10,6 +10,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/factory/api"
@@ -19,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/sync/disabled"
 	"github.com/multiversx/mx-chain-go/state"
+	stateDisabled "github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
@@ -33,7 +36,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMocks "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	"github.com/stretchr/testify/require"
 )
 
 const unreachableStep = 10000
@@ -169,6 +171,30 @@ func TestCreateApiResolver(t *testing.T) {
 		require.True(t, strings.Contains(err.Error(), "VirtualMachine.Querying.NumConcurrentVms"))
 		require.True(t, check.IfNil(apiResolver))
 	})
+	t.Run("invalid HardforkRoundExclusions should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs(t)
+		args.Configs.GeneralConfig.HardforkRoundExclusions = []config.HardforkRoundExclusionConfig{
+			{StartRound: 100, EndRound: 199},
+			{StartRound: 150, EndRound: 250},
+		}
+		apiResolver, err := api.CreateApiResolver(args)
+		require.NotNil(t, err)
+		require.True(t, strings.Contains(strings.ToLower(err.Error()), "overlapping"))
+		require.True(t, check.IfNil(apiResolver))
+	})
+	t.Run("valid HardforkRoundExclusions should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs(t)
+		args.Configs.GeneralConfig.HardforkRoundExclusions = []config.HardforkRoundExclusionConfig{
+			{StartRound: 100, EndRound: 199},
+		}
+		apiResolver, err := api.CreateApiResolver(args)
+		require.Nil(t, err)
+		require.False(t, check.IfNil(apiResolver))
+	})
 
 	failingStepsInstance := &failingSteps{}
 	failingArgs := createFailingMockArgs(t, failingStepsInstance)
@@ -302,7 +328,7 @@ func createMockSCQueryElementArgs() api.SCQueryElementArgs {
 				HashesSize:     10000,
 			},
 			TrieStorageManagerConfig: config.TrieStorageManagerConfig{
-				SnapshotsGoroutineNum: 1,
+				SnapshotsGoroutinesPerCore: 1,
 			},
 			StateTriesConfig: config.StateTriesConfig{
 				MaxStateTrieLevelInMemory: 5,
@@ -343,6 +369,9 @@ func createMockSCQueryElementArgs() api.SCQueryElementArgs {
 			},
 			PeerAccountsCalled: func() state.AccountsAdapter {
 				return &stateMocks.AccountsStub{}
+			},
+			StateAccessesCollectorCalled: func() state.StateAccessesCollector {
+				return stateDisabled.NewDisabledStateAccessesCollector()
 			},
 		},
 		StatusCoreComponents: &factory.StatusCoreComponentsStub{

@@ -91,9 +91,10 @@ func TestManagedNetworkComponents_CheckSubcomponents(t *testing.T) {
 
 	require.Error(t, managedNetworkComponents.CheckSubcomponents())
 
-	_ = managedNetworkComponents.Create()
+	err = managedNetworkComponents.Create()
+	require.Nil(t, err)
 
-	require.NoError(t, managedNetworkComponents.CheckSubcomponents())
+	require.Nil(t, managedNetworkComponents.CheckSubcomponents())
 }
 
 func TestManagedNetworkComponents_Close(t *testing.T) {
@@ -103,9 +104,11 @@ func TestManagedNetworkComponents_Close(t *testing.T) {
 	}
 
 	networkArgs := componentsMock.GetNetworkFactoryArgs()
-	networkComponentsFactory, _ := networkComp.NewNetworkComponentsFactory(networkArgs)
-	managedNetworkComponents, _ := networkComp.NewManagedNetworkComponents(networkComponentsFactory)
-	err := managedNetworkComponents.Close()
+	networkComponentsFactory, err := networkComp.NewNetworkComponentsFactory(networkArgs)
+	require.Nil(t, err)
+	managedNetworkComponents, err := networkComp.NewManagedNetworkComponents(networkComponentsFactory)
+	require.Nil(t, err)
+	err = managedNetworkComponents.Close()
 	require.NoError(t, err)
 
 	err = managedNetworkComponents.Create()

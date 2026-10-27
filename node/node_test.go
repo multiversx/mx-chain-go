@@ -30,6 +30,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -45,6 +49,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
+	"github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/state/trackableDataTrie"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -71,9 +76,6 @@ import (
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/testscommon/txsSenderMock"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 type testBlockInfo struct {
@@ -101,7 +103,7 @@ func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
 
 func createAcc(address []byte) state.UserAccountHandler {
 	dtlp, _ := parsers.NewDataTrieLeafParser(address, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
-	dtt, _ := trackableDataTrie.NewTrackableDataTrie(address, &testscommon.HasherStub{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	dtt, _ := trackableDataTrie.NewTrackableDataTrie(address, &testscommon.HasherStub{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, disabled.NewDisabledStateAccessesCollector())
 	acc, _ := accounts.NewUserAccount(address, dtt, dtlp)
 
 	return acc
@@ -1080,6 +1082,21 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 	nftData := &esdt.ESDigitalToken{Type: uint32(core.NonFungible), Value: big.NewInt(10), TokenMetaData: nftMetaData}
 	marshalledNftData, _ := getMarshalizer().Marshal(nftData)
 
+	dynamicNft := "TCKR-abcdef"
+	dynamicNftNonce := big.NewInt(100)
+	dynamicNftKey := []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier + dynamicNft)
+	dynamicNftKeyWithBytes := append(dynamicNftKey, dynamicNftNonce.Bytes()...)
+	dynamicNftSuffix := append(dynamicNftKeyWithBytes, acc.AddressBytes()...)
+	dynamicNftData := &esdt.ESDigitalToken{
+		Type:  uint32(core.DynamicNFT),
+		Value: big.NewInt(0),
+		TokenMetaData: &esdt.MetaData{
+			Nonce: dynamicNftNonce.Uint64(),
+			URIs:  [][]byte{[]byte("https://example.com/dynamic-nft")},
+		},
+	}
+	marshalledDynamicNftData, _ := getMarshalizer().Marshal(dynamicNftData)
+
 	esdtStorageStub := &testscommon.EsdtStorageHandlerStub{
 		GetESDTNFTTokenOnDestinationWithCustomSystemAccountCalled: func(acnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64, _ vmcommon.UserAccountHandler) (*esdt.ESDigitalToken, bool, error) {
 			switch string(esdtTokenKey) {
@@ -1087,6 +1104,8 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 				return esdtData, false, nil
 			case string(nftKey):
 				return nftData, false, nil
+			case string(dynamicNftKey):
+				return dynamicNftData, false, nil
 			default:
 				return nil, false, nil
 			}
@@ -1103,6 +1122,10 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 
 					trieLeaf = keyValStorage.NewKeyValStorage(nftKey, append(marshalledNftData, nftSuffix...))
 					leavesChannels.LeavesChan <- trieLeaf
+
+					trieLeaf = keyValStorage.NewKeyValStorage(dynamicNftKey, append(marshalledDynamicNftData, dynamicNftSuffix...))
+					leavesChannels.LeavesChan <- trieLeaf
+
 					wg.Done()
 					close(leavesChannels.LeavesChan)
 					leavesChannels.ErrChan.Close()
@@ -4694,7 +4717,7 @@ func TestNode_Getters(t *testing.T) {
 	)
 	require.Nil(t, err)
 
-	//pointer testing
+	// pointer testing
 	assert.True(t, n.GetCoreComponents() == coreComponents)
 	assert.True(t, n.GetStatusCoreComponents() == statusCoreComponents)
 	assert.True(t, n.GetCryptoComponents() == cryptoComponents)
@@ -4717,7 +4740,10 @@ func TestNode_GetEpochStartDataAPI(t *testing.T) {
 
 	dataComponents := getDefaultDataComponents()
 	blockchain := dataComponents.BlockChain.(*testscommon.ChainHandlerStub)
+
 	timestamp := uint64(778899)
+	expTimeStampMs := common.ConvertTimeStampSecToMs(timestamp)
+
 	shardID := uint32(2)
 	blockchain.GetGenesisHeaderCalled = func() data.HeaderHandler {
 		return &block.Header{
@@ -4751,6 +4777,7 @@ func TestNode_GetEpochStartDataAPI(t *testing.T) {
 			Nonce:             0,
 			Round:             0,
 			Timestamp:         int64(timestamp),
+			TimestampMs:       int64(expTimeStampMs),
 			Epoch:             0,
 			Shard:             shardID,
 			PrevBlockHash:     hex.EncodeToString(prevHash),
@@ -4800,6 +4827,7 @@ func TestNode_GetEpochStartDataAPI(t *testing.T) {
 			Nonce:             nonce,
 			Round:             round,
 			Timestamp:         int64(timestamp),
+			TimestampMs:       int64(expTimeStampMs),
 			Epoch:             epoch,
 			Shard:             core.MetachainShardId,
 			PrevBlockHash:     hex.EncodeToString(prevHash),
@@ -4850,6 +4878,7 @@ func TestNode_GetEpochStartDataAPI(t *testing.T) {
 			Nonce:             nonce,
 			Round:             round,
 			Timestamp:         int64(timestamp),
+			TimestampMs:       int64(expTimeStampMs),
 			Epoch:             epoch,
 			Shard:             shardID,
 			PrevBlockHash:     hex.EncodeToString(prevHash),
@@ -4879,13 +4908,12 @@ func sameMessages(provided, received []heartbeatData.PubKeyHeartbeat) bool {
 		return false
 	}
 
-	areEqual := true
+	var areEqual bool
 	for i := 0; i < providedLen; i++ {
 		p := provided[i]
 		r := received[i]
-		areEqual = areEqual &&
-			(p.PublicKey == r.PublicKey) &&
-			(p.TimeStamp == r.TimeStamp) &&
+		areEqual = (p.PublicKey == r.PublicKey) &&
+			(p.TimeStamp.Equal(r.TimeStamp)) &&
 			(p.IsActive == r.IsActive) &&
 			(p.ReceivedShardID == r.ReceivedShardID) &&
 			(p.ComputedShardID == r.ComputedShardID) &&
@@ -5328,20 +5356,21 @@ func getDefaultCoreComponents() *nodeMockFactory.CoreComponentsMock {
 		MinTransactionVersionCalled: func() uint32 {
 			return 1
 		},
-		WDTimer:                  &testscommon.WatchdogMock{},
-		Alarm:                    &testscommon.AlarmSchedulerStub{},
-		NtpTimer:                 &testscommon.SyncTimerStub{},
-		RoundHandlerField:        &testscommon.RoundHandlerMock{},
-		EconomicsHandler:         &economicsmocks.EconomicsHandlerMock{},
-		APIEconomicsHandler:      &economicsmocks.EconomicsHandlerMock{},
-		RatingsConfig:            &testscommon.RatingsInfoMock{},
-		RatingHandler:            &testscommon.RaterMock{},
-		NodesConfig:              &genesisMocks.NodesSetupStub{},
-		StartTime:                time.Time{},
-		EpochChangeNotifier:      &epochNotifier.EpochNotifierStub{},
-		TxVersionCheckHandler:    versioning.NewTxVersionChecker(0),
-		EnableEpochsHandlerField: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.RelayedTransactionsV3Flag),
-		FieldsSizeCheckerField:   &testscommon.FieldsSizeCheckerMock{},
+		WDTimer:                      &testscommon.WatchdogMock{},
+		Alarm:                        &testscommon.AlarmSchedulerStub{},
+		NtpTimer:                     &testscommon.SyncTimerStub{},
+		RoundHandlerField:            &testscommon.RoundHandlerMock{},
+		EconomicsHandler:             &economicsmocks.EconomicsHandlerMock{},
+		APIEconomicsHandler:          &economicsmocks.EconomicsHandlerMock{},
+		RatingsConfig:                &testscommon.RatingsInfoMock{},
+		RatingHandler:                &testscommon.RaterMock{},
+		NodesConfig:                  &genesisMocks.NodesSetupStub{},
+		StartTime:                    time.Time{},
+		EpochChangeNotifier:          &epochNotifier.EpochNotifierStub{},
+		TxVersionCheckHandler:        versioning.NewTxVersionChecker(0),
+		EnableEpochsHandlerField:     enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.RelayedTransactionsV3Flag),
+		FieldsSizeCheckerField:       &testscommon.FieldsSizeCheckerMock{},
+		AntifloodConfigsHandlerField: &testscommon.AntifloodConfigsHandlerStub{},
 	}
 }
 

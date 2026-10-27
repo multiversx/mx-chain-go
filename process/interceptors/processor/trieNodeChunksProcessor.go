@@ -8,17 +8,24 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
 	"github.com/multiversx/mx-chain-core-go/hashing"
+
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors/processor/chunk"
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
-const minimumRequestTimeInterval = time.Millisecond * 200
+const (
+	minimumRequestTimeInterval = time.Millisecond * 200
+	minNumChunks               = 2
+)
 
 type chunkHandler interface {
 	Put(chunkIndex uint32, buff []byte)
 	TryAssembleAllChunks() []byte
 	GetAllMissingChunkIndexes() []uint32
+	MaxChunks() uint32
+	LastUpdated() time.Time
 	Size() int
 	IsInterfaceNil() bool
 }
@@ -30,22 +37,26 @@ type checkRequest struct {
 
 // TrieNodesChunksProcessorArgs is the argument DTO used in the trieNodeChunksProcessor constructor
 type TrieNodesChunksProcessorArgs struct {
-	Hasher          hashing.Hasher
-	ChunksCacher    storage.Cacher
-	RequestInterval time.Duration
-	RequestHandler  process.RequestHandler
-	Topic           string
+	Hasher                 hashing.Hasher
+	ChunksCacher           storage.Cacher
+	RequestInterval        time.Duration
+	RequestHandler         process.RequestHandler
+	Topic                  string
+	MaxAllowedChunks       uint32
+	ChunkInactivityTimeout time.Duration
 }
 
 type trieNodeChunksProcessor struct {
-	hasher            hashing.Hasher
-	chunksCacher      storage.Cacher
-	chanCheckRequests chan checkRequest
-	requestInterval   time.Duration
-	requestHandler    process.RequestHandler
-	topic             string
-	cancel            func()
-	chanClose         chan struct{}
+	hasher                 hashing.Hasher
+	chunksCacher           storage.Cacher
+	chanCheckRequests      chan checkRequest
+	requestInterval        time.Duration
+	requestHandler         process.RequestHandler
+	topic                  string
+	maxAllowedChunks       uint32
+	chunkInactivityTimeout time.Duration
+	cancel                 func()
+	chanClose              chan struct{}
 }
 
 // NewTrieNodeChunksProcessor creates a new trieNodeChunksProcessor instance
@@ -66,15 +77,23 @@ func NewTrieNodeChunksProcessor(arg TrieNodesChunksProcessorArgs) (*trieNodeChun
 	if len(arg.Topic) == 0 {
 		return nil, fmt.Errorf("%w in NewTrieNodeChunksProcessor", process.ErrEmptyTopic)
 	}
+	if arg.MaxAllowedChunks < minNumChunks {
+		return nil, fmt.Errorf("%w in NewTrieNodeChunksProcessor, MaxAllowedChunks should be at least %v", process.ErrInvalidValue, minNumChunks)
+	}
+	if arg.ChunkInactivityTimeout <= 0 {
+		return nil, fmt.Errorf("%w in NewTrieNodeChunksProcessor, ChunkInactivityTimeout should be greater than 0", process.ErrInvalidValue)
+	}
 
 	tncp := &trieNodeChunksProcessor{
-		hasher:            arg.Hasher,
-		chunksCacher:      arg.ChunksCacher,
-		chanCheckRequests: make(chan checkRequest),
-		requestInterval:   arg.RequestInterval,
-		requestHandler:    arg.RequestHandler,
-		topic:             arg.Topic,
-		chanClose:         make(chan struct{}),
+		hasher:                 arg.Hasher,
+		chunksCacher:           arg.ChunksCacher,
+		chanCheckRequests:      make(chan checkRequest),
+		requestInterval:        arg.RequestInterval,
+		requestHandler:         arg.RequestHandler,
+		topic:                  arg.Topic,
+		maxAllowedChunks:       arg.MaxAllowedChunks,
+		chunkInactivityTimeout: arg.ChunkInactivityTimeout,
+		chanClose:              make(chan struct{}),
 	}
 	var ctx context.Context
 	ctx, tncp.cancel = context.WithCancel(context.Background())
@@ -102,7 +121,7 @@ func (proc *trieNodeChunksProcessor) processLoop(ctx context.Context) {
 }
 
 // CheckBatch will check the batch returning a checked chunk result containing result processing
-func (proc *trieNodeChunksProcessor) CheckBatch(b *batch.Batch, whiteListHandler process.WhiteListHandler) (process.CheckedChunkResult, error) {
+func (proc *trieNodeChunksProcessor) CheckBatch(b *batch.Batch, whiteListHandler process.WhiteListHandler, _ p2p.BroadcastMethod) (process.CheckedChunkResult, error) {
 	batchValid, err := proc.batchIsValid(b, whiteListHandler)
 	if !batchValid {
 		return process.CheckedChunkResult{
@@ -132,6 +151,10 @@ func (proc *trieNodeChunksProcessor) CheckBatch(b *batch.Batch, whiteListHandler
 	}
 }
 
+// MarkVerified does nothing
+func (proc *trieNodeChunksProcessor) MarkVerified(_ *batch.Batch, _ p2p.BroadcastMethod) {
+}
+
 func (proc *trieNodeChunksProcessor) processCheckRequest(cr checkRequest) {
 	shouldNotCreateChunk := cr.batch.ChunkIndex != 0
 	result := process.CheckedChunkResult{
@@ -140,7 +163,7 @@ func (proc *trieNodeChunksProcessor) processCheckRequest(cr checkRequest) {
 	chunkObject, found := proc.chunksCacher.Get(cr.batch.Reference)
 	if !found {
 		if shouldNotCreateChunk {
-			//we received other chunks from a previous, completed large trie node, return
+			// we received other chunks from a previous, completed large trie node, return
 
 			proc.writeCheckedChunkResultOnChan(cr, result)
 			return
@@ -151,7 +174,7 @@ func (proc *trieNodeChunksProcessor) processCheckRequest(cr checkRequest) {
 	chunkData, ok := chunkObject.(chunkHandler)
 	if !ok {
 		if shouldNotCreateChunk {
-			//we received other chunks from a previous, completed large trie node, return
+			// we received other chunks from a previous, completed large trie node, return
 			proc.writeCheckedChunkResultOnChan(cr, result)
 			return
 		}
@@ -184,6 +207,10 @@ func (proc *trieNodeChunksProcessor) batchIsValid(b *batch.Batch, whiteListHandl
 	if b.MaxChunks < 2 {
 		return false, nil
 	}
+	if b.MaxChunks > proc.maxAllowedChunks {
+		return false, fmt.Errorf("%w, trie node batch max chunks %d exceeds configured limit %d",
+			process.ErrInvalidValue, b.MaxChunks, proc.maxAllowedChunks)
+	}
 	if len(b.Reference) != proc.hasher.Size() {
 		return false, process.ErrIncompatibleReference
 	}
@@ -210,7 +237,7 @@ func (proc *trieNodeChunksProcessor) doRequests(ctx context.Context) {
 	for _, ref := range references {
 		select {
 		case <-ctx.Done():
-			//early exit
+			// early exit
 			return
 		default:
 		}
@@ -229,12 +256,30 @@ func (proc *trieNodeChunksProcessor) requestMissingForReference(reference []byte
 	if !ok {
 		return
 	}
+	if chunkData.MaxChunks() > proc.maxAllowedChunks {
+		log.Warn("dropping cached trie node chunk tracker above configured limit",
+			"reference", reference,
+			"maxChunks", chunkData.MaxChunks(),
+			"configuredLimit", proc.maxAllowedChunks,
+		)
+		proc.chunksCacher.Remove(reference)
+		return
+	}
+	if time.Since(chunkData.LastUpdated()) > proc.chunkInactivityTimeout {
+		log.Warn("dropping stale trie node chunk tracker after inactivity timeout",
+			"reference", reference,
+			"lastUpdated", chunkData.LastUpdated(),
+			"inactivityTimeout", proc.chunkInactivityTimeout,
+		)
+		proc.chunksCacher.Remove(reference)
+		return
+	}
 
 	missing := chunkData.GetAllMissingChunkIndexes()
 	for _, missingChunkIndex := range missing {
 		select {
 		case <-ctx.Done():
-			//early exit
+			// early exit
 			return
 		default:
 		}
@@ -247,7 +292,7 @@ func (proc *trieNodeChunksProcessor) requestMissingForReference(reference []byte
 func (proc *trieNodeChunksProcessor) Close() error {
 	log.Debug("trieNodeChunkProcessor.Close()", "key", proc.topic)
 	defer func() {
-		//this instruction should be called last as to release hanging go routines
+		// this instruction should be called last as to release hanging go routines
 		close(proc.chanClose)
 	}()
 

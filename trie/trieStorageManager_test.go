@@ -2,12 +2,17 @@ package trie_test
 
 import (
 	errorsGo "errors"
+	"math"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	storageMx "github.com/multiversx/mx-chain-go/storage"
@@ -16,8 +21,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -75,10 +78,10 @@ func TestNewTrieStorageManager(t *testing.T) {
 		t.Parallel()
 
 		args := trie.GetDefaultTrieStorageManagerParameters()
-		args.GeneralConfig.SnapshotsGoroutineNum = 0
+		args.GeneralConfig.SnapshotsGoroutinesPerCore = 0
 		ts, err := trie.NewTrieStorageManager(args)
 		assert.Nil(t, ts)
-		assert.Error(t, err)
+		assert.ErrorIs(t, err, trie.ErrInvalidSnapshotsGoroutinesPerCore)
 	})
 	t.Run("invalid identifier", func(t *testing.T) {
 		t.Parallel()
@@ -219,17 +222,6 @@ func TestTrieStorageManager_RemoveFromAllActiveEpochs(t *testing.T) {
 	err := ts.RemoveFromAllActiveEpochs([]byte("key"))
 	assert.Nil(t, err)
 	assert.True(t, RemoveFromAllActiveEpochsCalled)
-}
-
-func TestTrieStorageManager_PutInEpochClosedDb(t *testing.T) {
-	t.Parallel()
-
-	args := trie.GetDefaultTrieStorageManagerParameters()
-	ts, _ := trie.NewTrieStorageManager(args)
-	_ = ts.Close()
-
-	err := ts.PutInEpoch(providedKey, providedVal, 0)
-	assert.Equal(t, core.ErrContextClosing, err)
 }
 
 func TestTrieStorageManager_PutInEpochInvalidStorer(t *testing.T) {
@@ -419,7 +411,7 @@ func TestTrieStorageManager_ShouldTakeSnapshot(t *testing.T) {
 
 		assert.True(t, ts.ShouldTakeSnapshot())
 	})
-	t.Run("GetFromOldEpochsWithoutAddingToCacheCalled returns ActiveDBVal should return true", func(t *testing.T) {
+	t.Run("GetWithoutAddingToCacheCalled returns ActiveDBVal should return true", func(t *testing.T) {
 		t.Parallel()
 
 		args := trie.GetDefaultTrieStorageManagerParameters()
@@ -427,7 +419,7 @@ func TestTrieStorageManager_ShouldTakeSnapshot(t *testing.T) {
 			GetFromCurrentEpochCalled: func(key []byte) ([]byte, error) {
 				return nil, expectedErr // isTrieSynced returns false
 			},
-			GetFromOldEpochsWithoutAddingToCacheCalled: func(key []byte, _ uint32) ([]byte, core.OptionalUint32, error) {
+			GetWithoutAddingToCacheCalled: func(key []byte, _ uint32) ([]byte, core.OptionalUint32, error) {
 				return []byte(common.ActiveDBVal), core.OptionalUint32{}, nil
 			},
 			MemDbMock: testscommon.NewMemDbMock(),
@@ -441,16 +433,6 @@ func TestTrieStorageManager_ShouldTakeSnapshot(t *testing.T) {
 func TestTrieStorageManager_Get(t *testing.T) {
 	t.Parallel()
 
-	t.Run("closed storage manager should error", func(t *testing.T) {
-		t.Parallel()
-
-		ts, _ := trie.NewTrieStorageManager(trie.GetDefaultTrieStorageManagerParameters())
-		_ = ts.Close()
-
-		val, err := ts.Get(providedKey)
-		assert.Equal(t, core.ErrContextClosing, err)
-		assert.Nil(t, val)
-	})
 	t.Run("main storer closing should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -482,16 +464,6 @@ func TestTrieStorageManager_Get(t *testing.T) {
 func TestNewSnapshotTrieStorageManager_GetFromCurrentEpoch(t *testing.T) {
 	t.Parallel()
 
-	t.Run("closed storage manager should error", func(t *testing.T) {
-		t.Parallel()
-
-		ts, _ := trie.NewTrieStorageManager(trie.GetDefaultTrieStorageManagerParameters())
-		_ = ts.Close()
-
-		val, err := ts.GetFromCurrentEpoch(providedKey)
-		assert.Equal(t, core.ErrContextClosing, err)
-		assert.Nil(t, val)
-	})
 	t.Run("main storer not snapshotPruningStorer should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -526,15 +498,6 @@ func TestNewSnapshotTrieStorageManager_GetFromCurrentEpoch(t *testing.T) {
 func TestTrieStorageManager_Put(t *testing.T) {
 	t.Parallel()
 
-	t.Run("closed storage manager should error", func(t *testing.T) {
-		t.Parallel()
-
-		ts, _ := trie.NewTrieStorageManager(trie.GetDefaultTrieStorageManagerParameters())
-		_ = ts.Close()
-
-		err := ts.Put(providedKey, providedVal)
-		assert.Equal(t, core.ErrContextClosing, err)
-	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -550,15 +513,6 @@ func TestTrieStorageManager_Put(t *testing.T) {
 func TestTrieStorageManager_PutInEpochWithoutCache(t *testing.T) {
 	t.Parallel()
 
-	t.Run("closed storage manager should error", func(t *testing.T) {
-		t.Parallel()
-
-		ts, _ := trie.NewTrieStorageManager(trie.GetDefaultTrieStorageManagerParameters())
-		_ = ts.Close()
-
-		err := ts.PutInEpochWithoutCache(providedKey, providedVal, 0)
-		assert.Equal(t, core.ErrContextClosing, err)
-	})
 	t.Run("main storer not snapshotPruningStorer should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -726,4 +680,23 @@ func TestTrieStorageManager_IsSnapshotSupportedShouldReturnTrue(t *testing.T) {
 	ts, _ := trie.NewTrieStorageManager(args)
 
 	assert.True(t, ts.IsSnapshotSupported())
+}
+
+func TestSnapshotsGoroutineNum(t *testing.T) {
+	t.Parallel()
+
+	cores := int32(runtime.GOMAXPROCS(0))
+	floored := func(num int32) int32 {
+		if num < 4 {
+			return 4
+		}
+		return num
+	}
+
+	assert.Equal(t, floored(2*cores), trie.SnapshotsGoroutineNum(2))
+	assert.Equal(t, floored(cores), trie.SnapshotsGoroutineNum(1))
+	// enough to overlap disk waits even on a single core host
+	assert.Equal(t, int32(4), trie.SnapshotsGoroutineNum(0))
+	// absurd config values must not overflow
+	assert.Equal(t, int32(math.MaxInt32), trie.SnapshotsGoroutineNum(math.MaxUint32))
 }

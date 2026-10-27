@@ -81,6 +81,11 @@ func (ivi *interceptedValidatorInfo) CheckValidity() error {
 	return nil
 }
 
+// ShouldAllowDuplicates returns if this type of intercepted data should allow duplicates
+func (ivi *interceptedValidatorInfo) ShouldAllowDuplicates() bool {
+	return false
+}
+
 // IsForCurrentShard always returns true
 func (ivi *interceptedValidatorInfo) IsForCurrentShard() bool {
 	return true

@@ -2,6 +2,7 @@ package initializers
 
 import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"golang.org/x/exp/slices"
 
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -90,8 +91,9 @@ func InitConsensusStateWithArgsVerifySignature(keysHandler consensus.KeysHandler
 		rcns,
 		rthr,
 		rstatus,
+		&mock.NodeRedundancyHandlerStub{},
 	)
-	cns.Data = []byte("X")
+	cns.SetData([]byte("X"))
 	cns.SetRoundIndex(0)
 
 	return cns
@@ -148,9 +150,10 @@ func createConsensusStateWithNodes(eligibleNodesPubKeys map[string]struct{}, con
 		rcns,
 		rthr,
 		rstatus,
+		&mock.NodeRedundancyHandlerStub{},
 	)
 
-	cns.Data = []byte("X")
+	cns.SetData([]byte("X"))
 	cns.SetRoundIndex(0)
 	return cns
 }

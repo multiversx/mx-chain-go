@@ -98,6 +98,8 @@ func (en *extensionNode) commitDirty(
 }
 
 func (en *extensionNode) commitSnapshot(
+	db snapshotDb,
+	maxEpochToSearchFrom uint32,
 	trieCtx common.TrieContext,
 	leavesChan chan core.KeyValueHolder,
 	missingNodesChan chan []byte,
@@ -121,7 +123,7 @@ func (en *extensionNode) commitSnapshot(
 	}
 
 	if !childIsMissing {
-		err = child.commitSnapshot(trieCtx, leavesChan, missingNodesChan, ctx, stats, idleProvider, childBytes, depthLevel+1)
+		err = child.commitSnapshot(db, maxEpochToSearchFrom, trieCtx, leavesChan, missingNodesChan, ctx, stats, idleProvider, childBytes, depthLevel+1)
 		if err != nil {
 			return err
 		}
@@ -189,7 +191,7 @@ func (en *extensionNode) getChild(key []byte, mutexKey string, trieCtx common.Tr
 	return child, key, nil
 }
 
-func (en *extensionNode) tryGet(keyData *keyData, currentDepth uint32, trieCtx common.TrieContext) (value []byte, maxDepth uint32, err error) {
+func (en *extensionNode) tryGetWithVersion(keyData *keyData, currentDepth uint32, trieCtx common.TrieContext) (value []byte, maxDepth uint32, err error) {
 	mutexKey := getMutexKeyFromBytes(keyData.pathKey)
 
 	child, key, err := en.getChild(keyData.keyRemainder, mutexKey, trieCtx)
@@ -671,6 +673,10 @@ func (en *extensionNode) getAllLeavesOnChannel(
 
 func (en *extensionNode) getNextHashAndKey(key []byte) (bool, []byte, []byte) {
 	if len(key) == 0 || check.IfNil(en) {
+		return false, nil, nil
+	}
+
+	if len(en.Key) > len(key) || !bytes.HasPrefix(key, en.Key) {
 		return false, nil, nil
 	}
 

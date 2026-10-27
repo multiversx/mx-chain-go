@@ -3,6 +3,7 @@ package mock
 import (
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 )
 

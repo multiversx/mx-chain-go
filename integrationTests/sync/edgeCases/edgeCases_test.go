@@ -67,6 +67,8 @@ func TestSyncMetaNodeIsSyncingReceivedHigherRoundBlockFromShard(t *testing.T) {
 		numRoundsBlocksAreProposedOnlyByMeta,
 	)
 
+	integrationTests.SetRootHashOfGenesisBlocks(nodes)
+
 	secondNumRoundsBlocksAreProposedCorrectly := 2
 	integrationTests.ProposeBlocks(
 		nodes,

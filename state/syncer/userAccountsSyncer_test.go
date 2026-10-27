@@ -52,8 +52,8 @@ func TestNewUserAccountsSyncer(t *testing.T) {
 		args := getDefaultUserAccountsSyncerArgs()
 		args.Hasher = nil
 
-		syncer, err := syncer.NewUserAccountsSyncer(args)
-		assert.Nil(t, syncer)
+		s, err := syncer.NewUserAccountsSyncer(args)
+		assert.Nil(t, s)
 		assert.Equal(t, state.ErrNilHasher, err)
 	})
 
@@ -63,8 +63,8 @@ func TestNewUserAccountsSyncer(t *testing.T) {
 		args := getDefaultUserAccountsSyncerArgs()
 		args.Throttler = nil
 
-		syncer, err := syncer.NewUserAccountsSyncer(args)
-		assert.Nil(t, syncer)
+		s, err := syncer.NewUserAccountsSyncer(args)
+		assert.Nil(t, s)
 		assert.Equal(t, data.ErrNilThrottler, err)
 	})
 
@@ -94,9 +94,9 @@ func TestNewUserAccountsSyncer(t *testing.T) {
 		t.Parallel()
 
 		args := getDefaultUserAccountsSyncerArgs()
-		syncer, err := syncer.NewUserAccountsSyncer(args)
+		s, err := syncer.NewUserAccountsSyncer(args)
 		assert.Nil(t, err)
-		assert.NotNil(t, syncer)
+		assert.NotNil(t, s)
 	})
 }
 
@@ -175,9 +175,9 @@ func getDefaultTrieParameters() trie.TrieArgs {
 	hasher := &testscommon.KeccakMock{}
 
 	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:      1000,
-		SnapshotsBufferLen:    10,
-		SnapshotsGoroutineNum: 1,
+		PruningBufferLen:           1000,
+		SnapshotsBufferLen:         10,
+		SnapshotsGoroutinesPerCore: 1,
 	}
 
 	args := trie.NewTrieStorageManagerArgs{
@@ -408,10 +408,10 @@ func TestUserAccountsSyncer_MissingDataTrieNodeFound(t *testing.T) {
 		},
 	}
 
-	syncer, _ := syncer.NewUserAccountsSyncer(args)
+	s, _ := syncer.NewUserAccountsSyncer(args)
 	// test that timeout watchdog is reset
 	time.Sleep(args.Timeout * 2)
-	syncer.MissingDataTrieNodeFound(rootHash)
+	s.MissingDataTrieNodeFound(rootHash)
 
 	assert.Equal(t, 1, numNodesSynced)
 	assert.Equal(t, 1, numProcessedCalled)

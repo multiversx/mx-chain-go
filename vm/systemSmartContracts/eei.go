@@ -176,20 +176,41 @@ func (host *vmContext) SetStorage(key []byte, value []byte) {
 	host.SetStorageForAddress(host.scAddress, key, value)
 }
 
+func (host *vmContext) getPersistedBalance(addr []byte) *big.Int {
+	if host.blockChainHook == nil {
+		return big.NewInt(0)
+	}
+
+	account, err := host.blockChainHook.GetUserAccount(addr)
+	if err != nil || account == nil {
+		return big.NewInt(0)
+	}
+
+	balance := account.GetBalance()
+	if balance == nil {
+		return big.NewInt(0)
+	}
+
+	return big.NewInt(0).Set(balance)
+}
+
 // GetBalance returns the balance of the given address
 func (host *vmContext) GetBalance(addr []byte) *big.Int {
 	outAcc, exists := host.outputAccounts[string(addr)]
 	if exists {
-		actualBalance := big.NewInt(0).Add(outAcc.Balance, outAcc.BalanceDelta)
+		bal := outAcc.Balance
+		if bal == nil {
+			bal = host.getPersistedBalance(addr)
+		}
+		delta := outAcc.BalanceDelta
+		if delta == nil {
+			delta = big.NewInt(0)
+		}
+		actualBalance := big.NewInt(0).Add(bal, delta)
 		return actualBalance
 	}
 
-	account, err := host.blockChainHook.GetUserAccount(addr)
-	if err != nil {
-		return big.NewInt(0)
-	}
-
-	return account.GetBalance()
+	return host.getPersistedBalance(addr)
 }
 
 // SendGlobalSettingToAll handles sending the information to all the shards
@@ -209,7 +230,7 @@ func (host *vmContext) SendGlobalSettingToAll(_ []byte, input []byte) {
 		if !exists {
 			globalOutAcc = &vmcommon.OutputAccount{
 				Address:      systemAddress,
-				Balance:      big.NewInt(0),
+				Balance:      host.getPersistedBalance(systemAddress),
 				BalanceDelta: big.NewInt(0),
 			}
 		}
@@ -236,7 +257,7 @@ func (host *vmContext) getSenderDestination(sender, destination []byte) (*vmcomm
 		senderAcc = &vmcommon.OutputAccount{
 			Address:      sender,
 			BalanceDelta: big.NewInt(0),
-			Balance:      big.NewInt(0),
+			Balance:      host.getPersistedBalance(sender),
 		}
 		host.outputAccounts[string(senderAcc.Address)] = senderAcc
 	}
@@ -246,7 +267,7 @@ func (host *vmContext) getSenderDestination(sender, destination []byte) (*vmcomm
 		destAcc = &vmcommon.OutputAccount{
 			Address:      destination,
 			BalanceDelta: big.NewInt(0),
-			Balance:      big.NewInt(0),
+			Balance:      host.getPersistedBalance(destination),
 		}
 		host.outputAccounts[string(destAcc.Address)] = destAcc
 	}
@@ -295,8 +316,23 @@ func (host *vmContext) GetTotalSentToUser(dest []byte) *big.Int {
 }
 
 func (host *vmContext) copyToNewContext() *vmContext {
+	storageUpdate := host.storageUpdate
+	if host.enableEpochsHandler.IsFlagEnabled(common.MultiClaimOnDelegationFlag) {
+		storageUpdateCopy := make(map[string]map[string][]byte, len(host.storageUpdate))
+		for scAddr, storage := range host.storageUpdate {
+			innerCopy := make(map[string][]byte, len(storage))
+			for key, val := range storage {
+				valCopy := make([]byte, len(val))
+				copy(valCopy, val)
+				innerCopy[key] = valCopy
+			}
+			storageUpdateCopy[scAddr] = innerCopy
+		}
+		storageUpdate = storageUpdateCopy
+	}
+
 	newContext := vmContext{
-		storageUpdate:  host.storageUpdate,
+		storageUpdate:  storageUpdate,
 		outputAccounts: host.outputAccounts,
 		output:         host.output,
 		scAddress:      host.scAddress,
@@ -504,7 +540,7 @@ func (host *vmContext) addContractDeployToOutput(
 		outAcc = &vmcommon.OutputAccount{
 			Address:      contractAddress,
 			BalanceDelta: big.NewInt(0),
-			Balance:      big.NewInt(0),
+			Balance:      host.getPersistedBalance(contractAddress),
 		}
 		host.outputAccounts[string(outAcc.Address)] = outAcc
 	}
@@ -776,6 +812,7 @@ func (host *vmContext) AddCode(address []byte, code []byte) {
 		host.outputAccounts[string(address)] = &vmcommon.OutputAccount{
 			Address:        address,
 			Nonce:          0,
+			Balance:        host.getPersistedBalance(address),
 			BalanceDelta:   big.NewInt(0),
 			StorageUpdates: nil,
 			Code:           code,
@@ -792,8 +829,16 @@ func (host *vmContext) AddTxValueToSmartContract(value *big.Int, scAddress []byt
 		destAcc = &vmcommon.OutputAccount{
 			Address:      scAddress,
 			BalanceDelta: big.NewInt(0),
+			Balance:      host.getPersistedBalance(scAddress),
 		}
 		host.outputAccounts[string(destAcc.Address)] = destAcc
+	}
+
+	if destAcc.BalanceDelta == nil {
+		destAcc.BalanceDelta = big.NewInt(0)
+	}
+	if destAcc.Balance == nil {
+		destAcc.Balance = host.getPersistedBalance(scAddress)
 	}
 
 	destAcc.BalanceDelta = big.NewInt(0).Add(destAcc.BalanceDelta, value)

@@ -2,9 +2,10 @@ package storageBootstrap
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -22,6 +23,10 @@ func NewShardStorageBootstrapper(arguments ArgsShardStorageBootstrapper) (*shard
 	err := checkShardStorageBootstrapperArgs(arguments)
 	if err != nil {
 		return nil, err
+	}
+	roundExclusions := arguments.RoundExclusions
+	if check.IfNil(roundExclusions) {
+		roundExclusions, _ = common.NewRoundExclusionHandler(nil)
 	}
 
 	base := &storageBootstrapper{
@@ -45,6 +50,10 @@ func NewShardStorageBootstrapper(arguments ArgsShardStorageBootstrapper) (*shard
 		appStatusHandler:             arguments.AppStatusHandler,
 		enableEpochsHandler:          arguments.EnableEpochsHandler,
 		proofsPool:                   arguments.ProofsPool,
+		executionManager:             arguments.ExecutionManager,
+		roundExclusions:              roundExclusions,
+		recoveryCheckpoint:           arguments.RecoveryCheckpoint,
+		hasher:                       arguments.Hasher,
 	}
 
 	boot := shardStorageBootstrapper{
@@ -63,7 +72,21 @@ func NewShardStorageBootstrapper(arguments ArgsShardStorageBootstrapper) (*shard
 
 // LoadFromStorage will load all blocks from storage
 func (ssb *shardStorageBootstrapper) LoadFromStorage() error {
-	return ssb.loadBlocks()
+	err := ssb.loadBlocks()
+	if err != nil {
+		return err
+	}
+
+	ssb.setSupernovaTransitionReadyForV3()
+
+	return nil
+}
+
+func (ssb *shardStorageBootstrapper) setSupernovaTransitionReadyForV3() {
+	currentHeader := ssb.blkc.GetCurrentBlockHeader()
+	if !check.IfNil(currentHeader) && currentHeader.IsHeaderV3() {
+		ssb.appStatusHandler.SetUInt64Value(common.MetricSupernovaTransitionReady, 1)
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
@@ -87,6 +110,9 @@ func (ssb *shardStorageBootstrapper) applyCrossNotarizedHeaders(crossNotarizedHe
 
 		metaBlock, err := process.GetMetaHeaderFromStorage(crossNotarizedHeader.Hash, ssb.marshalizer, ssb.store)
 		if err != nil {
+			return err
+		}
+		if err = ssb.checkRecoveryHeader(metaBlock, crossNotarizedHeader.Hash); err != nil {
 			return err
 		}
 
@@ -119,7 +145,7 @@ func (ssb *shardStorageBootstrapper) cleanupNotarizedStorage(shardHeaderHash []b
 	}
 
 	for _, metaBlockHash := range shardHeader.GetMetaBlockHashes() {
-		var metaBlock *block.MetaBlock
+		var metaBlock data.MetaHeaderHandler
 		metaBlock, err = process.GetMetaHeaderFromStorage(metaBlockHash, ssb.marshalizer, ssb.store)
 		if err != nil {
 			log.Debug("meta block is not found in MetaBlockUnit storage",
@@ -187,7 +213,7 @@ func (ssb *shardStorageBootstrapper) cleanupNotarizedStorageForHigherNoncesIfExi
 	}
 }
 
-func (ssb *shardStorageBootstrapper) removeMetaFromMetaHeaderNonceToHashUnit(metaBlock *block.MetaBlock, metaBlockHash []byte) {
+func (ssb *shardStorageBootstrapper) removeMetaFromMetaHeaderNonceToHashUnit(metaBlock data.MetaHeaderHandler, metaBlockHash []byte) {
 	nonceToByteSlice := ssb.uint64Converter.ToByteSlice(metaBlock.GetNonce())
 	metaHdrNonceHashStorer, err := ssb.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
 	if err != nil {
@@ -207,7 +233,7 @@ func (ssb *shardStorageBootstrapper) removeMetaFromMetaHeaderNonceToHashUnit(met
 	}
 }
 
-func (ssb *shardStorageBootstrapper) removeMetaFromMetaBlockUnit(metaBlock *block.MetaBlock, metaBlockHash []byte) {
+func (ssb *shardStorageBootstrapper) removeMetaFromMetaBlockUnit(metaBlock data.MetaHeaderHandler, metaBlockHash []byte) {
 	metaBlockStorer, err := ssb.store.GetStorer(dataRetriever.MetaBlockUnit)
 	if err != nil {
 		log.Debug("could not get storage unit",
@@ -259,6 +285,9 @@ func (ssb *shardStorageBootstrapper) applySelfNotarizedHeaders(
 		if err != nil {
 			return nil, nil, err
 		}
+		if err = ssb.checkRecoveryHeader(selfNotarizedHeader, selfNotarizedHeaderHash); err != nil {
+			return nil, nil, err
+		}
 
 		err = ssb.getAndApplyProofForHeader(selfNotarizedHeaderHash, selfNotarizedHeader)
 		if err != nil {
@@ -280,6 +309,10 @@ func (ssb *shardStorageBootstrapper) applySelfNotarizedHeaders(
 }
 
 func (ssb *shardStorageBootstrapper) applyNumPendingMiniBlocks(_ []bootstrapStorage.PendingMiniBlocksInfo) {
+}
+
+func (ssb *shardStorageBootstrapper) completeSelfNotarizedHeaders(_ []byte) error {
+	return nil
 }
 
 func (ssb *shardStorageBootstrapper) getRootHash(shardHeaderHash []byte) []byte {

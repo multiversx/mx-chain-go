@@ -9,9 +9,10 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/node"
-	"github.com/multiversx/mx-chain-logger-go"
 )
 
 var formatter = logger.PlainFormatter{}
@@ -48,14 +49,18 @@ func InitLogHandler(args LogHandlerArgs) error {
 
 	var err error
 	scheme := ws
+
 	if args.UseWss {
 		scheme = wss
 	}
+	nodeURL := getNodeUrlPath(args.NodeURL)
+
 	go func() {
 		for {
-			webSocket, err = openWebSocket(scheme, args.NodeURL)
+			webSocket, err = openWebSocket(scheme, nodeURL)
+
 			if err != nil {
-				_, _ = args.Presenter.Write([]byte(fmt.Sprintf("termui websocket error, retrying in %v...", retryDuration)))
+				_, _ = fmt.Fprintf(args.Presenter, "termui websocket error %s, retrying in %v...", err, retryDuration)
 				time.Sleep(retryDuration)
 				continue
 			}
@@ -75,12 +80,17 @@ func InitLogHandler(args LogHandlerArgs) error {
 	return nil
 }
 
+func getNodeUrlPath(nodeURL string) string {
+	return strings.TrimPrefix(strings.TrimPrefix(nodeURL, "http://"), "https://")
+}
+
 func openWebSocket(scheme string, address string) (*websocket.Conn, error) {
 	u := url.URL{
 		Scheme: scheme,
 		Host:   address,
 		Path:   "/log",
 	}
+
 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
 		return nil, err
@@ -116,9 +126,9 @@ func startListeningOnWebSocket(presenter PresenterHandler, chanNodeIsStarting ch
 
 		_, isConnectionClosed := err.(*websocket.CloseError)
 		if !isConnectionClosed {
-			_, _ = presenter.Write([]byte(fmt.Sprintf("termui websocket error: %s", err.Error())))
+			_, _ = fmt.Fprintf(presenter, "termui websocket error: %s", err.Error())
 		} else {
-			_, _ = presenter.Write([]byte(fmt.Sprintf("termui websocket terminated: %s", err.Error())))
+			_, _ = fmt.Fprintf(presenter, "termui websocket terminated: %s", err.Error())
 		}
 		chanNodeIsStarting <- struct{}{}
 		return

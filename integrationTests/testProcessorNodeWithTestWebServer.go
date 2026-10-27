@@ -7,9 +7,13 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/versioning"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
+
+	"github.com/multiversx/mx-chain-go/common"
 
 	"github.com/multiversx/mx-chain-go/api/groups"
 	"github.com/multiversx/mx-chain-go/api/shared"
@@ -94,11 +98,10 @@ func createFacadeArg(tpn *TestProcessorNode) nodeFacade.ArgNodeFacade {
 			TrieOperationsDeadlineMilliseconds: 1,
 			EndpointsThrottlers:                []config.EndpointsThrottlersConfig{},
 		},
-		FacadeConfig:    config.FacadeConfig{},
-		ApiRoutesConfig: createTestApiConfig(),
-		AccountsState:   tpn.AccntState,
-		PeerState:       tpn.PeerState,
-		Blockchain:      tpn.BlockChain,
+		FacadeConfig:     config.FacadeConfig{},
+		ApiRoutesConfig:  createTestApiConfig(),
+		AccountsStateAPI: tpn.AccntState,
+		Blockchain:       tpn.BlockChain,
 	}
 }
 
@@ -167,8 +170,9 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 	log.LogIfError(err)
 
 	argsDataFieldParser := &datafield.ArgsOperationDataFieldParser{
-		AddressLength: TestAddressPubkeyConverter.Len(),
-		Marshalizer:   TestMarshalizer,
+		AddressLength:                       TestAddressPubkeyConverter.Len(),
+		Marshalizer:                         TestMarshalizer,
+		RelayedTransactionsV1V2DisableEpoch: tpn.EnableEpochsHandler.GetActivationEpoch(common.RelayedTransactionsV1V2DisableFlag),
 	}
 	dataFieldParser, err := datafield.NewOperationDataFieldParser(argsDataFieldParser)
 	log.LogIfError(err)
@@ -183,6 +187,8 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 		VMOutputCacher:            &cache.CacherMock{},
 		DataFieldParser:           dataFieldParser,
 		BlockChainHook:            tpn.BlockchainHook,
+		SCRProcessor:              tpn.ScProcessor,
+		TxLogsProcessor:           &mock.TxLogsProcessorStub{},
 	}
 
 	txSimulator, err := transactionEvaluator.NewTransactionSimulator(argSimulator)
@@ -199,6 +205,10 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 		ShardCoordinator:    tpn.ShardCoordinator,
 		EnableEpochsHandler: tpn.EnableEpochsHandler,
 		BlockChain:          tpn.BlockChain,
+	}
+	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
+		argsTransactionEvaluator.PeerAccounts, err = transactionEvaluator.NewSimulationAccountsDB(tpn.PeerState)
+		log.LogIfError(err)
 	}
 	apiTransactionEvaluator, err := transactionEvaluator.NewAPITransactionEvaluator(argsTransactionEvaluator)
 	log.LogIfError(err)
@@ -226,7 +236,9 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 	logsFacade := &testscommon.LogsFacadeStub{}
 	receiptsRepository := &testscommon.ReceiptsRepositoryStub{}
 
+	emptyExclusionHandler, _ := common.NewRoundExclusionHandler(nil)
 	argsApiTransactionProc := &transactionAPI.ArgAPITransactionProcessor{
+		RoundHandler:             tpn.RoundHandler,
 		Marshalizer:              TestMarshalizer,
 		AddressPubKeyConverter:   TestAddressPubkeyConverter,
 		ShardCoordinator:         tpn.ShardCoordinator,
@@ -240,6 +252,11 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 		DataFieldParser:          dataFieldParser,
 		TxMarshaller:             &marshallerMock.MarshalizerMock{},
 		EnableEpochsHandler:      tpn.EnableEpochsHandler,
+		EnableRoundsHandler:      tpn.EnableRoundsHandler,
+		TxVersionChecker:         versioning.NewTxVersionChecker(tpn.MinTransactionVersion),
+		ChainHandler:             tpn.BlockChain,
+		TxProcessor:              tpn.TxProcessor,
+		RoundExclusionHandler:    emptyExclusionHandler,
 	}
 	apiTransactionHandler, err := transactionAPI.NewAPITransactionProcessor(argsApiTransactionProc)
 	log.LogIfError(err)
@@ -265,6 +282,8 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		ProofsPool:                   tpn.ProofsPool,
 		BlockChain:                   tpn.BlockChain,
+		EnableRoundsHandler:          tpn.EnableRoundsHandler,
+		RoundExclusionHandler:        emptyExclusionHandler,
 	}
 	blockAPIHandler, err := blockAPI.CreateAPIBlockProcessor(argsBlockAPI)
 	log.LogIfError(err)

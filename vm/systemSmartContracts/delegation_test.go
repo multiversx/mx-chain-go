@@ -1703,7 +1703,9 @@ func TestDelegationSystemSC_ExecuteUnDelegatePartOfFunds(t *testing.T) {
 	addValidatorAndStakingScToVmContext(eei)
 	createDelegationManagerConfig(eei, args.Marshalizer, big.NewInt(10))
 
+	callerAddr := bytes.Repeat([]byte("o"), 32)
 	vmInput := getDefaultVmInputForFunc("unDelegate", [][]byte{{80}})
+	vmInput.CallerAddr = callerAddr
 	d, _ := NewDelegationSystemSC(args)
 
 	_ = d.saveDelegatorData(vmInput.CallerAddr, &DelegatorData{
@@ -1754,8 +1756,7 @@ func TestDelegationSystemSC_ExecuteUnDelegatePartOfFunds(t *testing.T) {
 	assert.Equal(t, vmcommon.Ok, output)
 
 	eei.output = make([][]byte, 0)
-	vmInput = getDefaultVmInputForFunc("getUserUnDelegatedList", [][]byte{})
-	vmInput.Arguments = [][]byte{vmInput.CallerAddr}
+	vmInput = getDefaultVmInputForFunc("getUserUnDelegatedList", [][]byte{callerAddr})
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
 
@@ -2409,6 +2410,52 @@ func TestDelegation_ExecuteUpdateRewards(t *testing.T) {
 	assert.Equal(t, callValue, rewardData.RewardsToDistribute)
 }
 
+func TestDelegation_ExecuteUpdateRewardsKeepsPreviousEpochData(t *testing.T) {
+	t.Parallel()
+
+	const previousEpoch = uint32(14)
+	const currentEpoch = uint32(15)
+	previousRewardData := &RewardComputationData{
+		RewardsToDistribute: big.NewInt(10),
+		TotalActive:         big.NewInt(100),
+		ServiceFee:          50,
+	}
+	callValue := big.NewInt(20)
+	totalActive := big.NewInt(200)
+	serviceFee := big.NewInt(100)
+	args := createMockArgumentsForDelegation()
+	eei := createDefaultEei()
+	eei.blockChainHook = &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return currentEpoch
+		},
+	}
+	args.Eei = eei
+
+	vmInput := getDefaultVmInputForFunc("updateRewards", [][]byte{})
+	vmInput.CallValue = callValue
+	vmInput.CallerAddr = vm.EndOfEpochAddress
+	d, _ := NewDelegationSystemSC(args)
+	require.NoError(t, d.saveRewardData(previousEpoch, previousRewardData))
+	d.eei.SetStorage([]byte(totalActiveKey), totalActive.Bytes())
+	d.eei.SetStorage([]byte(serviceFeeKey), serviceFee.Bytes())
+
+	output := d.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, output)
+
+	wasPresent, storedPreviousRewardData, err := d.getRewardComputationData(previousEpoch)
+	require.True(t, wasPresent)
+	require.NoError(t, err)
+	require.Equal(t, previousRewardData, storedPreviousRewardData)
+
+	wasPresent, currentRewardData, err := d.getRewardComputationData(currentEpoch)
+	require.True(t, wasPresent)
+	require.NoError(t, err)
+	require.Equal(t, serviceFee.Uint64(), currentRewardData.ServiceFee)
+	require.Equal(t, totalActive, currentRewardData.TotalActive)
+	require.Equal(t, callValue, currentRewardData.RewardsToDistribute)
+}
+
 func TestDelegation_ExecuteClaimRewardsUserErrors(t *testing.T) {
 	t.Parallel()
 
@@ -2450,11 +2497,13 @@ func TestDelegation_ExecuteClaimRewards(t *testing.T) {
 	args.Eei = eei
 
 	args.DelegationSCConfig.MaxServiceFee = 10000
+	callerAddr := bytes.Repeat([]byte("o"), 32)
 	vmInput := getDefaultVmInputForFunc("claimRewards", [][]byte{})
+	vmInput.CallerAddr = callerAddr
 	d, _ := NewDelegationSystemSC(args)
 
 	fundKey := []byte{1}
-	_ = d.saveDelegatorData(vmInput.CallerAddr, &DelegatorData{
+	_ = d.saveDelegatorData(callerAddr, &DelegatorData{
 		ActiveFund:            fundKey,
 		RewardsCheckpoint:     0,
 		UnClaimedRewards:      big.NewInt(0),
@@ -2480,7 +2529,7 @@ func TestDelegation_ExecuteClaimRewards(t *testing.T) {
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
 
-	destAcc, exists := eei.outputAccounts[string(vmInput.CallerAddr)]
+	destAcc, exists := eei.outputAccounts[string(callerAddr)]
 	assert.True(t, exists)
 	_, exists = eei.outputAccounts[string(vmInput.RecipientAddr)]
 	assert.True(t, exists)
@@ -2489,7 +2538,7 @@ func TestDelegation_ExecuteClaimRewards(t *testing.T) {
 	outputTransfer := destAcc.OutputTransfers[0]
 	assert.Equal(t, big.NewInt(135), outputTransfer.Value)
 
-	_, delegatorData, _ := d.getOrCreateDelegatorData(vmInput.CallerAddr)
+	_, delegatorData, _ := d.getOrCreateDelegatorData(callerAddr)
 	assert.Equal(t, uint32(3), delegatorData.RewardsCheckpoint)
 	assert.Equal(t, uint64(0), delegatorData.UnClaimedRewards.Uint64())
 	assert.Equal(t, uint64(135), delegatorData.TotalCumulatedRewards.Uint64())
@@ -2504,11 +2553,12 @@ func TestDelegation_ExecuteClaimRewards(t *testing.T) {
 		ServiceFee:          1000,
 	})
 
-	vmInput = getDefaultVmInputForFunc("getTotalCumulatedRewardsForUser", [][]byte{vmInput.CallerAddr})
+	vmInput = getDefaultVmInputForFunc("getTotalCumulatedRewardsForUser", [][]byte{callerAddr})
+	vmInput.CallerAddr = callerAddr
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
 
-	_, delegatorData, _ = d.getOrCreateDelegatorData(vmInput.CallerAddr)
+	_, delegatorData, _ = d.getOrCreateDelegatorData(callerAddr)
 	assert.Equal(t, uint64(0), delegatorData.UnClaimedRewards.Uint64())
 	assert.Equal(t, uint64(135), delegatorData.TotalCumulatedRewards.Uint64())
 	lastValue := eei.output[len(eei.output)-1]
@@ -2768,7 +2818,7 @@ func TestDelegation_ExecuteGetClaimableRewardsUserErrors(t *testing.T) {
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidNumOfArguments.Error()))
 
-	vmInput.Arguments = [][]byte{[]byte("address")}
+	vmInput.Arguments = [][]byte{bytes.Repeat([]byte("a"), 32)}
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "view function works only for existing delegators"))
@@ -2786,7 +2836,7 @@ func TestDelegation_ExecuteGetClaimableRewards(t *testing.T) {
 	}
 	args.Eei = eei
 	args.DelegationSCConfig.MaxServiceFee = 10000
-	delegatorAddr := []byte("address")
+	delegatorAddr := bytes.Repeat([]byte("a"), 32)
 	vmInput := getDefaultVmInputForFunc("getClaimableRewards", [][]byte{delegatorAddr})
 	d, _ := NewDelegationSystemSC(args)
 
@@ -3096,7 +3146,7 @@ func TestDelegation_ExecuteGetUserActiveStakeUserErrors(t *testing.T) {
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidNumOfArguments.Error()))
 
-	vmInput.Arguments = [][]byte{[]byte("address")}
+	vmInput.Arguments = [][]byte{bytes.Repeat([]byte("a"), 32)}
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "view function works only for existing delegators"))
@@ -3109,7 +3159,7 @@ func TestDelegation_ExecuteGetUserActiveStakeNoActiveFund(t *testing.T) {
 	eei := createDefaultEei()
 	args.Eei = eei
 
-	delegatorAddress := []byte("delegatorAddress")
+	delegatorAddress := bytes.Repeat([]byte("d"), 32)
 	vmInput := getDefaultVmInputForFunc("getUserActiveStake", [][]byte{delegatorAddress})
 	d, _ := NewDelegationSystemSC(args)
 
@@ -3130,7 +3180,7 @@ func TestDelegation_ExecuteGetUserActiveStake(t *testing.T) {
 	eei := createDefaultEei()
 	args.Eei = eei
 
-	delegatorAddress := []byte("delegatorAddress")
+	delegatorAddress := bytes.Repeat([]byte("d"), 32)
 	vmInput := getDefaultVmInputForFunc("getUserActiveStake", [][]byte{delegatorAddress})
 	d, _ := NewDelegationSystemSC(args)
 
@@ -3176,7 +3226,7 @@ func TestDelegation_ExecuteGetUserUnStakedValueUserErrors(t *testing.T) {
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidNumOfArguments.Error()))
 
-	vmInput.Arguments = [][]byte{[]byte("address")}
+	vmInput.Arguments = [][]byte{bytes.Repeat([]byte("a"), 32)}
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "view function works only for existing delegators"))
@@ -3189,7 +3239,7 @@ func TestDelegation_ExecuteGetUserUnStakedValueNoUnStakedFund(t *testing.T) {
 	eei := createDefaultEei()
 	args.Eei = eei
 
-	delegatorAddress := []byte("delegatorAddress")
+	delegatorAddress := bytes.Repeat([]byte("d"), 32)
 	vmInput := getDefaultVmInputForFunc("getUserUnStakedValue", [][]byte{delegatorAddress})
 	d, _ := NewDelegationSystemSC(args)
 
@@ -3210,7 +3260,7 @@ func TestDelegation_ExecuteGetUserUnStakedValue(t *testing.T) {
 	eei := createDefaultEei()
 	args.Eei = eei
 
-	delegatorAddress := []byte("delegatorAddress")
+	delegatorAddress := bytes.Repeat([]byte("d"), 32)
 	vmInput := getDefaultVmInputForFunc("getUserUnStakedValue", [][]byte{delegatorAddress})
 	d, _ := NewDelegationSystemSC(args)
 
@@ -3261,12 +3311,12 @@ func TestDelegation_ExecuteGetUserUnBondableUserErrors(t *testing.T) {
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidNumOfArguments.Error()))
 
-	vmInput.Arguments = [][]byte{[]byte("address")}
+	vmInput.Arguments = [][]byte{bytes.Repeat([]byte("a"), 32)}
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "view function works only for existing delegators"))
 
-	_ = d.saveDelegatorData([]byte("address"), &DelegatorData{})
+	_ = d.saveDelegatorData(bytes.Repeat([]byte("a"), 32), &DelegatorData{})
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	expectedErr := fmt.Errorf("%w delegation contract config", vm.ErrDataNotFoundUnderKey)
@@ -3280,7 +3330,7 @@ func TestDelegation_ExecuteGetUserUnBondableNoUnStakedFund(t *testing.T) {
 	eei := createDefaultEei()
 	args.Eei = eei
 
-	delegatorAddress := []byte("delegatorAddress")
+	delegatorAddress := bytes.Repeat([]byte("d"), 32)
 	vmInput := getDefaultVmInputForFunc("getUserUnBondable", [][]byte{delegatorAddress})
 	d, _ := NewDelegationSystemSC(args)
 
@@ -3313,7 +3363,7 @@ func TestDelegation_ExecuteGetUserUnBondable(t *testing.T) {
 	}
 	args.Eei = eei
 
-	delegatorAddress := []byte("delegatorAddress")
+	delegatorAddress := bytes.Repeat([]byte("d"), 32)
 	vmInput := getDefaultVmInputForFunc("getUserUnBondable", [][]byte{delegatorAddress})
 	d, _ := NewDelegationSystemSC(args)
 
@@ -3635,7 +3685,7 @@ func TestDelegation_isDelegatorShouldErrBecauseAddressIsNotFound(t *testing.T) {
 	eei := createDefaultEei()
 	args.Eei = eei
 
-	delegatorAddress := []byte("address which didn't delegate")
+	delegatorAddress := bytes.Repeat([]byte("n"), 32)
 	vmInput := getDefaultVmInputForFunc("isDelegator", [][]byte{delegatorAddress})
 	d, _ := NewDelegationSystemSC(args)
 
@@ -3648,7 +3698,7 @@ func TestDelegation_isDelegatorShouldWork(t *testing.T) {
 	eei := createDefaultEei()
 	args.Eei = eei
 
-	delegatorAddress := []byte("delegatorAddress")
+	delegatorAddress := bytes.Repeat([]byte("d"), 32)
 	vmInput := getDefaultVmInputForFunc("isDelegator", [][]byte{delegatorAddress})
 	d, _ := NewDelegationSystemSC(args)
 
@@ -3667,7 +3717,7 @@ func TestDelegation_getDelegatorFundsDataDelegatorNotFoundShouldErr(t *testing.T
 	eei := createDefaultEei()
 	args.Eei = eei
 
-	delegatorAddress := []byte("delegatorAddress")
+	delegatorAddress := bytes.Repeat([]byte("d"), 32)
 	vmInput := getDefaultVmInputForFunc("getDelegatorFundsData", [][]byte{delegatorAddress})
 	d, _ := NewDelegationSystemSC(args)
 
@@ -3681,7 +3731,7 @@ func TestDelegation_getDelegatorFundsDataCannotLoadFundsShouldErr(t *testing.T) 
 	eei := createDefaultEei()
 	args.Eei = eei
 
-	delegatorAddress := []byte("delegatorAddress")
+	delegatorAddress := bytes.Repeat([]byte("d"), 32)
 	vmInput := getDefaultVmInputForFunc("getDelegatorFundsData", [][]byte{delegatorAddress})
 	d, _ := NewDelegationSystemSC(args)
 
@@ -3707,7 +3757,7 @@ func TestDelegation_getDelegatorFundsDataCannotFindConfigShouldErr(t *testing.T)
 	eei := createDefaultEei()
 	args.Eei = eei
 
-	delegatorAddress := []byte("delegatorAddress")
+	delegatorAddress := bytes.Repeat([]byte("d"), 32)
 	vmInput := getDefaultVmInputForFunc("getDelegatorFundsData", [][]byte{delegatorAddress})
 	d, _ := NewDelegationSystemSC(args)
 
@@ -3733,7 +3783,7 @@ func TestDelegation_getDelegatorFundsDataShouldWork(t *testing.T) {
 	eei := createDefaultEei()
 	args.Eei = eei
 
-	delegatorAddress := []byte("delegatorAddress")
+	delegatorAddress := bytes.Repeat([]byte("d"), 32)
 	vmInput := getDefaultVmInputForFunc("getDelegatorFundsData", [][]byte{delegatorAddress})
 	d, _ := NewDelegationSystemSC(args)
 
@@ -5203,4 +5253,495 @@ func addValidatorAndStakingScToVmContextWithBlsKeys(eei *vmContext, blsKeys [][]
 
 		return nil, nil
 	}})
+}
+
+func TestDelegation_DS55_CHAIN_003_UserViewFuncsDoNotPanicOnMetadataKey(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForDelegation()
+	args.Marshalizer = &marshal.GogoProtoMarshalizer{}
+	eei := createDefaultEei()
+	eei.blockChainHook = &mock.BlockChainHookStub{CurrentEpochCalled: func() uint32 { return 2 }}
+	args.Eei = eei
+	args.DelegationSCConfig.MaxServiceFee = 10000
+	d, err := NewDelegationSystemSC(args)
+	require.Nil(t, err)
+
+	eei.SetStorage([]byte(ownerKey), []byte("owner"))
+	firstFund := append([]byte(fundKeyPrefix), big.NewInt(1).Bytes()...)
+	require.Nil(t, d.saveFund(firstFund, &Fund{Value: big.NewInt(1000), Address: []byte("owner")}))
+
+	// owner sets metadata
+	setIn := getDefaultVmInputForFunc("setMetaData", [][]byte{firstFund, []byte("x"), []byte{}})
+	setIn.GasProvided = 1000000
+	require.Equal(t, vmcommon.Ok, d.Execute(setIn))
+
+	// calling user view function with invalid address lengths or delegationMetaData must not panic and return UserError
+	for _, fn := range []string{"getClaimableRewards", "getDelegatorFundsData", "getTotalCumulatedRewardsForUser", "isDelegator", "getUserActiveStake", "getUserUnStakedValue", "getUserUnBondable", "getUserUnDelegatedList"} {
+		for _, badArg := range [][]byte{[]byte(delegationMetaData), []byte("short"), bytes.Repeat([]byte("x"), 33), {}} {
+			in := getDefaultVmInputForFunc(fn, [][]byte{badArg})
+			in.CallerAddr = []byte("anyone-not-owner")
+			in.GasProvided = 1000000
+
+			var panicked bool
+			func() {
+				defer func() {
+					if r := recover(); r != nil {
+						panicked = true
+					}
+				}()
+				rc := d.Execute(in)
+				assert.Equal(t, vmcommon.UserError, rc)
+				assert.Contains(t, eei.returnMessage, "invalid argument, wanted an address")
+			}()
+			assert.False(t, panicked, "function %s panicked on invalid address key %v", fn, badArg)
+		}
+	}
+}
+
+func TestDelegation_getOrCreateDelegatorData_NilRewardsInitialized(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForDelegation()
+	args.Marshalizer = &marshal.GogoProtoMarshalizer{}
+	eei := createDefaultEei()
+	args.Eei = eei
+	d, err := NewDelegationSystemSC(args)
+	require.Nil(t, err)
+
+	// Save DelegatorData proto bytes into storage with missing rewards fields
+	dataBytes, _ := args.Marshalizer.Marshal(&DelegatorData{ActiveFund: []byte("fund1")})
+	eei.SetStorage([]byte("dummyUser"), dataBytes)
+
+	isNew, delegator, err := d.getOrCreateDelegatorData([]byte("dummyUser"))
+	require.Nil(t, err)
+	assert.False(t, isNew)
+	assert.NotNil(t, delegator.UnClaimedRewards)
+	assert.NotNil(t, delegator.TotalCumulatedRewards)
+	assert.Equal(t, uint64(0), delegator.UnClaimedRewards.Uint64())
+	assert.Equal(t, uint64(0), delegator.TotalCumulatedRewards.Uint64())
+}
+
+func TestDelegation_ClaimRewards_NonZeroCallValue_ShouldErr(t *testing.T) {
+	t.Parallel()
+
+	t.Run("with FixCorrectSmallIntAndGasLimitsFlag", func(t *testing.T) {
+		t.Parallel()
+		args := createMockArgumentsForDelegation()
+		enableHandler := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
+		enableHandler.AddActiveFlags(common.FixCorrectSmallIntAndGasLimitsFlag)
+		eei := createDefaultEei()
+		args.Eei = eei
+		d, err := NewDelegationSystemSC(args)
+		require.Nil(t, err)
+
+		delegatorAddress := bytes.Repeat([]byte("d"), 32)
+		in := getDefaultVmInputForFunc("claimRewards", [][]byte{})
+		in.CallerAddr = delegatorAddress
+		in.CallValue = big.NewInt(100)
+
+		retCode := d.Execute(in)
+		assert.Equal(t, vmcommon.UserError, retCode)
+		assert.Equal(t, vm.ErrCallValueMustBeZero.Error(), eei.returnMessage)
+	})
+
+	t.Run("legacy without flag does not reject non-zero call value upfront", func(t *testing.T) {
+		t.Parallel()
+		args := createMockArgumentsForDelegation()
+		eei := createDefaultEei()
+		args.Eei = eei
+		d, err := NewDelegationSystemSC(args)
+		require.Nil(t, err)
+
+		delegatorAddress := bytes.Repeat([]byte("d"), 32)
+		in := getDefaultVmInputForFunc("claimRewards", [][]byte{})
+		in.CallerAddr = delegatorAddress
+		in.CallValue = big.NewInt(100)
+
+		_ = d.Execute(in)
+		assert.NotEqual(t, vm.ErrCallValueMustBeZero.Error(), eei.returnMessage)
+	})
+}
+
+func TestDelegation_Withdraw_PartialUnbond_RetainsCorrectRemainderAndPreservesSubsequentFunds(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForDelegation()
+	args.Marshalizer = &marshal.GogoProtoMarshalizer{}
+	eei := createDefaultEei()
+	eei.blockChainHook = &mock.BlockChainHookStub{CurrentEpochCalled: func() uint32 { return 20 }}
+	args.Eei = eei
+	d, err := NewDelegationSystemSC(args)
+	require.Nil(t, err)
+
+	delegatorAddr := bytes.Repeat([]byte("d"), 32)
+
+	// Fund 1: mature (epoch 1), value 100
+	fund1Key := []byte("fund1")
+	require.Nil(t, d.saveFund(fund1Key, &Fund{Value: big.NewInt(100), Epoch: 1, Address: delegatorAddr}))
+
+	// Fund 2: mature (epoch 2), value 50
+	fund2Key := []byte("fund2")
+	require.Nil(t, d.saveFund(fund2Key, &Fund{Value: big.NewInt(50), Epoch: 2, Address: delegatorAddr}))
+
+	// Fund 3: not mature (epoch 19), value 30
+	fund3Key := []byte("fund3")
+	require.Nil(t, d.saveFund(fund3Key, &Fund{Value: big.NewInt(30), Epoch: 19, Address: delegatorAddr}))
+
+	// Delegator has UnStakedFunds: [fund1, fund2, fund3]
+	delegator := &DelegatorData{
+		UnStakedFunds: [][]byte{fund1Key, fund2Key, fund3Key},
+	}
+	require.Nil(t, d.saveDelegatorData(delegatorAddr, delegator))
+
+	// Save delegation config with UnBondPeriodInEpochs = 10
+	require.Nil(t, d.saveDelegationContractConfig(&DelegationConfig{UnBondPeriodInEpochs: 10}))
+
+	// Global fund has totalUnStaked 180 and TotalActive 0
+	require.Nil(t, d.saveGlobalFundData(&GlobalFundData{TotalUnStaked: big.NewInt(180), TotalActive: big.NewInt(0)}))
+
+	// Mock validator SC response to unBondTokens: returns 30 (partial unbond from fund 1)
+	eei.systemContracts = &mock.SystemSCContainerStub{
+		GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
+			return &mock.SystemSCStub{
+				ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+					eei.output = [][]byte{big.NewInt(30).Bytes()}
+					return vmcommon.Ok
+				},
+			}, nil
+		},
+	}
+
+	in := getDefaultVmInputForFunc("withdraw", [][]byte{})
+	in.CallerAddr = delegatorAddr
+	in.GasProvided = 1000000
+
+	retCode := d.Execute(in)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	// Fund 1 value should be 100 - 30 = 70 (NOT 30!)
+	savedFund1, err := d.getFund(fund1Key)
+	require.Nil(t, err)
+	assert.Equal(t, uint64(70), savedFund1.Value.Uint64(), "fund 1 should retain 70")
+
+	// Delegator's UnStakedFunds should retain fund1, fund2, fund3 (none orphaned!)
+	_, savedDelegator, err := d.getOrCreateDelegatorData(delegatorAddr)
+	require.Nil(t, err)
+	assert.Equal(t, 3, len(savedDelegator.UnStakedFunds), "all 3 funds should be preserved")
+	assert.Equal(t, fund1Key, savedDelegator.UnStakedFunds[0])
+	assert.Equal(t, fund2Key, savedDelegator.UnStakedFunds[1])
+	assert.Equal(t, fund3Key, savedDelegator.UnStakedFunds[2])
+
+	// Global fund TotalUnStaked should be 180 - 30 = 150
+	globalFund, err := d.getGlobalFundData()
+	require.Nil(t, err)
+	assert.Equal(t, uint64(150), globalFund.TotalUnStaked.Uint64())
+}
+
+func TestDelegation_Withdraw_PartialUnbond_ExactBoundaryOfEarlierFund(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForDelegation()
+	args.Marshalizer = &marshal.GogoProtoMarshalizer{}
+	eei := createDefaultEei()
+	eei.blockChainHook = &mock.BlockChainHookStub{CurrentEpochCalled: func() uint32 { return 20 }}
+	args.Eei = eei
+	d, err := NewDelegationSystemSC(args)
+	require.Nil(t, err)
+
+	delegatorAddr := bytes.Repeat([]byte("e"), 32)
+
+	// Fund 1: mature (epoch 1), value 100
+	fund1Key := []byte("fund1_exact")
+	require.Nil(t, d.saveFund(fund1Key, &Fund{Value: big.NewInt(100), Epoch: 1, Address: delegatorAddr}))
+
+	// Fund 2: mature (epoch 2), value 50
+	fund2Key := []byte("fund2_exact")
+	require.Nil(t, d.saveFund(fund2Key, &Fund{Value: big.NewInt(50), Epoch: 2, Address: delegatorAddr}))
+
+	// Fund 3: not mature (epoch 19), value 30
+	fund3Key := []byte("fund3_exact")
+	require.Nil(t, d.saveFund(fund3Key, &Fund{Value: big.NewInt(30), Epoch: 19, Address: delegatorAddr}))
+
+	// Delegator has UnStakedFunds: [fund1, fund2, fund3]
+	delegator := &DelegatorData{
+		UnStakedFunds: [][]byte{fund1Key, fund2Key, fund3Key},
+	}
+	require.Nil(t, d.saveDelegatorData(delegatorAddr, delegator))
+
+	// Save delegation config with UnBondPeriodInEpochs = 10
+	require.Nil(t, d.saveDelegationContractConfig(&DelegationConfig{UnBondPeriodInEpochs: 10}))
+
+	// Global fund has totalUnStaked 180 and TotalActive 0
+	require.Nil(t, d.saveGlobalFundData(&GlobalFundData{TotalUnStaked: big.NewInt(180), TotalActive: big.NewInt(0)}))
+
+	// Mock validator SC response to unBondTokens: returns exactly 100 (fund 1 exact boundary)
+	eei.systemContracts = &mock.SystemSCContainerStub{
+		GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
+			return &mock.SystemSCStub{
+				ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+					eei.output = [][]byte{big.NewInt(100).Bytes()}
+					return vmcommon.Ok
+				},
+			}, nil
+		},
+	}
+
+	in := getDefaultVmInputForFunc("withdraw", [][]byte{})
+	in.CallerAddr = delegatorAddr
+	in.GasProvided = 1000000
+
+	retCode := d.Execute(in)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	// Fund 1 should be deleted from storage
+	deletedFund1, _ := d.getFund(fund1Key)
+	assert.Nil(t, deletedFund1, "fund 1 should be deleted from storage")
+
+	// Fund 2 should NOT be touched (still 50)
+	savedFund2, err := d.getFund(fund2Key)
+	require.Nil(t, err)
+	assert.Equal(t, uint64(50), savedFund2.Value.Uint64(), "fund 2 should remain untouched at 50")
+
+	// Delegator's UnStakedFunds should retain fund2 and fund3
+	_, savedDelegator, err := d.getOrCreateDelegatorData(delegatorAddr)
+	require.Nil(t, err)
+	assert.Equal(t, 2, len(savedDelegator.UnStakedFunds), "remaining 2 funds should be preserved")
+	assert.Equal(t, fund2Key, savedDelegator.UnStakedFunds[0])
+	assert.Equal(t, fund3Key, savedDelegator.UnStakedFunds[1])
+
+	// Global fund TotalUnStaked should be 180 - 100 = 80
+	globalFund, err := d.getGlobalFundData()
+	require.Nil(t, err)
+	assert.Equal(t, uint64(80), globalFund.TotalUnStaked.Uint64())
+}
+
+func TestDelegationSystemSC_ChangeOwner_BlockedDuringActiveGovernanceVote(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForDelegation()
+	epochHandler := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
+	epochHandler.AddActiveFlags(common.ChangeDelegationOwnerFlag, common.FixCorrectSmallIntAndGasLimitsFlag)
+
+	account := &stateMock.AccountWrapMock{}
+	currentEpoch := uint32(5)
+	blockChainHook := &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return currentEpoch
+		},
+	}
+
+	argsVmContext := VMContextArgs{
+		BlockChainHook:      blockChainHook,
+		CryptoHook:          hooks.NewVMCryptoHook(),
+		InputParser:         &mock.ArgumentParserMock{},
+		ValidatorAccountsDB: &stateMock.AccountsStub{},
+		UserAccountsDB: &stateMock.AccountsStub{
+			LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
+				return account, nil
+			},
+		},
+		ChanceComputer:      &mock.RaterMock{},
+		EnableEpochsHandler: args.EnableEpochsHandler,
+	}
+	eei, err := NewVMContext(argsVmContext)
+	require.Nil(t, err)
+
+	ownerAddress := bytes.Repeat([]byte{1}, 32)
+	newOwnerAddress := bytes.Repeat([]byte{2}, 32)
+	scAddress := bytes.Repeat([]byte{3}, 32)
+	eei.SetSCAddress(scAddress)
+
+	delegationsMap := map[string][]byte{}
+	delegationsMap[ownerKey] = ownerAddress
+	marshalledData, _ := args.Marshalizer.Marshal(&DelegatorData{RewardsCheckpoint: 10})
+	delegationsMap[string(ownerAddress)] = marshalledData
+	eei.storageUpdate[string(eei.scAddress)] = delegationsMap
+	args.Eei = eei
+
+	d, _ := NewDelegationSystemSC(args)
+
+	// Seed governance SC storage with an active proposal that owner voted on
+	govAddr := d.governanceSCAddr
+	onGoingList := &OngoingVotedListV2{
+		Direct: []uint64{42},
+	}
+	govVotesData, _ := args.Marshalizer.Marshal(onGoingList)
+	eei.SetStorageForAddress(govAddr, ownerAddress, govVotesData)
+
+	nonceKey := append([]byte(noncePrefix), big.NewInt(42).Bytes()...)
+	commitHash := []byte("commitHash42")
+	eei.SetStorageForAddress(govAddr, nonceKey, commitHash)
+
+	propKey := append([]byte(proposalPrefix), commitHash...)
+	proposal := &GeneralProposal{
+		Nonce:        42,
+		CommitHash:   commitHash,
+		Closed:       false,
+		EndVoteEpoch: 10,
+	}
+	propData, _ := args.Marshalizer.Marshal(proposal)
+	eei.SetStorageForAddress(govAddr, propKey, propData)
+
+	vmInput := CreateVmContractCallInput()
+	vmInput.Function = "changeOwner"
+	vmInput.CallerAddr = ownerAddress
+	vmInput.RecipientAddr = scAddress
+	vmInput.CallValue = big.NewInt(0)
+	vmInput.Arguments = [][]byte{newOwnerAddress}
+
+	retCode := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, retCode)
+	assert.Contains(t, eei.returnMessage, "cannot change owner while stake has active governance vote")
+
+	// Now close the proposal
+	proposal.Closed = true
+	propData, _ = args.Marshalizer.Marshal(proposal)
+	eei.SetStorageForAddress(govAddr, propKey, propData)
+
+	retCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, retCode)
+}
+
+func TestDelegationSystemSC_ChangeOwner_GovernanceVoteScanBounded(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForDelegation()
+	epochHandler := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
+	epochHandler.AddActiveFlags(common.ChangeDelegationOwnerFlag, common.FixCorrectSmallIntAndGasLimitsFlag)
+
+	account := &stateMock.AccountWrapMock{}
+	currentEpoch := uint32(5)
+	blockChainHook := &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return currentEpoch
+		},
+	}
+
+	argsVmContext := VMContextArgs{
+		BlockChainHook:      blockChainHook,
+		CryptoHook:          hooks.NewVMCryptoHook(),
+		InputParser:         &mock.ArgumentParserMock{},
+		ValidatorAccountsDB: &stateMock.AccountsStub{},
+		UserAccountsDB: &stateMock.AccountsStub{
+			LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
+				return account, nil
+			},
+		},
+		ChanceComputer:      &mock.RaterMock{},
+		EnableEpochsHandler: args.EnableEpochsHandler,
+	}
+	eei, err := NewVMContext(argsVmContext)
+	require.Nil(t, err)
+
+	ownerAddress := bytes.Repeat([]byte{1}, 32)
+	scAddress := bytes.Repeat([]byte{3}, 32)
+	eei.SetSCAddress(scAddress)
+
+	delegationsMap := map[string][]byte{}
+	delegationsMap[ownerKey] = ownerAddress
+	marshalledData, _ := args.Marshalizer.Marshal(&DelegatorData{RewardsCheckpoint: 10})
+	delegationsMap[string(ownerAddress)] = marshalledData
+	eei.storageUpdate[string(eei.scAddress)] = delegationsMap
+	args.Eei = eei
+
+	d, _ := NewDelegationSystemSC(args)
+
+	// Seed governance SC with 150 direct votes
+	govAddr := d.governanceSCAddr
+	nonces := make([]uint64, 150)
+	for i := 0; i < 150; i++ {
+		nonces[i] = uint64(i + 1)
+	}
+	onGoingList := &OngoingVotedListV2{
+		Direct: nonces,
+	}
+	govVotesData, _ := args.Marshalizer.Marshal(onGoingList)
+	eei.SetStorageForAddress(govAddr, ownerAddress, govVotesData)
+
+	hasActive := d.hasActiveGovernanceVote(ownerAddress)
+	assert.False(t, hasActive)
+
+	// Now add an active proposal for the last nonce (150)
+	nonceKey := append([]byte(noncePrefix), big.NewInt(150).Bytes()...)
+	commitHash := []byte("active-proposal-hash")
+	eei.SetStorageForAddress(govAddr, nonceKey, commitHash)
+	propKey := append([]byte(proposalPrefix), commitHash...)
+	propData, _ := args.Marshalizer.Marshal(&GeneralProposal{
+		Closed:       false,
+		EndVoteEpoch: 10,
+	})
+	eei.SetStorageForAddress(govAddr, propKey, propData)
+
+	hasActive = d.hasActiveGovernanceVote(ownerAddress)
+	assert.True(t, hasActive)
+}
+
+func TestDelegationSystemSC_ChangeOwner_EmitsUnDelegateLogsForPendingUnstakedFunds(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForDelegation()
+	epochHandler := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
+	epochHandler.AddActiveFlags(common.ChangeDelegationOwnerFlag, common.FixCorrectSmallIntAndGasLimitsFlag)
+
+	account := &stateMock.AccountWrapMock{}
+	argsVmContext := VMContextArgs{
+		BlockChainHook:      &mock.BlockChainHookStub{},
+		CryptoHook:          hooks.NewVMCryptoHook(),
+		InputParser:         &mock.ArgumentParserMock{},
+		ValidatorAccountsDB: &stateMock.AccountsStub{},
+		UserAccountsDB: &stateMock.AccountsStub{
+			LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
+				return account, nil
+			},
+		},
+		ChanceComputer:      &mock.RaterMock{},
+		EnableEpochsHandler: args.EnableEpochsHandler,
+	}
+	eei, err := NewVMContext(argsVmContext)
+	require.Nil(t, err)
+
+	ownerAddress := bytes.Repeat([]byte{1}, 32)
+	newOwnerAddress := bytes.Repeat([]byte{2}, 32)
+	scAddress := bytes.Repeat([]byte{3}, 32)
+	eei.SetSCAddress(scAddress)
+
+	args.Eei = eei
+	d, _ := NewDelegationSystemSC(args)
+
+	fund1Key := []byte("fund1")
+	fund2Key := []byte("fund2")
+	fund1 := &Fund{Value: big.NewInt(100)}
+	fund2 := &Fund{Value: big.NewInt(200)}
+	marshaledFund1, _ := args.Marshalizer.Marshal(fund1)
+	marshaledFund2, _ := args.Marshalizer.Marshal(fund2)
+	eei.SetStorage(fund1Key, marshaledFund1)
+	eei.SetStorage(fund2Key, marshaledFund2)
+
+	ownerData := &DelegatorData{
+		RewardsCheckpoint: 10,
+		UnStakedFunds:     [][]byte{fund1Key, fund2Key},
+	}
+	marshaledOwnerData, _ := args.Marshalizer.Marshal(ownerData)
+	eei.SetStorage(ownerAddress, marshaledOwnerData)
+	eei.SetStorage([]byte(ownerKey), ownerAddress)
+
+	vmInput := CreateVmContractCallInput()
+	vmInput.Function = "changeOwner"
+	vmInput.CallerAddr = ownerAddress
+	vmInput.RecipientAddr = scAddress
+	vmInput.CallValue = big.NewInt(0)
+	vmInput.Arguments = [][]byte{newOwnerAddress}
+
+	retCode := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	// Verify unDelegate logs emitted for newOwnerAddress
+	unDelegateLogsCount := 0
+	for _, entry := range eei.logs {
+		if string(entry.Identifier) == "unDelegate" && bytes.Equal(entry.Address, newOwnerAddress) {
+			unDelegateLogsCount++
+		}
+	}
+	assert.Equal(t, 2, unDelegateLogsCount)
 }

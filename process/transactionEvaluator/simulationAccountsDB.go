@@ -2,19 +2,32 @@ package transactionEvaluator
 
 import (
 	"context"
+	"errors"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
-// simulationAccountsDB is a wrapper over an accounts db which works read-only. write operation are disabled
+type simulationAccountsReader interface {
+	GetCode([]byte) []byte
+	GetExistingAccount([]byte) (vmcommon.AccountHandler, error)
+	GetAccountFromBytes([]byte, []byte) (vmcommon.AccountHandler, error)
+	LoadAccount([]byte) (vmcommon.AccountHandler, error)
+	JournalLen() int
+	RootHash() ([]byte, error)
+	IsPruningEnabled() bool
+	GetAllLeaves(*common.TrieIteratorChannels, context.Context, []byte, common.TrieLeafParser) error
+}
+
+// simulationAccountsDB keeps account writes local and cannot forward database mutations.
 type simulationAccountsDB struct {
 	mutex            sync.RWMutex
 	cachedAccounts   map[string]vmcommon.AccountHandler
-	originalAccounts state.AccountsAdapter
+	originalAccounts simulationAccountsReader
 }
 
 // NewSimulationAccountsDB returns a new instance of simulationAccountsDB
@@ -54,6 +67,12 @@ func (r *simulationAccountsDB) GetExistingAccount(address []byte) (vmcommon.Acco
 
 	account, err := r.originalAccounts.GetExistingAccount(address)
 	if err != nil {
+		var errAccountNotFound *state.ErrAccountNotFoundAtBlock
+		isNotFoundAtBlock := errors.As(err, &errAccountNotFound)
+		if isNotFoundAtBlock {
+			return nil, state.ErrAccNotFound
+		}
+
 		return nil, err
 	}
 
@@ -125,12 +144,21 @@ func (r *simulationAccountsDB) RecreateTrie(_ common.RootHashHolder) error {
 	return nil
 }
 
+// RecreateTrieIfNeeded won't do anything as write operations are disabled on this component
+func (r *simulationAccountsDB) RecreateTrieIfNeeded(_ common.RootHashHolder) error {
+	return nil
+}
+
 // PruneTrie won't do anything as write operations are disabled on this component
 func (r *simulationAccountsDB) PruneTrie(_ []byte, _ state.TriePruningIdentifier, _ state.PruningHandler) {
 }
 
 // CancelPrune won't do anything as write operations are disabled on this component
 func (r *simulationAccountsDB) CancelPrune(_ []byte, _ state.TriePruningIdentifier) {
+}
+
+// ResetPruning won't do anything as write operations are disabled on this component
+func (r *simulationAccountsDB) ResetPruning() {
 }
 
 // SnapshotState won't do anything as write operations are disabled on this component
@@ -167,9 +195,18 @@ func (r *simulationAccountsDB) GetStackDebugFirstEntry() []byte {
 	return nil
 }
 
+// SetTxHashForLatestStateAccesses does not alter the underlying collector.
+func (r *simulationAccountsDB) SetTxHashForLatestStateAccesses(_ []byte) {
+}
+
 // Close will handle the closing of the underlying components
 func (r *simulationAccountsDB) Close() error {
 	return nil
+}
+
+// GetEvictionWaitingListSize returns 0 for the simulation accounts DB
+func (adb *simulationAccountsDB) GetEvictionWaitingListSize() int {
+	return 0
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

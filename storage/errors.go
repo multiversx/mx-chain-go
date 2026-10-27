@@ -82,6 +82,9 @@ var ErrNotSupportedCacheType = storageErrors.ErrNotSupportedCacheType
 // ErrDBIsClosed is raised when the DB is closed
 var ErrDBIsClosed = storageErrors.ErrDBIsClosed
 
+// ErrNilPersister is raised when a nil persister is provided
+var ErrNilPersister = storageErrors.ErrNilPersister
+
 // ErrEpochKeepIsLowerThanNumActive signals that num epochs to keep is lower than num active epochs
 var ErrEpochKeepIsLowerThanNumActive = errors.New("num epochs to keep is lower than num active epochs")
 
@@ -115,11 +118,18 @@ var ErrNilBootstrapDataProvider = errors.New("nil bootstrap data provider")
 // ErrNilDirectoryReader signals that a nil directory reader has been provided
 var ErrNilDirectoryReader = errors.New("nil directory reader")
 
+// ErrPersisterNotFoundForEpoch signals that no persister is held by the node for the provided epoch.
+// It is returned on read paths, which must never create new persisters for caller provided epochs.
+var ErrPersisterNotFoundForEpoch = errors.New("persister not found for the provided epoch")
+
+// ErrPersisterAccess signals a failed database probe or open on a historical read.
+var ErrPersisterAccess = errors.New("cannot access persister")
+
 // IsNotFoundInStorageErr returns whether an error is a "not found in storage" error.
 // Currently, "item not found" storage errors are untyped (thus not distinguishable from others). E.g. see "pruningStorer.go".
 // As a workaround, we test the error message for a match.
 func IsNotFoundInStorageErr(err error) bool {
-	if err == nil {
+	if err == nil || errors.Is(err, ErrPersisterAccess) {
 		return false
 	}
 

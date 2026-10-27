@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
+	"github.com/multiversx/mx-chain-go/trie/mock"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 	"github.com/stretchr/testify/assert"
 )
@@ -87,7 +88,7 @@ func TestLeafNode_tryGet(t *testing.T) {
 	ln := getLn()
 	key := []byte("dog")
 
-	val, maxDepth, err := ln.tryGet(newKeyData(key), 0, getTrieContextWithCustomStorage(nil))
+	val, maxDepth, _, err := ln.tryGetWithVersion(newKeyData(key), 0, getTrieContextWithCustomStorage(nil))
 	assert.Equal(t, []byte("dog"), val)
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(0), maxDepth)
@@ -99,7 +100,7 @@ func TestLeafNode_tryGetWrongKey(t *testing.T) {
 	ln := getLn()
 	wrongKey := []byte{1, 2, 3}
 
-	val, maxDepth, err := ln.tryGet(newKeyData(wrongKey), 0, getTrieContextWithCustomStorage(nil))
+	val, maxDepth, _, err := ln.tryGetWithVersion(newKeyData(wrongKey), 0, getTrieContextWithCustomStorage(nil))
 	assert.Nil(t, val)
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(0), maxDepth)
@@ -140,7 +141,7 @@ func TestLeafNode_insertAtSameKey(t *testing.T) {
 	assert.NotNil(t, newNode)
 	assert.Nil(t, goRoutinesManager.GetError())
 
-	val, _, _ := newNode.tryGet(newKeyData([]byte(key)), 0, getTrieContextWithCustomStorage(nil))
+	val, _, _, _ := newNode.tryGetWithVersion(newKeyData([]byte(key)), 0, getTrieContextWithCustomStorage(nil))
 	assert.Equal(t, []byte(expectedVal), val)
 }
 
@@ -159,7 +160,7 @@ func TestLeafNode_insertAtDifferentKey(t *testing.T) {
 	assert.NotNil(t, newNode)
 	assert.Nil(t, goRoutinesManager.GetError())
 
-	val, _, _ := newNode.tryGet(newKeyData(nodeKey), 0, getTrieContextWithCustomStorage(nil))
+	val, _, _, _ := newNode.tryGetWithVersion(newKeyData(nodeKey), 0, getTrieContextWithCustomStorage(nil))
 	assert.Equal(t, nodeVal, val)
 	assert.IsType(t, &branchNode{}, newNode)
 }

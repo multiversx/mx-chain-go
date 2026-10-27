@@ -1,38 +1,45 @@
 package trackableDataTrie
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
+	"sort"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/stateChange"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	errorsCommon "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/dataTrieValue"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var log = logger.GetOrCreate("state/trackableDataTrie")
 
 type dirtyData struct {
+	index      int
 	value      []byte
 	newVersion core.TrieNodeVersion
 }
 
 // TrackableDataTrie wraps a PatriciaMerkelTrie adding modifying data capabilities
 type trackableDataTrie struct {
-	dirtyData           map[string]dirtyData
-	tr                  common.Trie
-	hasher              hashing.Hasher
-	marshaller          marshal.Marshalizer
-	enableEpochsHandler common.EnableEpochsHandler
-	identifier          []byte
+	dirtyData              map[string]dirtyData
+	tr                     common.Trie
+	hasher                 hashing.Hasher
+	marshaller             marshal.Marshalizer
+	enableEpochsHandler    common.EnableEpochsHandler
+	identifier             []byte
+	stateAccessesCollector state.StateAccessesCollector
 }
 
 // NewTrackableDataTrie returns an instance of trackableDataTrie
@@ -41,6 +48,7 @@ func NewTrackableDataTrie(
 	hasher hashing.Hasher,
 	marshaller marshal.Marshalizer,
 	enableEpochsHandler common.EnableEpochsHandler,
+	stateAccessesCollector state.StateAccessesCollector,
 ) (*trackableDataTrie, error) {
 	if check.IfNil(hasher) {
 		return nil, state.ErrNilHasher
@@ -51,20 +59,26 @@ func NewTrackableDataTrie(
 	if check.IfNil(enableEpochsHandler) {
 		return nil, state.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(stateAccessesCollector) {
+		return nil, state.ErrNilStateAccessesCollector
+	}
+
 	err := core.CheckHandlerCompatibility(enableEpochsHandler, []core.EnableEpochFlag{
 		common.AutoBalanceDataTriesFlag,
+		common.FixDataTrieLeafValidationFlag,
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	return &trackableDataTrie{
-		tr:                  nil,
-		hasher:              hasher,
-		marshaller:          marshaller,
-		dirtyData:           make(map[string]dirtyData),
-		identifier:          identifier,
-		enableEpochsHandler: enableEpochsHandler,
+		tr:                     nil,
+		hasher:                 hasher,
+		marshaller:             marshaller,
+		dirtyData:              make(map[string]dirtyData),
+		identifier:             identifier,
+		enableEpochsHandler:    enableEpochsHandler,
+		stateAccessesCollector: stateAccessesCollector,
 	}, nil
 }
 
@@ -75,6 +89,7 @@ func (tdt *trackableDataTrie) RetrieveValue(key []byte) ([]byte, uint32, error) 
 	// search in dirty data cache
 	if dataEntry, found := tdt.dirtyData[string(key)]; found {
 		log.Trace("retrieve value from dirty data", "key", key, "value", dataEntry.value, "account", tdt.identifier)
+
 		return dataEntry.value, 0, nil
 	}
 
@@ -82,7 +97,7 @@ func (tdt *trackableDataTrie) RetrieveValue(key []byte) ([]byte, uint32, error) 
 	if check.IfNil(tdt.tr) {
 		return nil, 0, state.ErrNilTrie
 	}
-	trieValue, depth, err := tdt.retrieveValueFromTrie(key)
+	trieValue, depth, err := tdt.retrieveValueFromTrie(key, false)
 	if err != nil {
 		return nil, depth, err
 	}
@@ -105,6 +120,7 @@ func (tdt *trackableDataTrie) SaveKeyValue(key []byte, value []byte) error {
 	}
 
 	dataEntry := dirtyData{
+		index:      tdt.getIndexForKey(key),
 		value:      value,
 		newVersion: core.GetVersionForNewData(tdt.enableEpochsHandler),
 	}
@@ -135,25 +151,36 @@ func (tdt *trackableDataTrie) MigrateDataTrieLeaves(args vmcommon.ArgsMigrateDat
 	dataToBeMigrated := args.TrieMigrator.GetLeavesToBeMigrated()
 	log.Debug("num leaves to be migrated", "num", len(dataToBeMigrated), "account", tdt.identifier)
 	for _, leafData := range dataToBeMigrated {
-		val, err := tdt.getValueWithoutMetadata(leafData.Key, leafData)
+		tdt.collectReadOperation(leafData.Key, leafData.Value, uint32(leafData.Version))
+		originalKey, err := tdt.getOriginalKeyFromTrieData(leafData)
+		if err != nil {
+			return err
+		}
+
+		val, err := tdt.getValueWithoutMetadata(originalKey, leafData)
 		if err != nil {
 			return err
 		}
 
 		dataEntry := dirtyData{
+			index:      tdt.getIndexForKey(originalKey),
 			value:      val,
 			newVersion: args.NewVersion,
-		}
-
-		originalKey, err := tdt.getOriginalKeyFromTrieData(leafData)
-		if err != nil {
-			return err
 		}
 
 		tdt.dirtyData[string(originalKey)] = dataEntry
 	}
 
 	return nil
+}
+
+func (tdt *trackableDataTrie) getIndexForKey(key []byte) int {
+	existingVal, ok := tdt.dirtyData[string(key)]
+	if ok {
+		return existingVal.index
+	}
+
+	return len(tdt.dirtyData)
 }
 
 func (tdt *trackableDataTrie) getOriginalKeyFromTrieData(trieData core.TrieData) ([]byte, error) {
@@ -210,16 +237,16 @@ func (tdt *trackableDataTrie) DataTrie() common.DataTrieHandler {
 }
 
 // SaveDirtyData saved the dirty data to the trie
-func (tdt *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]core.TrieData, error) {
+func (tdt *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]*stateChange.DataTrieChange, []core.TrieData, error) {
 	if len(tdt.dirtyData) == 0 {
-		return make([]core.TrieData, 0), nil
+		return make([]*stateChange.DataTrieChange, 0), make([]core.TrieData, 0), nil
 	}
 
 	if check.IfNil(tdt.tr) {
 		emptyRootHash := holders.NewDefaultRootHashesHolder(make([]byte, 0))
 		newDataTrie, err := mainTrie.Recreate(emptyRootHash, hex.EncodeToString(tdt.identifier))
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		tdt.tr = newDataTrie
@@ -227,69 +254,225 @@ func (tdt *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]core.TrieDa
 
 	dtr, ok := tdt.tr.(state.DataTrie)
 	if !ok {
-		return nil, fmt.Errorf("invalid trie, type is %T", tdt.tr)
+		return nil, nil, fmt.Errorf("invalid trie, type is %T", tdt.tr)
 	}
 
 	return tdt.updateTrie(dtr)
 }
 
-func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]core.TrieData, error) {
+func (tdt *trackableDataTrie) rollbackAppliedUpdates(dtr state.DataTrie, oldValues []core.TrieData) {
+	var trieUpdate core.TrieData
+	var err error
+
+	for i := len(oldValues) - 1; i >= 0; i-- {
+		trieUpdate = oldValues[i]
+		err = dtr.UpdateWithVersion(trieUpdate.Key, trieUpdate.Value, trieUpdate.Version)
+		if err != nil {
+			log.Error("could not apply rollback updates", "err", err, "key", trieUpdate.Key, "account", tdt.identifier)
+		}
+	}
+}
+
+func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]*stateChange.DataTrieChange, []core.TrieData, error) {
 	oldValues := make([]core.TrieData, len(tdt.dirtyData))
+	newData := make([]*stateChange.DataTrieChange, len(tdt.dirtyData))
+	deletedKeys := make([]*stateChange.DataTrieChange, 0)
+	trieUpdates := make([]core.TrieData, 0)
+
+	keys := make([]string, 0, len(tdt.dirtyData))
+	for key := range tdt.dirtyData {
+		keys = append(keys, key)
+	}
+	if len(keys) > 1 && tdt.enableEpochsHandler.IsFlagEnabled(common.FixDataTrieLeafValidationFlag) {
+		// Interacting migrations must not depend on Go map iteration order.
+		sort.Strings(keys)
+	}
 
 	index := 0
-	for key, dataEntry := range tdt.dirtyData {
-		oldVal, _, err := tdt.retrieveValueFromTrie([]byte(key))
+	for _, key := range keys {
+		dataEntry := tdt.dirtyData[key]
+		writesHashedKey := len(dataEntry.value) != 0 && dataEntry.newVersion == core.AutoBalanceEnabled
+		oldVal, _, err := tdt.retrieveValueFromTrie([]byte(key), writesHashedKey)
 		if err != nil {
-			return nil, err
+			tdt.rollbackAppliedUpdates(dtr, trieUpdates)
+			return nil, nil, err
 		}
 		oldValues[index] = oldVal
+		if oldVal.Version == core.AutoBalanceEnabled && len(oldVal.Value) != 0 {
+			_, decodeErr := tdt.getValueAutoBalanceVersion([]byte(key), oldVal.Value)
+			if decodeErr != nil && tdt.enableEpochsHandler.IsFlagEnabled(common.FixDataTrieLeafValidationFlag) {
+				tdt.rollbackAppliedUpdates(dtr, trieUpdates)
+				return nil, nil, decodeErr
+			}
+		}
 
-		tdt.deleteOldEntryIfMigrated([]byte(key), dataEntry, oldVal)
-
-		newKey, err := tdt.modifyTrie([]byte(key), dataEntry, oldVal, dtr)
+		wasDeleted := tdt.deleteOldEntryIfMigrated([]byte(key), dataEntry, oldVal)
 		if err != nil {
-			return nil, err
+			tdt.rollbackAppliedUpdates(dtr, trieUpdates)
+			return nil, nil, err
+		}
+
+		if wasDeleted {
+			trieUpdates = append(trieUpdates, oldVal)
+			originalVal := tdt.getValueNotSpecifiedVersion([]byte(key), oldVal.Value)
+
+			deletedKeys = append(deletedKeys,
+				&stateChange.DataTrieChange{
+					Type:      stateChange.Write,
+					Key:       []byte(key),
+					Val:       originalVal,
+					Version:   0,
+					Operation: uint32(stateChange.Delete),
+				},
+			)
+		}
+
+		dataTrieKey, err := tdt.modifyTrie([]byte(key), dataEntry, oldVal, dtr)
+		if err != nil {
+			tdt.rollbackAppliedUpdates(dtr, trieUpdates)
+			return nil, nil, err
 		}
 
 		index++
 
 		isFirstMigration := oldVal.Version == core.NotSpecified && dataEntry.newVersion == core.AutoBalanceEnabled
-		if isFirstMigration && len(newKey) != 0 {
-			oldValues = append(oldValues, core.TrieData{
-				Key:   newKey,
+		if isFirstMigration && len(dataTrieKey) != 0 {
+			if !wasDeleted {
+				trieUpdates = append(trieUpdates, oldVal)
+			}
+
+			deletedData := core.TrieData{
+				Key:   dataTrieKey,
 				Value: nil,
-			})
+			}
+			oldValues = append(oldValues, deletedData)
+			trieUpdates = append(trieUpdates, deletedData)
+		} else if len(dataTrieKey) != 0 && !wasDeleted {
+			trieUpdates = append(trieUpdates, oldVal)
+		}
+
+		if len(dataTrieKey) == 0 {
+			continue
+		}
+
+		if dataEntry.index > len(newData)-1 {
+			tdt.rollbackAppliedUpdates(dtr, trieUpdates)
+			return nil, nil, fmt.Errorf("index out of range")
+		}
+
+		dataTrieOperation := uint32(stateChange.NotSpecified)
+		version := dataEntry.newVersion
+		val := dataEntry.value
+		if len(val) == 0 {
+			dataTrieOperation = uint32(stateChange.Delete)
+			version = oldVal.Version
+			val, err = tdt.getValueWithoutMetadata([]byte(key), oldVal)
+			if err != nil {
+				tdt.rollbackAppliedUpdates(dtr, trieUpdates)
+				return nil, nil, err
+			}
+		}
+
+		newData[dataEntry.index] = &stateChange.DataTrieChange{
+			Type:      stateChange.Write,
+			Key:       []byte(key),
+			Val:       val,
+			Version:   uint32(version),
+			Operation: dataTrieOperation,
 		}
 	}
 
 	tdt.dirtyData = make(map[string]dirtyData)
 
-	return oldValues, nil
+	stateChanges := make([]*stateChange.DataTrieChange, 0)
+	for i := range newData {
+		if newData[i] == nil {
+			continue
+		}
+		if len(newData[i].Key) == 0 {
+			continue
+		}
+
+		stateChanges = append(stateChanges, newData[i])
+	}
+
+	sort.Slice(deletedKeys, func(i, j int) bool {
+		return bytes.Compare(deletedKeys[i].Key, deletedKeys[j].Key) < 0
+	})
+	stateChanges = append(stateChanges, deletedKeys...)
+
+	return stateChanges, oldValues, nil
 }
 
-func (tdt *trackableDataTrie) retrieveValueFromTrie(key []byte) (core.TrieData, uint32, error) {
+func (tdt *trackableDataTrie) collectReadOperation(key []byte, val []byte, version uint32) {
+	sc := &stateChange.StateAccess{
+		Type:        stateChange.Read,
+		MainTrieKey: tdt.identifier,
+		MainTrieVal: nil,
+		Operation:   stateChange.GetDataTrieValue,
+		DataTrieChanges: []*stateChange.DataTrieChange{
+			{
+				Type:    stateChange.Read,
+				Key:     key,
+				Val:     val,
+				Version: version,
+			},
+		},
+	}
+	tdt.stateAccessesCollector.AddStateAccess(sc)
+}
+
+func (tdt *trackableDataTrie) retrieveValueFromTrie(key []byte, writesHashedKey bool) (core.TrieData, uint32, error) {
+	legacyAtHashedKey := false
 	if tdt.enableEpochsHandler.IsFlagEnabled(common.AutoBalanceDataTriesFlag) {
 		hashedKey := tdt.hasher.Compute(string(key))
-		valWithMetadata, depth, err := tdt.tr.Get(hashedKey)
+		valWithMetadata, depth, version, err := tdt.tr.GetWithVersion(hashedKey)
 		if err != nil {
 			return core.TrieData{}, 0, err
 		}
-		if len(valWithMetadata) != 0 {
-			trieValue := core.TrieData{
-				Key:     hashedKey,
-				Value:   valWithMetadata,
-				Version: core.AutoBalanceEnabled,
-			}
 
-			return trieValue, depth, nil
+		versionMismatch := len(valWithMetadata) != 0 && version != uint32(core.AutoBalanceEnabled)
+		validateVersion := versionMismatch && tdt.enableEpochsHandler.IsFlagEnabled(common.FixDataTrieLeafValidationFlag)
+		reportedVersion := uint32(core.AutoBalanceEnabled)
+		if validateVersion {
+			reportedVersion = version
+		}
+		tdt.collectReadOperation(hashedKey, valWithMetadata, reportedVersion)
+
+		if len(valWithMetadata) != 0 {
+			if validateVersion {
+				if version != uint32(core.NotSpecified) || writesHashedKey {
+					return core.TrieData{}, depth, state.ErrInvalidDataTrieLeaf
+				}
+				// Reads and deletions may use the raw key without overwriting this legacy leaf.
+				legacyAtHashedKey = true
+			} else {
+				trieValue := core.TrieData{
+					Key:     hashedKey,
+					Value:   valWithMetadata,
+					Version: core.AutoBalanceEnabled,
+				}
+
+				return trieValue, depth, nil
+			}
 		}
 	}
 
-	valWithMetadata, depth, err := tdt.tr.Get(key)
+	valWithMetadata, depth, version, err := tdt.tr.GetWithVersion(key)
 	if err != nil {
 		return core.TrieData{}, 0, err
 	}
+	versionMismatch := len(valWithMetadata) != 0 && version != uint32(core.NotSpecified)
+	validateVersion := versionMismatch && tdt.enableEpochsHandler.IsFlagEnabled(common.FixDataTrieLeafValidationFlag)
+	reportedVersion := uint32(core.NotSpecified)
+	if validateVersion {
+		reportedVersion = version
+	}
+	tdt.collectReadOperation(key, valWithMetadata, reportedVersion)
 	if len(valWithMetadata) != 0 {
+		if validateVersion {
+			return core.TrieData{}, depth, state.ErrInvalidDataTrieLeaf
+		}
 		trieValue := core.TrieData{
 			Key:     key,
 			Value:   valWithMetadata,
@@ -297,6 +480,11 @@ func (tdt *trackableDataTrie) retrieveValueFromTrie(key []byte) (core.TrieData, 
 		}
 
 		return trieValue, depth, nil
+	}
+
+	if legacyAtHashedKey {
+		// Journal the missing raw key, not the occupied hashed key, when reverting a no-op deletion.
+		return core.TrieData{Key: key, Version: core.NotSpecified}, depth, nil
 	}
 
 	newDataVersion := core.GetVersionForNewData(tdt.enableEpochsHandler)
@@ -317,49 +505,56 @@ func (tdt *trackableDataTrie) getValueWithoutMetadata(key []byte, trieData core.
 	}
 
 	if trieData.Version == core.AutoBalanceEnabled {
-		return tdt.getValueAutoBalanceVersion(trieData.Value)
+		return tdt.getValueAutoBalanceVersion(key, trieData.Value)
 	}
 
-	return tdt.getValueNotSpecifiedVersion(key, trieData.Value)
+	return tdt.getValueNotSpecifiedVersion(key, trieData.Value), nil
 }
 
-func (tdt *trackableDataTrie) getValueAutoBalanceVersion(val []byte) ([]byte, error) {
+func (tdt *trackableDataTrie) getValueAutoBalanceVersion(key, val []byte) ([]byte, error) {
 	dataTrieVal := &dataTrieValue.TrieLeafData{}
 	err := tdt.marshaller.Unmarshal(dataTrieVal, val)
 	if err != nil {
 		return nil, err
 	}
 
+	validBinding := bytes.Equal(dataTrieVal.Key, key) && bytes.Equal(dataTrieVal.Address, tdt.identifier)
+	if !validBinding && tdt.enableEpochsHandler.IsFlagEnabled(common.FixDataTrieLeafValidationFlag) {
+		return nil, state.ErrInvalidDataTrieLeaf
+	}
 	return dataTrieVal.Value, nil
 }
 
-func (tdt *trackableDataTrie) getValueNotSpecifiedVersion(key []byte, val []byte) ([]byte, error) {
+func (tdt *trackableDataTrie) getValueNotSpecifiedVersion(key []byte, val []byte) []byte {
 	tailLength := len(key) + len(tdt.identifier)
 	trimmedValue, _ := common.TrimSuffixFromValue(val, tailLength)
 
-	return trimmedValue, nil
+	return trimmedValue
 }
 
-func (tdt *trackableDataTrie) deleteOldEntryIfMigrated(key []byte, newData dirtyData, oldEntry core.TrieData) {
+func (tdt *trackableDataTrie) deleteOldEntryIfMigrated(key []byte, newData dirtyData, oldEntry core.TrieData) bool {
 	if !tdt.enableEpochsHandler.IsFlagEnabled(common.AutoBalanceDataTriesFlag) {
-		return
+		return false
 	}
 
 	isMigration := oldEntry.Version == core.NotSpecified && newData.newVersion == core.AutoBalanceEnabled
 	if isMigration && len(newData.value) != 0 {
 		log.Trace("delete old entry if migrated", "key", key)
 		tdt.tr.Delete(key)
+		return true
 	}
+
+	return false
 }
 
 func (tdt *trackableDataTrie) modifyTrie(key []byte, dataEntry dirtyData, oldVal core.TrieData, dtr state.DataTrie) ([]byte, error) {
-	if len(dataEntry.value) == 0 {
-		tdt.deleteFromTrie(oldVal, key, dtr)
-		return nil, nil
-	}
-
 	version := dataEntry.newVersion
 	newKey := tdt.getKeyForVersion(key, version)
+
+	if len(dataEntry.value) == 0 {
+		return tdt.deleteFromTrie(oldVal, key, dtr)
+	}
+
 	value, err := tdt.getValueForVersion(key, dataEntry.value, version)
 	if err != nil {
 		return nil, err
@@ -369,19 +564,23 @@ func (tdt *trackableDataTrie) modifyTrie(key []byte, dataEntry dirtyData, oldVal
 	return newKey, nil
 }
 
-func (tdt *trackableDataTrie) deleteFromTrie(oldVal core.TrieData, key []byte, dtr state.DataTrie) {
+func (tdt *trackableDataTrie) deleteFromTrie(oldVal core.TrieData, key []byte, dtr state.DataTrie) []byte {
 	if len(oldVal.Value) == 0 {
-		return
+		return nil
 	}
 
 	if oldVal.Version == core.AutoBalanceEnabled {
-		dtr.Delete(tdt.hasher.Compute(string(key)))
-		return
+		keyForTrie := tdt.hasher.Compute(string(key))
+		dtr.Delete(keyForTrie)
+		return keyForTrie
 	}
 
 	if oldVal.Version == core.NotSpecified {
 		dtr.Delete(key)
+		return key,
 	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

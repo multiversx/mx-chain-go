@@ -7,6 +7,9 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/testscommon"
 
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
@@ -26,12 +29,9 @@ func TestNewP2PQuotaBlacklistProcessor_NilCacherShouldErr(t *testing.T) {
 	pbp, err := blackList.NewP2PBlackListProcessor(
 		nil,
 		&mock.PeerBlackListHandlerStub{},
-		1,
-		1,
-		2,
-		time.Second,
 		"",
 		selfPid,
+		&testscommon.AntifloodConfigsHandlerStub{},
 	)
 
 	assert.True(t, check.IfNil(pbp))
@@ -44,88 +44,13 @@ func TestNewP2PQuotaBlacklistProcessor_NilBlackListHandlerShouldErr(t *testing.T
 	pbp, err := blackList.NewP2PBlackListProcessor(
 		cache.NewCacherStub(),
 		nil,
-		1,
-		1,
-		2,
-		time.Second,
 		"",
 		selfPid,
+		&testscommon.AntifloodConfigsHandlerStub{},
 	)
 
 	assert.True(t, check.IfNil(pbp))
 	assert.True(t, errors.Is(err, process.ErrNilBlackListCacher))
-}
-
-func TestNewP2PQuotaBlacklistProcessor_InvalidThresholdNumReceivedFloodShouldErr(t *testing.T) {
-	t.Parallel()
-
-	pbp, err := blackList.NewP2PBlackListProcessor(
-		cache.NewCacherStub(),
-		&mock.PeerBlackListHandlerStub{},
-		0,
-		1,
-		2,
-		time.Second,
-		"",
-		selfPid,
-	)
-
-	assert.True(t, check.IfNil(pbp))
-	assert.True(t, errors.Is(err, process.ErrInvalidValue))
-}
-
-func TestNewP2PQuotaBlacklistProcessor_InvalidThresholdSizeReceivedFloodShouldErr(t *testing.T) {
-	t.Parallel()
-
-	pbp, err := blackList.NewP2PBlackListProcessor(
-		cache.NewCacherStub(),
-		&mock.PeerBlackListHandlerStub{},
-		1,
-		0,
-		2,
-		time.Second,
-		"",
-		selfPid,
-	)
-
-	assert.True(t, check.IfNil(pbp))
-	assert.True(t, errors.Is(err, process.ErrInvalidValue))
-}
-
-func TestNewP2PQuotaBlacklistProcessor_InvalidNumFloodingRoundsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	pbp, err := blackList.NewP2PBlackListProcessor(
-		cache.NewCacherStub(),
-		&mock.PeerBlackListHandlerStub{},
-		1,
-		1,
-		1,
-		time.Second,
-		"",
-		selfPid,
-	)
-
-	assert.True(t, check.IfNil(pbp))
-	assert.True(t, errors.Is(err, process.ErrInvalidValue))
-}
-
-func TestNewP2PQuotaBlacklistProcessor_InvalidBanDurationShouldErr(t *testing.T) {
-	t.Parallel()
-
-	pbp, err := blackList.NewP2PBlackListProcessor(
-		cache.NewCacherStub(),
-		&mock.PeerBlackListHandlerStub{},
-		1,
-		1,
-		2,
-		time.Millisecond,
-		"",
-		selfPid,
-	)
-
-	assert.True(t, check.IfNil(pbp))
-	assert.True(t, errors.Is(err, process.ErrInvalidValue))
 }
 
 func TestNewP2PQuotaBlacklistProcessor_ShouldWork(t *testing.T) {
@@ -134,12 +59,9 @@ func TestNewP2PQuotaBlacklistProcessor_ShouldWork(t *testing.T) {
 	pbp, err := blackList.NewP2PBlackListProcessor(
 		cache.NewCacherStub(),
 		&mock.PeerBlackListHandlerStub{},
-		1,
-		1,
-		2,
-		time.Second,
 		"",
 		selfPid,
+		&testscommon.AntifloodConfigsHandlerStub{},
 	)
 
 	assert.False(t, check.IfNil(pbp))
@@ -166,12 +88,20 @@ func TestP2PQuotaBlacklistProcessor_AddQuotaUnderThresholdShouldNotCallGetOrPut(
 			},
 		},
 		&mock.PeerBlackListHandlerStub{},
-		thresholdNum,
-		thresholdSize,
-		2,
-		time.Second,
 		"",
 		selfPid,
+		&testscommon.AntifloodConfigsHandlerStub{
+			GetFloodPreventerConfigByTypeCalled: func(configType common.FloodPreventerType) config.FloodPreventerConfig {
+				return config.FloodPreventerConfig{
+					BlackList: config.BlackListConfig{
+						ThresholdNumMessagesPerInterval: thresholdNum,
+						ThresholdSizePerInterval:        thresholdSize,
+						NumFloodingRounds:               10,
+						PeerBanDurationInSeconds:        1,
+					},
+				}
+			},
+		},
 	)
 
 	pbp.AddQuota("identifier", thresholdNum-1, thresholdSize-1, 1, 1)
@@ -199,12 +129,20 @@ func TestP2PQuotaBlacklistProcessor_AddQuotaOverThresholdInexistentDataOnGetShou
 			},
 		},
 		&mock.PeerBlackListHandlerStub{},
-		thresholdNum,
-		thresholdSize,
-		2,
-		time.Second,
 		"",
 		selfPid,
+		&testscommon.AntifloodConfigsHandlerStub{
+			GetFloodPreventerConfigByTypeCalled: func(configType common.FloodPreventerType) config.FloodPreventerConfig {
+				return config.FloodPreventerConfig{
+					BlackList: config.BlackListConfig{
+						ThresholdNumMessagesPerInterval: thresholdNum,
+						ThresholdSizePerInterval:        thresholdSize,
+						NumFloodingRounds:               10,
+						PeerBanDurationInSeconds:        1,
+					},
+				}
+			},
+		},
 	)
 
 	pbp.AddQuota(identifier, thresholdNum, thresholdSize, 1, 1)
@@ -234,12 +172,20 @@ func TestP2PQuotaBlacklistProcessor_AddQuotaOverThresholdDataNotValidOnGetShould
 			},
 		},
 		&mock.PeerBlackListHandlerStub{},
-		thresholdNum,
-		thresholdSize,
-		2,
-		time.Second,
 		"",
 		selfPid,
+		&testscommon.AntifloodConfigsHandlerStub{
+			GetFloodPreventerConfigByTypeCalled: func(configType common.FloodPreventerType) config.FloodPreventerConfig {
+				return config.FloodPreventerConfig{
+					BlackList: config.BlackListConfig{
+						ThresholdNumMessagesPerInterval: thresholdNum,
+						ThresholdSizePerInterval:        thresholdSize,
+						NumFloodingRounds:               10,
+						PeerBanDurationInSeconds:        1,
+					},
+				}
+			},
+		},
 	)
 
 	pbp.AddQuota(identifier, thresholdNum, thresholdSize, 1, 1)
@@ -270,12 +216,20 @@ func TestP2PQuotaBlacklistProcessor_AddQuotaShouldIncrement(t *testing.T) {
 			},
 		},
 		&mock.PeerBlackListHandlerStub{},
-		thresholdNum,
-		thresholdSize,
-		2,
-		time.Second,
 		"",
 		selfPid,
+		&testscommon.AntifloodConfigsHandlerStub{
+			GetFloodPreventerConfigByTypeCalled: func(configType common.FloodPreventerType) config.FloodPreventerConfig {
+				return config.FloodPreventerConfig{
+					BlackList: config.BlackListConfig{
+						ThresholdNumMessagesPerInterval: thresholdNum,
+						ThresholdSizePerInterval:        thresholdSize,
+						NumFloodingRounds:               10,
+						PeerBanDurationInSeconds:        1,
+					},
+				}
+			},
+		},
 	)
 
 	pbp.AddQuota(identifier, thresholdNum, thresholdSize, 1, 1)
@@ -302,12 +256,20 @@ func TestP2PQuotaBlacklistProcessor_AddQuotaForSelfShouldNotIncrement(t *testing
 			},
 		},
 		&mock.PeerBlackListHandlerStub{},
-		thresholdNum,
-		thresholdSize,
-		2,
-		time.Second,
 		"",
 		selfPid,
+		&testscommon.AntifloodConfigsHandlerStub{
+			GetFloodPreventerConfigByTypeCalled: func(configType common.FloodPreventerType) config.FloodPreventerConfig {
+				return config.FloodPreventerConfig{
+					BlackList: config.BlackListConfig{
+						ThresholdNumMessagesPerInterval: thresholdNum,
+						ThresholdSizePerInterval:        thresholdSize,
+						NumFloodingRounds:               10,
+						PeerBanDurationInSeconds:        1,
+					},
+				}
+			},
+		},
 	)
 
 	pbp.AddQuota(selfPid, thresholdNum, thresholdSize, 1, 1)
@@ -340,12 +302,20 @@ func TestP2PQuotaBlacklistProcessor_ResetStatisticsRemoveNilValueKey(t *testing.
 			},
 		},
 		&mock.PeerBlackListHandlerStub{},
-		thresholdNum,
-		thresholdSize,
-		2,
-		time.Second,
 		"",
 		selfPid,
+		&testscommon.AntifloodConfigsHandlerStub{
+			GetFloodPreventerConfigByTypeCalled: func(configType common.FloodPreventerType) config.FloodPreventerConfig {
+				return config.FloodPreventerConfig{
+					BlackList: config.BlackListConfig{
+						ThresholdNumMessagesPerInterval: thresholdNum,
+						ThresholdSizePerInterval:        thresholdSize,
+						NumFloodingRounds:               10,
+						PeerBanDurationInSeconds:        1,
+					},
+				}
+			},
+		},
 	)
 
 	pbp.ResetStatistics()
@@ -376,12 +346,20 @@ func TestP2PQuotaBlacklistProcessor_ResetStatisticsShouldRemoveInvalidValueKey(t
 			},
 		},
 		&mock.PeerBlackListHandlerStub{},
-		thresholdNum,
-		thresholdSize,
-		2,
-		time.Second,
 		"",
 		selfPid,
+		&testscommon.AntifloodConfigsHandlerStub{
+			GetFloodPreventerConfigByTypeCalled: func(configType common.FloodPreventerType) config.FloodPreventerConfig {
+				return config.FloodPreventerConfig{
+					BlackList: config.BlackListConfig{
+						ThresholdNumMessagesPerInterval: thresholdNum,
+						ThresholdSizePerInterval:        thresholdSize,
+						NumFloodingRounds:               10,
+						PeerBanDurationInSeconds:        1,
+					},
+				}
+			},
+		},
 	)
 
 	pbp.ResetStatistics()
@@ -420,12 +398,20 @@ func TestP2PQuotaBlacklistProcessor_ResetStatisticsUnderNumFloodingRoundsShouldN
 				return nil
 			},
 		},
-		thresholdNum,
-		thresholdSize,
-		numFloodingRounds,
-		duration,
 		"",
 		selfPid,
+		&testscommon.AntifloodConfigsHandlerStub{
+			GetFloodPreventerConfigByTypeCalled: func(configType common.FloodPreventerType) config.FloodPreventerConfig {
+				return config.FloodPreventerConfig{
+					BlackList: config.BlackListConfig{
+						ThresholdNumMessagesPerInterval: thresholdNum,
+						ThresholdSizePerInterval:        thresholdSize,
+						NumFloodingRounds:               0,
+						PeerBanDurationInSeconds:        1,
+					},
+				}
+			},
+		},
 	)
 
 	pbp.ResetStatistics()
@@ -465,12 +451,20 @@ func TestP2PQuotaBlacklistProcessor_ResetStatisticsOverNumFloodingRoundsShouldBl
 				return nil
 			},
 		},
-		thresholdNum,
-		thresholdSize,
-		numFloodingRounds,
-		duration,
 		"",
 		selfPid,
+		&testscommon.AntifloodConfigsHandlerStub{
+			GetFloodPreventerConfigByTypeCalled: func(configType common.FloodPreventerType) config.FloodPreventerConfig {
+				return config.FloodPreventerConfig{
+					BlackList: config.BlackListConfig{
+						ThresholdNumMessagesPerInterval: thresholdNum,
+						ThresholdSizePerInterval:        thresholdSize,
+						NumFloodingRounds:               numFloodingRounds,
+						PeerBanDurationInSeconds:        3892,
+					},
+				}
+			},
+		},
 	)
 
 	pbp.ResetStatistics()

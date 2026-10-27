@@ -46,6 +46,7 @@ const maxNewMissingAddedPerTurn = 10
 
 // ArgTrieSyncer is the argument for the trie syncer
 type ArgTrieSyncer struct {
+	RecoveryEpoch             core.OptionalUint32
 	Marshalizer               marshal.Marshalizer
 	Hasher                    hashing.Hasher
 	DB                        common.StorageManager
@@ -67,7 +68,7 @@ func NewTrieSyncer(arg ArgTrieSyncer) (*trieSyncer, error) {
 		return nil, err
 	}
 
-	stsm, err := NewSyncTrieStorageManager(arg.DB)
+	stsm, err := newStorageForTrieSync(arg)
 	if err != nil {
 		return nil, err
 	}
@@ -248,7 +249,7 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 			delete(ts.nodesForTrie, nodeHash)
 
 			var numBytes int
-			numBytes, err = encodeNodeAndCommitToDB(currentNode, ts.trieContext)
+			numBytes, err = commitSyncedNode(currentNode, ts.trieContext)
 			if err != nil {
 				return false, err
 			}
@@ -314,13 +315,27 @@ func getNodeFromCacheOrStorage(
 	interceptedNodesCacher storage.Cacher,
 	trieCtx common.TrieContext,
 ) (node, error) {
+	if _, recovery := db.(*recoveryTrieStorageManager); recovery {
+		n, err := getVerifiedNodeFromStorage(hash, db, marshalizer, hasher)
+		if err == nil {
+			return n, nil
+		}
+		return getNodeFromCache(hash, interceptedNodesCacher, marshalizer, hasher)
+	}
 	n, err := getNodeFromCache(hash, interceptedNodesCacher, trieCtx)
 	if err == nil {
 		return n, nil
 	}
 
+	return getVerifiedNodeFromStorage(hash, db, marshalizer, hasher)
+}
+
+func getVerifiedNodeFromStorage(hash []byte, db common.TrieStorageInteractor, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
 	existingNode, _, err := getNodeFromDBAndDecode(hash, trieCtx)
 	if err != nil {
+		return nil, ErrNodeNotFound
+	}
+	if !bytes.Equal(existingNode.getHash(), hash) {
 		return nil, ErrNodeNotFound
 	}
 

@@ -11,6 +11,7 @@ const (
 	receiverField          = "receiver"
 	gasLimitField          = "gaslimit"
 	gasPriceField          = "gasprice"
+	ppu                    = "ppu"
 	rcvUsernameField       = "receiverusername"
 	dataField              = "data"
 	valueField             = "value"

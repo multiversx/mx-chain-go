@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-crypto-go/signing/disabled/singlesig"
+
 	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 	"github.com/multiversx/mx-chain-go/config"
@@ -24,6 +25,7 @@ type ArgsCryptoComponentsHolder struct {
 	CoreComponentsHolder        factory.CoreComponentsHolder
 	AllValidatorKeysPemFileName string
 	BypassTxSignatureCheck      bool
+	BypassBlockSignatureCheck   bool
 }
 
 type cryptoComponentsHolder struct {
@@ -95,7 +97,11 @@ func CreateCryptoComponents(args ArgsCryptoComponentsHolder) (*cryptoComponentsH
 	instance.p2pPublicKey = managedCryptoComponents.P2pPublicKey()
 	instance.p2pPrivateKey = managedCryptoComponents.P2pPrivateKey()
 	instance.p2pSingleSigner = managedCryptoComponents.P2pSingleSigner()
-	instance.blockSigner = managedCryptoComponents.BlockSigner()
+	if args.BypassBlockSignatureCheck {
+		instance.blockSigner = &singlesig.DisabledSingleSig{}
+	} else {
+		instance.blockSigner = managedCryptoComponents.BlockSigner()
+	}
 
 	instance.multiSignerContainer = managedCryptoComponents.MultiSignerContainer()
 	instance.peerSignatureHandler = managedCryptoComponents.PeerSignatureHandler()
@@ -175,7 +181,7 @@ func (c *cryptoComponentsHolder) MultiSignerContainer() cryptoCommon.MultiSigner
 }
 
 // GetMultiSigner will return the multi signer by epoch
-func (c *cryptoComponentsHolder) GetMultiSigner(epoch uint32) (crypto.MultiSigner, error) {
+func (c *cryptoComponentsHolder) GetMultiSigner(epoch uint32) (crypto.MultiSignerV2, error) {
 	return c.MultiSignerContainer().GetMultiSigner(epoch)
 }
 

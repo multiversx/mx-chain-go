@@ -2,6 +2,7 @@ package requesters
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 )
@@ -37,6 +38,7 @@ func NewEquivalentProofsRequester(args ArgEquivalentProofsRequester) (*equivalen
 // RequestDataFromHash requests data from other peers by having a hash and the epoch as input
 func (requester *equivalentProofsRequester) RequestDataFromHash(hash []byte, epoch uint32) error {
 	if !requester.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch) {
+		log.Debug("equivalentProofsRequester.RequestDataFromHash: dropped request labeled before activation", "key", hash, "epoch", epoch)
 		return nil
 	}
 
@@ -54,6 +56,7 @@ func (requester *equivalentProofsRequester) RequestDataFromHash(hash []byte, epo
 // all headers must be from the same epoch
 func (requester *equivalentProofsRequester) RequestDataFromHashArray(hashes [][]byte, epoch uint32) error {
 	if !requester.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch) {
+		log.Debug("equivalentProofsRequester.RequestDataFromHashArray: dropped request labeled before activation", "num keys", len(hashes), "epoch", epoch)
 		return nil
 	}
 
@@ -63,6 +66,7 @@ func (requester *equivalentProofsRequester) RequestDataFromHashArray(hashes [][]
 // RequestDataFromNonce requests equivalent proofs data from other peers for the specified nonce-shard key
 func (requester *equivalentProofsRequester) RequestDataFromNonce(nonceShardKey []byte, epoch uint32) error {
 	if !requester.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch) {
+		log.Debug("equivalentProofsRequester.RequestDataFromNonce: dropped request labeled before activation", "key", string(nonceShardKey), "epoch", epoch)
 		return nil
 	}
 

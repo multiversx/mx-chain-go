@@ -5,8 +5,8 @@ import (
 	"strconv"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -103,9 +103,14 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 		return err
 	}
 
+	err = msh.saveEpochStartMetaHdrs(components)
+	if err != nil {
+		return err
+	}
+
 	msh.saveMiniblocksFromComponents(components)
 
-	miniBlocks, err := msh.groupMiniBlocksByShard(components.PendingMiniBlocks)
+	miniBlocks, err := computePendingMiniBlocks(components)
 	if err != nil {
 		return err
 	}
@@ -120,15 +125,24 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 		return err
 	}
 
-	lastCrossNotarizedHeader, err := msh.saveLastCrossNotarizedHeaders(components.EpochStartMetaBlock, components.Headers)
+	lastCrossNotarizedHeaders, err := msh.saveLastCrossNotarizedHeaders(components.EpochStartMetaBlock, components.Headers)
+	if err != nil {
+		return err
+	}
+
+	lastSelfNotarizedHeaders, err := msh.getLastSelfNotarizedHeaders(
+		components.EpochStartMetaBlock,
+		lastHeader,
+		components.Headers,
+	)
 	if err != nil {
 		return err
 	}
 
 	bootStrapData := bootstrapStorage.BootstrapData{
 		LastHeader:                 lastHeader,
-		LastCrossNotarizedHeaders:  lastCrossNotarizedHeader,
-		LastSelfNotarizedHeaders:   []bootstrapStorage.BootstrapHeaderInfo{lastHeader},
+		LastCrossNotarizedHeaders:  lastCrossNotarizedHeaders,
+		LastSelfNotarizedHeaders:   lastSelfNotarizedHeaders,
 		ProcessedMiniBlocks:        []bootstrapStorage.MiniBlocksInMeta{},
 		PendingMiniBlocks:          miniBlocks,
 		NodesCoordinatorConfigKey:  nodesCoordinatorConfigKey,
@@ -159,6 +173,231 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 	}
 
 	log.Debug("saved bootstrap data to storage", "round", roundToUseAsKey)
+	return nil
+}
+
+func (msh *metaStorageHandler) getLastSelfNotarizedHeaders(
+	epochStartMeta data.MetaHeaderHandler,
+	epochStartMetaBootstrapInfo bootstrapStorage.BootstrapHeaderInfo,
+	syncedHeaders map[string]data.HeaderHandler,
+) ([]bootstrapStorage.BootstrapHeaderInfo, error) {
+	var lastSelfNotarizedHeaders []bootstrapStorage.BootstrapHeaderInfo
+	if !epochStartMeta.IsHeaderV3() {
+		return []bootstrapStorage.BootstrapHeaderInfo{
+			epochStartMetaBootstrapInfo,
+		}, nil
+	}
+
+	for _, epochStartData := range epochStartMeta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
+		bootstrapHdrInfo, err := msh.getLastNotarizedBootstrapInfoForEpochStartData(epochStartData, syncedHeaders)
+		if err != nil {
+			return nil, err
+		}
+
+		lastSelfNotarizedHeaders = append(lastSelfNotarizedHeaders, bootstrapHdrInfo)
+	}
+
+	bootstrapHdrInfoMeta, err := msh.getLastMetaBootstrapInfo(epochStartMeta, syncedHeaders)
+	if err != nil {
+		return nil, err
+	}
+
+	lastSelfNotarizedHeaders = append(lastSelfNotarizedHeaders, bootstrapHdrInfoMeta)
+
+	return lastSelfNotarizedHeaders, nil
+}
+
+func (msh *metaStorageHandler) saveIntermediateMetaBlocksToStorage(
+	epochStartMeta data.MetaHeaderHandler,
+	syncedHeaders map[string]data.HeaderHandler,
+) error {
+	prevHash := epochStartMeta.GetPrevHash()
+
+	for len(prevHash) > 0 {
+		metaBlock, ok := syncedHeaders[string(prevHash)]
+		if !ok {
+			break
+		}
+
+		_, err := msh.saveMetaHdrToStorage(metaBlock)
+		if err != nil {
+			return err
+		}
+
+		if metaBlock.GetNonce() == 0 {
+			break
+		}
+
+		prevHash = metaBlock.GetPrevHash()
+	}
+
+	return nil
+}
+
+// computePendingMiniBlocks derives the per-shard pending miniblocks at the epoch
+// start meta block, matching the state every running node has right after
+// committing it via processStartOfEpochMeta. This is simply the receiver-indexed,
+// filtered view of EpochStart.LastFinalizedHeaders[*].PendingMiniBlockHeaders.
+func computePendingMiniBlocks(
+	components *ComponentsNeededForBootstrap,
+) ([]bootstrapStorage.PendingMiniBlocksInfo, error) {
+	epochStartHandler := components.EpochStartMetaBlock.GetEpochStartHandler()
+	if epochStartHandler == nil {
+		return nil, fmt.Errorf("computePendingMiniBlocks: nil epoch start handler")
+	}
+
+	byShard := make(map[uint32][][]byte)
+	for _, shardData := range epochStartHandler.GetLastFinalizedHeaderHandlers() {
+		for _, mbh := range shardData.GetPendingMiniBlockHeaderHandlers() {
+			if !shouldConsiderCrossShardMiniBlock(mbh.GetSenderShardID(), mbh.GetReceiverShardID()) {
+				continue
+			}
+			recv := mbh.GetReceiverShardID()
+			byShard[recv] = append(byShard[recv], mbh.GetHash())
+		}
+	}
+
+	numShards := uint32(len(epochStartHandler.GetLastFinalizedHeaderHandlers()))
+	pendingMbs := make([]bootstrapStorage.PendingMiniBlocksInfo, 0, len(byShard))
+	for shardID := uint32(0); shardID < numShards; shardID++ {
+		hashes, ok := byShard[shardID]
+		if !ok || len(hashes) == 0 {
+			continue
+		}
+		pendingMbs = append(pendingMbs, bootstrapStorage.PendingMiniBlocksInfo{
+			ShardID:          shardID,
+			MiniBlocksHashes: hashes,
+		})
+	}
+
+	log.Debug("computePendingMiniBlocks", "numShardsWithPending", len(pendingMbs))
+
+	return pendingMbs, nil
+}
+
+// shouldConsiderCrossShardMiniBlock mirrors the filter applied by the pending
+// miniblocks handler when building its map: same-shard, shard->meta and meta->all
+// miniblocks are not tracked as cross-shard pending entries.
+func shouldConsiderCrossShardMiniBlock(senderShardID uint32, receiverShardID uint32) bool {
+	if senderShardID == receiverShardID {
+		return false
+	}
+	if senderShardID != core.MetachainShardId && receiverShardID == core.MetachainShardId {
+		return false
+	}
+	if senderShardID == core.MetachainShardId && receiverShardID == core.AllShardId {
+		return false
+	}
+	return true
+}
+
+func (msh *metaStorageHandler) getSelfNotarizedMetaForShard(
+	epochStartData data.EpochStartShardDataHandler,
+	syncedHeaders map[string]data.HeaderHandler,
+) ([]byte, data.HeaderHandler, bool) {
+	metaHash := epochStartData.GetFirstPendingMetaBlock()
+	if len(metaHash) == 0 {
+		return nil, nil, false
+	}
+
+	metaBlock, found := syncedHeaders[string(metaHash)]
+	if !found {
+		return nil, nil, false
+	}
+
+	return metaHash, metaBlock, true
+}
+
+func (msh *metaStorageHandler) getLastMetaBootstrapInfo(
+	epochStartMeta data.MetaHeaderHandler,
+	syncedHeaders map[string]data.HeaderHandler,
+) (bootstrapStorage.BootstrapHeaderInfo, error) {
+	lastExecRes, err := common.GetLastBaseExecutionResultHandler(epochStartMeta)
+	if err != nil {
+		return bootstrapStorage.BootstrapHeaderInfo{}, err
+	}
+
+	lastExecMetaHeader, ok := syncedHeaders[string(lastExecRes.GetHeaderHash())]
+	if !ok {
+		return bootstrapStorage.BootstrapHeaderInfo{}, epochStart.ErrMissingHeader
+	}
+
+	bootstrapHdrInfoMeta := bootstrapStorage.BootstrapHeaderInfo{
+		ShardId: core.MetachainShardId,
+		Epoch:   lastExecMetaHeader.GetEpoch(),
+		Nonce:   lastExecMetaHeader.GetNonce(),
+		Hash:    lastExecRes.GetHeaderHash(),
+	}
+
+	return bootstrapHdrInfoMeta, nil
+}
+
+func fetchPrevHeader(
+	syncedHeaders map[string]data.HeaderHandler,
+	header data.HeaderHandler,
+) (data.ShardHeaderHandler, error) {
+	prevHash := header.GetPrevHash()
+	syncedHeader, ok := syncedHeaders[string(prevHash)]
+	if !ok {
+		return nil, epochStart.ErrMissingHeader
+	}
+
+	shardHeader, ok := syncedHeader.(data.ShardHeaderHandler)
+	if !ok {
+		return nil, epochStart.ErrWrongTypeAssertion
+	}
+
+	return shardHeader, nil
+}
+
+func (msh *metaStorageHandler) getLastNotarizedBootstrapInfoForEpochStartData(
+	epochStartData data.EpochStartShardDataHandler,
+	syncedHeaders map[string]data.HeaderHandler,
+) (bootstrapStorage.BootstrapHeaderInfo, error) {
+	shardHeaderHash := epochStartData.GetHeaderHash()
+	shardHeader, ok := syncedHeaders[string(shardHeaderHash)]
+	if !ok {
+		return bootstrapStorage.BootstrapHeaderInfo{}, epochStart.ErrMissingHeader
+	}
+
+	lastReferencedMetaHash, err := getLastReferencedMetaHash(syncedHeaders, fetchPrevHeader, shardHeader)
+	if err != nil {
+		return bootstrapStorage.BootstrapHeaderInfo{}, err
+	}
+
+	lastReferencesMetaBlock, ok := syncedHeaders[string(lastReferencedMetaHash)]
+	if !ok {
+		return bootstrapStorage.BootstrapHeaderInfo{}, epochStart.ErrMissingHeader
+	}
+
+	bootstrapHdrInfo := bootstrapStorage.BootstrapHeaderInfo{
+		ShardId: epochStartData.GetShardID(),
+		Epoch:   lastReferencesMetaBlock.GetEpoch(),
+		Nonce:   lastReferencesMetaBlock.GetNonce(),
+		Hash:    lastReferencedMetaHash,
+	}
+
+	return bootstrapHdrInfo, nil
+}
+
+func (msh *metaStorageHandler) saveEpochStartMetaHdrs(components *ComponentsNeededForBootstrap) error {
+	for _, hdr := range components.Headers {
+		isForCurrentShard := hdr.GetShardID() == msh.shardCoordinator.SelfId()
+		if !isForCurrentShard {
+			_, err := msh.saveShardHdrToStorage(hdr)
+			if err != nil {
+				return err
+			}
+
+			continue
+		}
+
+		_, err := msh.saveMetaHdrToStorage(hdr)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -205,9 +444,9 @@ func (msh *metaStorageHandler) saveLastHeader(metaBlock data.HeaderHandler) (boo
 }
 
 func (msh *metaStorageHandler) saveTriggerRegistry(components *ComponentsNeededForBootstrap) ([]byte, error) {
-	metaBlock, ok := components.EpochStartMetaBlock.(*block.MetaBlock)
-	if !ok {
-		return nil, epochStart.ErrWrongTypeAssertion
+	metaBlock := components.EpochStartMetaBlock
+	if check.IfNil(metaBlock) {
+		return nil, epochStart.ErrNilMetaBlock
 	}
 
 	hash, err := core.CalculateHash(msh.marshalizer, msh.hasher, metaBlock)
@@ -215,20 +454,19 @@ func (msh *metaStorageHandler) saveTriggerRegistry(components *ComponentsNeededF
 		return nil, err
 	}
 
-	triggerReg := block.MetaTriggerRegistry{
-		Epoch:                       metaBlock.GetEpoch(),
-		CurrentRound:                metaBlock.GetRound(),
-		EpochFinalityAttestingRound: metaBlock.GetRound(),
-		CurrEpochStartRound:         metaBlock.GetRound(),
-		PrevEpochStartRound:         components.PreviousEpochStart.GetRound(),
-		EpochStartMetaHash:          hash,
-		EpochStartMeta:              metaBlock,
-	}
+	triggerReg := epochStart.CreateMetaRegistryHandler(metaBlock)
+	_ = triggerReg.SetEpochStartMetaHeaderHandler(metaBlock)
+	_ = triggerReg.SetEpoch(metaBlock.GetEpoch())
+	_ = triggerReg.SetEpochStartMetaHash(hash)
+	_ = triggerReg.SetCurrEpochStartRound(metaBlock.GetRound())
+	_ = triggerReg.SetPrevEpochStartRound(components.PreviousEpochStart.GetRound())
+	_ = triggerReg.SetEpochFinalityAttestingRound(metaBlock.GetRound())
+	_ = triggerReg.SetEpochChangeProposed(false)
 
 	bootstrapKey := []byte(fmt.Sprint(metaBlock.GetRound()))
 	trigInternalKey := append([]byte(common.TriggerRegistryKeyPrefix), bootstrapKey...)
 
-	triggerRegBytes, err := msh.marshalizer.Marshal(&triggerReg)
+	triggerRegBytes, err := msh.marshalizer.Marshal(triggerReg)
 	if err != nil {
 		return nil, err
 	}

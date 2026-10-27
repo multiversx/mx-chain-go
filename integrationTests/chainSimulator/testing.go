@@ -1,6 +1,7 @@
 package chainSimulator
 
 import (
+	"context"
 	"encoding/base64"
 	"math/big"
 	"testing"
@@ -32,7 +33,7 @@ func CheckSetState(t *testing.T, chainSimulator ChainSimulator, nodeHandler chai
 	err = chainSimulator.GenerateBlocks(1)
 	require.Nil(t, err)
 
-	keyValuePairs, _, err := nodeHandler.GetFacadeHandler().GetKeyValuePairs(address, coreAPI.AccountQueryOptions{})
+	keyValuePairs, _, err := nodeHandler.GetFacadeHandler().GetKeyValuePairs(context.Background(), address, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
 	require.Equal(t, keyValueMap, keyValuePairs)
 }
@@ -59,7 +60,7 @@ func CheckSetEntireState(t *testing.T, chainSimulator ChainSimulator, nodeHandle
 
 	time.Sleep(time.Second)
 
-	account, _, err := nodeHandler.GetFacadeHandler().GetAccount(accountState.Address, coreAPI.AccountQueryOptions{})
+	account, _, err := nodeHandler.GetFacadeHandler().GetAccount(context.Background(), accountState.Address, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
 	require.Equal(t, accountState.Balance, account.Balance)
 	require.Equal(t, accountState.DeveloperRewards, account.DeveloperReward)
@@ -94,7 +95,7 @@ func CheckSetEntireStateWithRemoval(t *testing.T, chainSimulator ChainSimulator,
 	counterValue := big.NewInt(0).SetBytes(res.ReturnData[0]).Int64()
 	require.Equal(t, 10, int(counterValue))
 
-	account, _, err := nodeHandler.GetFacadeHandler().GetAccount(accountState.Address, coreAPI.AccountQueryOptions{})
+	account, _, err := nodeHandler.GetFacadeHandler().GetAccount(context.Background(), accountState.Address, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
 	require.Equal(t, accountState.Balance, account.Balance)
 	require.Equal(t, accountState.DeveloperRewards, account.DeveloperReward)
@@ -111,7 +112,7 @@ func CheckSetEntireStateWithRemoval(t *testing.T, chainSimulator ChainSimulator,
 	err = chainSimulator.GenerateBlocks(2)
 	require.Nil(t, err)
 
-	account, _, err = nodeHandler.GetFacadeHandler().GetAccount(accountState.Address, coreAPI.AccountQueryOptions{})
+	account, _, err = nodeHandler.GetFacadeHandler().GetAccount(context.Background(), accountState.Address, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
 	require.Equal(t, "0", account.Balance)
 	require.Equal(t, "0", account.DeveloperReward)
@@ -128,7 +129,7 @@ func CheckSetEntireStateWithRemoval(t *testing.T, chainSimulator ChainSimulator,
 	err = chainSimulator.GenerateBlocks(2)
 	require.Nil(t, err)
 
-	account, _, err = nodeHandler.GetFacadeHandler().GetAccount(accountState.Address, coreAPI.AccountQueryOptions{})
+	account, _, err = nodeHandler.GetFacadeHandler().GetAccount(context.Background(), accountState.Address, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
 
 	require.Equal(t, accountState.Balance, account.Balance)
@@ -245,4 +246,30 @@ func CheckGenerateTransactions(t *testing.T, chainSimulator ChainSimulator) {
 		expectedBalance := big.NewInt(0).Add(InitialAmount, transferValue)
 		assert.Equal(t, expectedBalance.String(), account.Balance)
 	})
+}
+
+// GenerateMoveBalanceTxsInShardsWithMoreGasLimit -
+func GenerateMoveBalanceTxsInShardsWithMoreGasLimit(t *testing.T, chainSimulator ChainSimulator) {
+	transferValue := big.NewInt(0).Mul(OneEGLD, big.NewInt(5))
+
+	wallet0, err := chainSimulator.GenerateAndMintWalletAddress(0, InitialAmount)
+	require.Nil(t, err)
+
+	wallet1, err := chainSimulator.GenerateAndMintWalletAddress(0, InitialAmount)
+	require.Nil(t, err)
+
+	err = chainSimulator.GenerateBlocks(1)
+	require.Nil(t, err)
+
+	gasLimit := uint64(150_000)
+	tx0 := GenerateTransaction(wallet0.Bytes, 0, wallet1.Bytes, transferValue, "", gasLimit)
+
+	_, err = chainSimulator.SendTxAndGenerateBlockTilTxIsExecuted(tx0, 3)
+	require.Nil(t, err)
+
+	account, err := chainSimulator.GetAccount(wallet1)
+	require.Nil(t, err)
+	expectedBalance := big.NewInt(0).Add(InitialAmount, transferValue)
+	require.Equal(t, expectedBalance.String(), account.Balance)
+
 }

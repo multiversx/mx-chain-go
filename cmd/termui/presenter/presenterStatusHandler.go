@@ -15,7 +15,6 @@ type PresenterStatusHandler struct {
 	mutPresenterMap             sync.RWMutex
 	logLines                    []string
 	mutLogLineWrite             sync.RWMutex
-	oldRound                    uint64
 	synchronizationSpeedHistory []uint64
 	totalRewardsOld             *big.Float
 }

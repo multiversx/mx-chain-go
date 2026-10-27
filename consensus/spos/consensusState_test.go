@@ -3,12 +3,15 @@ package spos_test
 import (
 	"bytes"
 	"errors"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	p2pMessage "github.com/multiversx/mx-chain-communication-go/p2p/message"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -57,6 +60,7 @@ func internalInitConsensusStateWithKeysHandler(keysHandler consensus.KeysHandler
 		rcns,
 		rthr,
 		rstatus,
+		&mock.NodeRedundancyHandlerStub{},
 	)
 
 	return cns
@@ -78,9 +82,9 @@ func TestConsensusState_ResetConsensusStateShouldWork(t *testing.T) {
 	cns.SetExtendedCalled(true)
 	cns.SetWaitingAllSignaturesTimeOut(true)
 	cns.ResetConsensusState()
-	assert.False(t, cns.RoundCanceled)
+	assert.False(t, cns.GetRoundCanceled())
 	assert.False(t, cns.GetExtendedCalled())
-	assert.False(t, cns.WaitingAllSignaturesTimeOut)
+	assert.False(t, cns.GetWaitingAllSignaturesTimeOut())
 }
 
 func TestConsensusState_IsNodeLeaderInCurrentRoundShouldReturnFalseWhenGetLeaderErr(t *testing.T) {
@@ -194,7 +198,7 @@ func TestConsensusState_IsConsensusDataSetShouldReturnTrue(t *testing.T) {
 
 	cns := internalInitConsensusState()
 
-	cns.Data = make([]byte, 0)
+	cns.SetData(make([]byte, 0))
 
 	assert.True(t, cns.IsConsensusDataSet())
 }
@@ -204,9 +208,147 @@ func TestConsensusState_IsConsensusDataSetShouldReturnFalse(t *testing.T) {
 
 	cns := internalInitConsensusState()
 
-	cns.Data = nil
+	cns.SetData(nil)
 
 	assert.False(t, cns.IsConsensusDataSet())
+}
+
+func TestConsensusState_SetDataIfNotSet(t *testing.T) {
+	t.Parallel()
+
+	t.Run("sets data and returns true when not previously set", func(t *testing.T) {
+		t.Parallel()
+
+		cns := internalInitConsensusState()
+		cns.SetData(nil)
+
+		data := []byte("hash")
+		didSet := cns.SetDataIfNotSet(data)
+
+		assert.True(t, didSet)
+		assert.Equal(t, data, cns.GetData())
+	})
+
+	t.Run("returns false and keeps existing data when already set", func(t *testing.T) {
+		t.Parallel()
+
+		cns := internalInitConsensusState()
+		first := []byte("firstHash")
+		cns.SetData(first)
+
+		didSet := cns.SetDataIfNotSet([]byte("secondHash"))
+
+		assert.False(t, didSet)
+		assert.Equal(t, first, cns.GetData())
+	})
+
+	t.Run("concurrent callers should not set twice", func(t *testing.T) {
+		t.Parallel()
+
+		cns := internalInitConsensusState()
+		cns.SetData(nil)
+
+		numGoroutines := 50
+		wg := sync.WaitGroup{}
+		wg.Add(numGoroutines)
+		winners := int32(0)
+		for i := 0; i < numGoroutines; i++ {
+			go func() {
+				defer wg.Done()
+				if cns.SetDataIfNotSet([]byte("hash")) {
+					atomic.AddInt32(&winners, 1)
+				}
+			}()
+		}
+		wg.Wait()
+
+		assert.Equal(t, int32(1), atomic.LoadInt32(&winners))
+		assert.Equal(t, []byte("hash"), cns.GetData())
+	})
+}
+
+func TestConsensusState_SignaturesDone(t *testing.T) {
+	t.Parallel()
+
+	t.Run("defaults to an already-closed channel after round reset", func(t *testing.T) {
+		t.Parallel()
+
+		cns := internalInitConsensusState()
+		cns.ResetConsensusRoundState()
+
+		select {
+		case <-cns.SignaturesDone():
+		case <-time.After(time.Second):
+			t.Fatal("SignaturesDone should be closed by default when no optimistic signatures were triggered")
+		}
+	})
+
+	t.Run("published done channel gates the wait until closed", func(t *testing.T) {
+		t.Parallel()
+
+		cns := internalInitConsensusState()
+
+		done := make(chan struct{})
+		cns.SetSignaturesDone(done)
+
+		require.True(t, done == cns.SignaturesDone())
+
+		select {
+		case <-cns.SignaturesDone():
+			t.Fatal("SignaturesDone must block until the published channel is closed")
+		case <-time.After(20 * time.Millisecond):
+		}
+
+		close(done)
+
+		select {
+		case <-cns.SignaturesDone():
+		case <-time.After(time.Second):
+			t.Fatal("SignaturesDone must return once the published channel is closed")
+		}
+	})
+
+	t.Run("concurrent publish, wait and round reset are race free", func(t *testing.T) {
+		t.Parallel()
+
+		cns := internalInitConsensusState()
+
+		numIterations := 200
+		wg := sync.WaitGroup{}
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := 0; i < numIterations; i++ {
+				done := make(chan struct{})
+				cns.SetSignaturesDone(done)
+				close(done)
+			}
+		}()
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := 0; i < numIterations; i++ {
+				select {
+				case <-cns.SignaturesDone():
+				case <-time.After(time.Second):
+					t.Error("SignaturesDone should not block forever")
+					return
+				}
+			}
+		}()
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := 0; i < numIterations; i++ {
+				cns.ResetConsensusRoundState()
+			}
+		}()
+
+		wg.Wait()
+	})
 }
 
 func TestConsensusState_IsConsensusDataEqualShouldReturnTrue(t *testing.T) {
@@ -216,7 +358,7 @@ func TestConsensusState_IsConsensusDataEqualShouldReturnTrue(t *testing.T) {
 
 	data := []byte("consensus data")
 
-	cns.Data = data
+	cns.SetData(data)
 
 	assert.True(t, cns.IsConsensusDataEqual(data))
 }
@@ -228,7 +370,7 @@ func TestConsensusState_IsConsensusDataEqualShouldReturnFalse(t *testing.T) {
 
 	data := []byte("consensus data")
 
-	cns.Data = data
+	cns.SetData(data)
 
 	assert.False(t, cns.IsConsensusDataEqual([]byte("X")))
 }
@@ -366,7 +508,7 @@ func TestConsensusState_CanDoSubroundJobShouldReturnFalseWhenConsensusDataNotSet
 
 	cns := internalInitConsensusState()
 
-	cns.Data = nil
+	cns.SetData(nil)
 
 	assert.False(t, cns.CanDoSubroundJob(bls.SrBlock))
 }
@@ -376,7 +518,7 @@ func TestConsensusState_CanDoSubroundJobShouldReturnFalseWhenSelfJobIsDone(t *te
 
 	cns := internalInitConsensusState()
 
-	cns.Data = make([]byte, 0)
+	cns.SetData(make([]byte, 0))
 	_ = cns.SetJobDone(cns.SelfPubKey(), bls.SrBlock, true)
 
 	assert.False(t, cns.CanDoSubroundJob(bls.SrBlock))
@@ -387,7 +529,7 @@ func TestConsensusState_CanDoSubroundJobShouldReturnFalseWhenCurrentRoundIsFinis
 
 	cns := internalInitConsensusState()
 
-	cns.Data = make([]byte, 0)
+	cns.SetData(make([]byte, 0))
 	_ = cns.SetJobDone(cns.SelfPubKey(), bls.SrBlock, false)
 	cns.SetStatus(bls.SrBlock, spos.SsFinished)
 
@@ -399,7 +541,7 @@ func TestConsensusState_CanDoSubroundJobShouldReturnTrue(t *testing.T) {
 
 	cns := internalInitConsensusState()
 
-	cns.Data = make([]byte, 0)
+	cns.SetData(make([]byte, 0))
 	_ = cns.SetJobDone(cns.SelfPubKey(), bls.SrBlock, false)
 	cns.SetStatus(bls.SrBlock, spos.SsNotFinished)
 
@@ -422,11 +564,52 @@ func TestConsensusState_CanProcessReceivedMessageShouldReturnFalseWhenMessageIsR
 func TestConsensusState_CanProcessReceivedMessageShouldReturnFalseWhenMessageIsReceivedForOtherRound(t *testing.T) {
 	t.Parallel()
 
-	cns := internalInitConsensusState()
+	eligibleList := []string{"1", "2", "3"}
+
+	eligibleNodesPubKeys := make(map[string]struct{})
+	for _, key := range eligibleList {
+		eligibleNodesPubKeys[key] = struct{}{}
+	}
+
+	rcns, _ := spos.NewRoundConsensus(
+		eligibleNodesPubKeys,
+		3,
+		"2",
+		&testscommon.KeysHandlerStub{},
+	)
+
+	rcns.SetConsensusGroup(eligibleList)
+	rcns.SetLeader(eligibleList[0])
+	rcns.ResetRoundState()
+
+	rthr := spos.NewRoundThreshold()
+
+	rthr.SetThreshold(bls.SrBlock, 1)
+	rthr.SetThreshold(bls.SrSignature, 3)
+	rthr.SetFallbackThreshold(bls.SrBlock, 1)
+	rthr.SetFallbackThreshold(bls.SrSignature, 2)
+
+	rstatus := spos.NewRoundStatus()
+	rstatus.ResetRoundStatus()
+
+	// force backup case for coverage
+	cns := spos.NewConsensusState(
+		rcns,
+		rthr,
+		rstatus,
+		&mock.NodeRedundancyHandlerStub{
+			IsRedundancyNodeCalled: func() bool {
+				return true
+			},
+			IsMainMachineActiveCalled: func() bool {
+				return false
+			},
+		},
+	)
 
 	cnsDta := &consensus.Message{
 		RoundIndex: 0,
-		PubKey:     []byte("1"),
+		PubKey:     []byte(cns.SelfPubKey()),
 	}
 
 	assert.False(t, cns.CanProcessReceivedMessage(cnsDta, 1, bls.SrBlock))
@@ -653,6 +836,71 @@ func TestConsensusState_GettersSetters(t *testing.T) {
 	msg, ok := cns.GetMessageWithSignature(providedKey)
 	require.True(t, ok)
 	require.Equal(t, providedMsg, msg)
+}
+
+func TestConsensusState_Concurrency(t *testing.T) {
+	t.Parallel()
+
+	keysHandler := &testscommon.KeysHandlerStub{}
+	cns := internalInitConsensusStateWithKeysHandler(keysHandler)
+
+	numOperations := 1000
+
+	wg := sync.WaitGroup{}
+	wg.Add(numOperations)
+
+	for i := 0; i < numOperations; i++ {
+		go func(idx int) {
+			switch idx % 20 {
+			case 0:
+				cns.AddReceivedHeader(&block.HeaderV2{})
+			case 1:
+				_ = cns.GetReceivedHeaders()
+			case 2:
+				cns.AddMessageWithSignature("", nil)
+			case 3:
+				_, _ = cns.GetMessageWithSignature("")
+			case 4:
+				_ = cns.IsNodeLeaderInCurrentRound("")
+			case 5:
+				_, _ = cns.GetLeader()
+			case 6:
+				cns.SetLeader("")
+			case 7:
+				_ = cns.IsJobDone("", 0)
+			case 8:
+				_ = cns.ConsensusGroup()
+			case 9:
+				cns.SetConsensusGroup([]string{})
+			case 10:
+				cns.SetRoundIndex(0)
+			case 11:
+				_ = cns.ConsensusGroupSize()
+			case 12:
+				cns.SetConsensusGroupSize(0)
+			case 13:
+				_ = cns.GetRoundTimeStamp()
+			case 14:
+				cns.SetRoundTimeStamp(time.Now())
+			case 15:
+				cns.SetRoundCanceled(true)
+			case 16:
+				_ = cns.GetRoundIndex()
+			case 17:
+				cns.SetStatus(0, spos.SsFinished)
+			case 18:
+				_ = cns.IsSelfJobDone(0)
+			case 19:
+				cns.ResetConsensusRoundState()
+			default:
+				assert.Fail(t, "should have not been called")
+			}
+
+			wg.Done()
+		}(i)
+	}
+
+	wg.Wait()
 }
 
 func TestConsensusState_IsInterfaceNil(t *testing.T) {

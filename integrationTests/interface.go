@@ -1,13 +1,14 @@
 package integrationTests
 
 import (
+	"context"
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
-	"github.com/multiversx/mx-chain-core-go/data/api"
 	dataApi "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
@@ -48,7 +49,7 @@ type NodesCoordinatorFactory interface {
 // NetworkShardingUpdater defines the updating methods used by the network sharding component
 type NetworkShardingUpdater interface {
 	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
-	UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte)
+	UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte, timestamp int64)
 	PutPeerIdShardId(pid core.PeerID, shardID uint32)
 	UpdatePeerIDInfo(pid core.PeerID, pk []byte, shardID uint32)
 	PutPeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType)
@@ -57,29 +58,29 @@ type NetworkShardingUpdater interface {
 
 // Facade is the node facade used to decouple the node implementation with the web server. Used in integration tests
 type Facade interface {
-	GetBalance(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo, error)
-	GetUsername(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
-	GetCodeHash(address string, options api.AccountQueryOptions) ([]byte, api.BlockInfo, error)
-	GetValueForKey(address string, key string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
-	GetAccount(address string, options api.AccountQueryOptions) (dataApi.AccountResponse, api.BlockInfo, error)
-	GetAccounts(addresses []string, options api.AccountQueryOptions) (map[string]*api.AccountResponse, api.BlockInfo, error)
-	GetESDTData(address string, key string, nonce uint64, options api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error)
-	GetNFTTokenIDsRegisteredByAddress(address string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error)
-	GetESDTsWithRole(address string, role string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error)
-	GetAllESDTTokens(address string, options api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error)
-	GetESDTsRoles(address string, options api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error)
-	GetKeyValuePairs(address string, options api.AccountQueryOptions) (map[string]string, api.BlockInfo, error)
-	IterateKeys(address string, numKeys uint, iteratorState [][]byte, options api.AccountQueryOptions) (map[string]string, [][]byte, api.BlockInfo, error)
-	GetGuardianData(address string, options api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error)
-	GetBlockByHash(hash string, options api.BlockQueryOptions) (*dataApi.Block, error)
-	GetBlockByNonce(nonce uint64, options api.BlockQueryOptions) (*dataApi.Block, error)
-	GetBlockByRound(round uint64, options api.BlockQueryOptions) (*dataApi.Block, error)
+	GetBalance(address string, options dataApi.AccountQueryOptions) (*big.Int, dataApi.BlockInfo, error)
+	GetUsername(address string, options dataApi.AccountQueryOptions) (string, dataApi.BlockInfo, error)
+	GetCodeHash(address string, options dataApi.AccountQueryOptions) ([]byte, dataApi.BlockInfo, error)
+	GetValueForKey(address string, key string, options dataApi.AccountQueryOptions) (string, dataApi.BlockInfo, error)
+	GetAccount(ctx context.Context, address string, options dataApi.AccountQueryOptions) (dataApi.AccountResponse, dataApi.BlockInfo, error)
+	GetAccounts(addresses []string, options dataApi.AccountQueryOptions) (map[string]*dataApi.AccountResponse, dataApi.BlockInfo, error)
+	GetESDTData(address string, key string, nonce uint64, options dataApi.AccountQueryOptions) (*esdt.ESDigitalToken, dataApi.BlockInfo, error)
+	GetNFTTokenIDsRegisteredByAddress(ctx context.Context, address string, options dataApi.AccountQueryOptions) ([]string, dataApi.BlockInfo, error)
+	GetESDTsWithRole(ctx context.Context, address string, role string, options dataApi.AccountQueryOptions) ([]string, dataApi.BlockInfo, error)
+	GetAllESDTTokens(ctx context.Context, address string, options dataApi.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, dataApi.BlockInfo, error)
+	GetESDTsRoles(ctx context.Context, address string, options dataApi.AccountQueryOptions) (map[string][]string, dataApi.BlockInfo, error)
+	GetKeyValuePairs(ctx context.Context, address string, options dataApi.AccountQueryOptions) (map[string]string, dataApi.BlockInfo, error)
+	IterateKeys(ctx context.Context, address string, numKeys uint, iteratorState [][]byte, options dataApi.AccountQueryOptions) (map[string]string, [][]byte, dataApi.BlockInfo, error)
+	GetGuardianData(address string, options dataApi.AccountQueryOptions) (dataApi.GuardianData, dataApi.BlockInfo, error)
+	GetBlockByHash(hash string, options dataApi.BlockQueryOptions) (*dataApi.Block, error)
+	GetBlockByNonce(nonce uint64, options dataApi.BlockQueryOptions) (*dataApi.Block, error)
+	GetBlockByRound(round uint64, options dataApi.BlockQueryOptions) (*dataApi.Block, error)
 	Trigger(epoch uint32, withEarlyEndOfEpoch bool) error
 	IsSelfTrigger() bool
 	GetTotalStakedValue() (*dataApi.StakeValues, error)
 	GetDirectStakedList() ([]*dataApi.DirectStakedValue, error)
 	GetDelegatorsList() ([]*dataApi.Delegator, error)
-	GetAllIssuedESDTs(tokenType string) ([]string, error)
+	GetAllIssuedESDTs(ctx context.Context, tokenType string) ([]string, error)
 	GetTokenSupply(token string) (*dataApi.ESDTSupply, error)
 	GetHeartbeats() ([]data.PubKeyHeartbeat, error)
 	StatusMetrics() external.StatusMetricsHandler
@@ -92,13 +93,14 @@ type Facade interface {
 	ValidateTransactionForSimulation(tx *transaction.Transaction, bypassSignature bool) error
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
 	SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error)
+	SimulateSCRExecutionCost(scr *smartContractResult.SmartContractResult) (*transaction.CostResponse, error)
 	GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	EncodeAddressPubkey(pk []byte) (string, error)
 	GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool)
 	ValidatorStatisticsApi() (map[string]*validator.ValidatorStatistics, error)
 	AuctionListApi() ([]*common.AuctionListValidatorAPIResponse, error)
-	ExecuteSCQuery(*process.SCQuery) (*vm.VMOutputApi, api.BlockInfo, error)
+	ExecuteSCQuery(*process.SCQuery) (*vm.VMOutputApi, dataApi.BlockInfo, error)
 	DecodeAddressPubkey(pk string) ([]byte, error)
 	GetProof(rootHash string, address string) (*common.GetProofResponse, error)
 	GetProofDataTrie(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error)
@@ -111,8 +113,10 @@ type Facade interface {
 	GetTransactionsPoolForSender(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSender(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
+	GetSelectedTransactions(fields string) (*common.TransactionsSelectionSimulationResult, error)
+	GetVirtualNonce(address string) (*common.VirtualNonceOfAccountResponse, error)
 	GetAlteredAccountsForBlock(options dataApi.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error)
-	IsDataTrieMigrated(address string, options api.AccountQueryOptions) (bool, error)
+	IsDataTrieMigrated(address string, options dataApi.AccountQueryOptions) (bool, error)
 	GetManagedKeysCount() int
 	GetManagedKeys() []string
 	GetLoadedKeys() []string

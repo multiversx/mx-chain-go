@@ -85,6 +85,11 @@ func (inMb *InterceptedMiniblock) CheckValidity() error {
 	return inMb.integrity()
 }
 
+// ShouldAllowDuplicates returns if this type of intercepted data should allow duplicates
+func (inMb *InterceptedMiniblock) ShouldAllowDuplicates() bool {
+	return false
+}
+
 // IsForCurrentShard returns true if at least one contained miniblock is for current shard
 func (inMb *InterceptedMiniblock) IsForCurrentShard() bool {
 	return inMb.isForCurrentShard
@@ -94,29 +99,7 @@ func (inMb *InterceptedMiniblock) IsForCurrentShard() bool {
 func (inMb *InterceptedMiniblock) integrity() error {
 	miniblock := inMb.miniblock
 
-	receiverNotCurrentShard := miniblock.ReceiverShardID >= inMb.shardCoordinator.NumberOfShards() &&
-		(miniblock.ReceiverShardID != core.MetachainShardId && miniblock.ReceiverShardID != core.AllShardId)
-	if receiverNotCurrentShard {
-		return process.ErrInvalidShardId
-	}
-
-	senderNotCurrentShard := miniblock.SenderShardID >= inMb.shardCoordinator.NumberOfShards() &&
-		miniblock.SenderShardID != core.MetachainShardId
-	if senderNotCurrentShard {
-		return process.ErrInvalidShardId
-	}
-
-	for _, txHash := range miniblock.TxHashes {
-		if txHash == nil {
-			return process.ErrNilTxHash
-		}
-	}
-
-	if len(miniblock.GetReserved()) > maxLenMiniBlockReservedField {
-		return process.ErrReservedFieldInvalid
-	}
-
-	return nil
+	return process.CheckMiniBlock(miniblock, inMb.shardCoordinator)
 }
 
 // Type returns the type of this intercepted data

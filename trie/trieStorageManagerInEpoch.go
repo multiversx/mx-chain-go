@@ -44,14 +44,6 @@ func newTrieStorageManagerInEpoch(storageManager common.StorageManager, epoch ui
 
 // Get checks all the storers for the given key, and returns it if it is found
 func (tsmie *trieStorageManagerInEpoch) Get(key []byte) ([]byte, error) {
-	tsmie.storageOperationMutex.Lock()
-	defer tsmie.storageOperationMutex.Unlock()
-
-	if tsmie.closed {
-		log.Debug("trieStorageManagerInEpoch get context closing", "key", key)
-		return nil, core.ErrContextClosing
-	}
-
 	for i := uint32(0); i < numEpochsToVerify; i++ {
 		if i > tsmie.epoch {
 			break

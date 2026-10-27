@@ -55,6 +55,8 @@ func (ln *leafNode) commitDirty(
 }
 
 func (ln *leafNode) commitSnapshot(
+	_ snapshotDb,
+	_ uint32,
 	trieCtx common.TrieContext,
 	leavesChan chan core.KeyValueHolder,
 	_ chan []byte,
@@ -113,11 +115,16 @@ func (ln *leafNode) tryGet(keyData *keyData, currentDepth uint32, trieCtx common
 	trieCtx.RLock(mutexKey)
 	defer trieCtx.RUnlock(mutexKey)
 
+func (ln *leafNode) isPosCollapsed(_ int) bool {
+	return false
+}
+
+func (ln *leafNode) tryGetWithVersion(keyData *keyData, currentDepth uint32, trieCtx common.TrieContext) (value []byte, maxDepth uint32, version uint32, err error) {
 	if bytes.Equal(keyData.keyRemainder, ln.Key) {
-		return ln.Value, currentDepth, nil
+		return ln.Value, currentDepth, ln.Version, nil
 	}
 
-	return nil, currentDepth, nil
+	return nil, currentDepth, 0, nil
 }
 
 func (ln *leafNode) getNext(key []byte, _ common.TrieContext) (*nodeData, error) {

@@ -1,6 +1,7 @@
 package v1_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -27,8 +28,9 @@ func initSubroundSignatureWithContainer(container *spos.ConsensusCore) v1.Subrou
 		bls.SrBlock,
 		bls.SrSignature,
 		bls.SrEndRound,
-		int64(70*roundTimeDuration/100),
-		int64(85*roundTimeDuration/100),
+		roundTimeDuration,
+		0.7,
+		0.85,
 		"(SIGNATURE)",
 		consensusState,
 		ch,
@@ -65,8 +67,9 @@ func TestNewSubroundSignature(t *testing.T) {
 		bls.SrBlock,
 		bls.SrSignature,
 		bls.SrEndRound,
-		int64(70*roundTimeDuration/100),
-		int64(85*roundTimeDuration/100),
+		roundTimeDuration,
+		0.7,
+		0.85,
 		"(SIGNATURE)",
 		consensusState,
 		ch,
@@ -142,8 +145,9 @@ func TestSubroundSignature_NewSubroundSignatureNilConsensusStateShouldFail(t *te
 		bls.SrBlock,
 		bls.SrSignature,
 		bls.SrEndRound,
-		int64(70*roundTimeDuration/100),
-		int64(85*roundTimeDuration/100),
+		roundTimeDuration,
+		0.7,
+		0.85,
 		"(SIGNATURE)",
 		consensusState,
 		ch,
@@ -177,8 +181,9 @@ func TestSubroundSignature_NewSubroundSignatureNilHasherShouldFail(t *testing.T)
 		bls.SrBlock,
 		bls.SrSignature,
 		bls.SrEndRound,
-		int64(70*roundTimeDuration/100),
-		int64(85*roundTimeDuration/100),
+		roundTimeDuration,
+		0.7,
+		0.85,
 		"(SIGNATURE)",
 		consensusState,
 		ch,
@@ -211,8 +216,9 @@ func TestSubroundSignature_NewSubroundSignatureNilMultiSignerContainerShouldFail
 		bls.SrBlock,
 		bls.SrSignature,
 		bls.SrEndRound,
-		int64(70*roundTimeDuration/100),
-		int64(85*roundTimeDuration/100),
+		roundTimeDuration,
+		0.7,
+		0.85,
 		"(SIGNATURE)",
 		consensusState,
 		ch,
@@ -245,8 +251,9 @@ func TestSubroundSignature_NewSubroundSignatureNilRoundHandlerShouldFail(t *test
 		bls.SrBlock,
 		bls.SrSignature,
 		bls.SrEndRound,
-		int64(70*roundTimeDuration/100),
-		int64(85*roundTimeDuration/100),
+		roundTimeDuration,
+		0.7,
+		0.85,
 		"(SIGNATURE)",
 		consensusState,
 		ch,
@@ -280,8 +287,9 @@ func TestSubroundSignature_NewSubroundSignatureNilSyncTimerShouldFail(t *testing
 		bls.SrBlock,
 		bls.SrSignature,
 		bls.SrEndRound,
-		int64(70*roundTimeDuration/100),
-		int64(85*roundTimeDuration/100),
+		roundTimeDuration,
+		0.7,
+		0.85,
 		"(SIGNATURE)",
 		consensusState,
 		ch,
@@ -314,8 +322,9 @@ func TestSubroundSignature_NewSubroundSignatureShouldWork(t *testing.T) {
 		bls.SrBlock,
 		bls.SrSignature,
 		bls.SrEndRound,
-		int64(70*roundTimeDuration/100),
-		int64(85*roundTimeDuration/100),
+		roundTimeDuration,
+		0.7,
+		0.85,
 		"(SIGNATURE)",
 		consensusState,
 		ch,
@@ -352,7 +361,7 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 
 	err := errors.New("create signature share error")
 	signingHandler := &consensusMocks.SigningHandlerStub{
-		CreateSignatureShareForPublicKeyCalled: func(msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+		CreateSignatureShareForPublicKeyCalled: func(_ context.Context, msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
 			return nil, err
 		},
 	}
@@ -362,7 +371,7 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 	assert.False(t, r)
 
 	signingHandler = &consensusMocks.SigningHandlerStub{
-		CreateSignatureShareForPublicKeyCalled: func(msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+		CreateSignatureShareForPublicKeyCalled: func(_ context.Context, msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
 			return []byte("SIG"), nil
 		},
 	}
@@ -399,8 +408,9 @@ func TestSubroundSignature_DoSignatureJobWithMultikey(t *testing.T) {
 		bls.SrBlock,
 		bls.SrSignature,
 		bls.SrEndRound,
-		int64(70*roundTimeDuration/100),
-		int64(85*roundTimeDuration/100),
+		roundTimeDuration,
+		0.7,
+		0.85,
 		"(SIGNATURE)",
 		consensusState,
 		ch,
@@ -432,7 +442,7 @@ func TestSubroundSignature_DoSignatureJobWithMultikey(t *testing.T) {
 
 	err := errors.New("create signature share error")
 	signingHandler := &consensusMocks.SigningHandlerStub{
-		CreateSignatureShareForPublicKeyCalled: func(msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+		CreateSignatureShareForPublicKeyCalled: func(_ context.Context, msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
 			return nil, err
 		},
 	}
@@ -442,7 +452,7 @@ func TestSubroundSignature_DoSignatureJobWithMultikey(t *testing.T) {
 	assert.False(t, r)
 
 	signingHandler = &consensusMocks.SigningHandlerStub{
-		CreateSignatureShareForPublicKeyCalled: func(msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+		CreateSignatureShareForPublicKeyCalled: func(_ context.Context, msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
 			return []byte("SIG"), nil
 		},
 	}

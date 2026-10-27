@@ -8,10 +8,12 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/p2p"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 // WithBootstrapComponents sets up the Node bootstrap components
@@ -300,6 +302,18 @@ func WithNodeStopChannel(channel chan endProcess.ArgEndProcess) Option {
 func WithEnableSignTxWithHashEpoch(enableSignTxWithHashEpoch uint32) Option {
 	return func(n *Node) error {
 		n.enableSignTxWithHashEpoch = enableSignTxWithHashEpoch
+		return nil
+	}
+}
+
+// WithMaxTxNonceDeltaAllowed sets the maximum accepted difference between account and transaction nonces.
+func WithMaxTxNonceDeltaAllowed(maxTxNonceDeltaAllowed int) Option {
+	return func(n *Node) error {
+		if maxTxNonceDeltaAllowed <= 0 {
+			return process.ErrInvalidMaxNonceDifference
+		}
+
+		n.maxTxNonceDeltaAllowed = maxTxNonceDeltaAllowed
 		return nil
 	}
 }

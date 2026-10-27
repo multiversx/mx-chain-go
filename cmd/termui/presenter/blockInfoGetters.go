@@ -56,3 +56,43 @@ func (psh *PresenterStatusHandler) GetBlockSize() uint64 {
 func (psh *PresenterStatusHandler) GetHighestFinalBlock() uint64 {
 	return psh.getFromCacheAsUint64(common.MetricHighestFinalBlock)
 }
+
+// GetDurationProposedBlockReceivedOrSentFromRoundStart returns the metrics containing time taken to receive a proposed block body since the round started
+func (psh *PresenterStatusHandler) GetDurationProposedBlockReceivedOrSentFromRoundStart() uint64 {
+	return psh.getFromCacheAsUint64(common.MetricReceivedOrSentProposedBlock)
+}
+
+// GetDurationProofReceivedFromProposedBlockReceivedOrSent returns the metrics containing time taken to receive signatures for a block since the block was received
+func (psh *PresenterStatusHandler) GetDurationProofReceivedFromProposedBlockReceivedOrSent() uint64 {
+	return psh.getFromCacheAsUint64(common.MetricReceivedProof)
+}
+
+// GetAvgDurationProposedBlockReceivedOrSentFromRoundStart returns the average received proposed block body metric
+func (psh *PresenterStatusHandler) GetAvgDurationProposedBlockReceivedOrSentFromRoundStart() uint64 {
+	return psh.getFromCacheAsUint64(common.MetricAvgReceivedOrSentProposedBlock)
+}
+
+// GetAvgDurationProofReceivedFromProposedBlockReceivedOrSent returns the average received signatures metric from the time of block body received
+func (psh *PresenterStatusHandler) GetAvgDurationProofReceivedFromProposedBlockReceivedOrSent() uint64 {
+	return psh.getFromCacheAsUint64(common.MetricAvgReceivedProof)
+}
+
+// GetNumTrackedBlocks returns how many blocks are currently tracked by txPool
+func (psh *PresenterStatusHandler) GetNumTrackedBlocks() uint64 {
+	return psh.getFromCacheAsUint64(common.MetricNumTrackedBlocks)
+}
+
+// GetNumTrackedAccounts returns how many accounts are currently tracked by txPool
+func (psh *PresenterStatusHandler) GetNumTrackedAccounts() uint64 {
+	return psh.getFromCacheAsUint64(common.MetricNumTrackedAccounts)
+}
+
+// GetDeltaHeaderNonceLastExecutionResultNonce returns the difference between the current header nonce and the last execution result nonce. Should be 1 in normal conditions.
+func (psh *PresenterStatusHandler) GetDeltaHeaderNonceLastExecutionResultNonce() uint64 {
+	return psh.getFromCacheAsUint64(common.MetricDeltaHeaderNonceLastExecutionResultNonce)
+}
+
+// GetRejectedExecutionResults returns how many execution results were rejected by the Inclusion Estimator. Should be zero in normal conditions.
+func (psh *PresenterStatusHandler) GetRejectedExecutionResults() uint64 {
+	return psh.getFromCacheAsUint64(common.MetricNumInclusionEstimationRejected)
+}

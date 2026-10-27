@@ -2,16 +2,18 @@ package resolvers
 
 import (
 	"fmt"
+	"runtime/debug"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/data/batch"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process/interceptors/processor"
 	"github.com/multiversx/mx-chain-go/storage"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 // maxBuffToSendEquivalentProofs represents max buffer size to send in bytes
@@ -90,8 +92,15 @@ func checkArgEquivalentProofsResolver(args ArgEquivalentProofsResolver) error {
 
 // ProcessReceivedMessage represents the callback func from the p2p.Messenger that is called each time a new message is received
 // (for the topic this validator was registered to, usually a request topic)
-func (res *equivalentProofsResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
-	err := res.canProcessMessage(message, fromConnectedPeer)
+func (res *equivalentProofsResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) (msg []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			logTrieNodes.Error("panic recovered", "peer", fromConnectedPeer, "panic", r, "stack", string(debug.Stack()))
+			err = fmt.Errorf("panic in equivalentProofsResolver.ProcessReceivedMessage: %v", r)
+		}
+	}()
+
+	err = res.canProcessMessage(message, fromConnectedPeer)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +117,7 @@ func (res *equivalentProofsResolver) ProcessReceivedMessage(message p2p.MessageP
 	case dataRetriever.HashType:
 		return nil, res.resolveHashRequest(rd.Value, rd.Epoch, message.Peer(), source)
 	case dataRetriever.HashArrayType:
-		return nil, res.resolveMultipleHashesRequest(rd.Value, rd.Epoch, message.Peer(), source)
+		return nil, res.resolveMultipleHashesRequest(rd.Value, rd.Epoch, message.Peer(), source, fromConnectedPeer, message.SeqNo())
 	case dataRetriever.NonceType:
 		return nil, res.resolveNonceRequest(rd.Value, rd.Epoch, message.Peer(), source)
 	default:
@@ -137,13 +146,18 @@ func (res *equivalentProofsResolver) resolveHashRequest(hashShardKey []byte, epo
 }
 
 // resolveMultipleHashesRequest sends the response for multiple hashes request
-func (res *equivalentProofsResolver) resolveMultipleHashesRequest(hashShardKeysBuff []byte, epoch uint32, pid core.PeerID, source p2p.MessageHandler) error {
-	b := batch.Batch{}
-	err := res.marshalizer.Unmarshal(&b, hashShardKeysBuff)
+func (res *equivalentProofsResolver) resolveMultipleHashesRequest(
+	hashShardKeysBuff []byte,
+	epoch uint32,
+	pid core.PeerID,
+	source p2p.MessageHandler,
+	fromConnectedPeer core.PeerID,
+	sequence []byte,
+) error {
+	hashShardKeys, err := res.parseRequestedHashes(hashShardKeysBuff, fromConnectedPeer, sequence)
 	if err != nil {
 		return err
 	}
-	hashShardKeys := b.Data
 
 	equivalentProofsForHashes, err := res.fetchEquivalentProofsSlicesForHeaders(hashShardKeys, epoch)
 	if err != nil {
@@ -153,14 +167,22 @@ func (res *equivalentProofsResolver) resolveMultipleHashesRequest(hashShardKeysB
 	return res.sendEquivalentProofsForHashes(equivalentProofsForHashes, pid, source)
 }
 
-// resolveNonceRequest sends the response for a nonce request
+// resolveNonceRequest sends the response for a nonce request; all proofs held at the nonce are
+// sent, each as a separate message (the interceptor expects one proof per message)
 func (res *equivalentProofsResolver) resolveNonceRequest(nonceShardKey []byte, epoch uint32, pid core.PeerID, source p2p.MessageHandler) error {
-	data, err := res.fetchEquivalentProofFromNonceAsByteSlice(nonceShardKey, epoch)
+	proofsBuffs, err := res.fetchEquivalentProofsFromNonceAsByteSlices(nonceShardKey, epoch)
 	if err != nil {
-		return fmt.Errorf("resolveNonceRequest.fetchEquivalentProofFromNonceAsByteSlice error %w", err)
+		return fmt.Errorf("resolveNonceRequest.fetchEquivalentProofsFromNonceAsByteSlices error %w", err)
 	}
 
-	return res.Send(data, pid, source)
+	for _, buff := range proofsBuffs {
+		err = res.Send(buff, pid, source)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // sendEquivalentProofsForHashes sends multiple equivalent proofs for specific hashes
@@ -182,7 +204,7 @@ func (res *equivalentProofsResolver) sendEquivalentProofsForHashes(dataBuff [][]
 
 // fetchEquivalentProofsSlicesForHeaders fetches all equivalent proofs for the given header hashes
 func (res *equivalentProofsResolver) fetchEquivalentProofsSlicesForHeaders(hashShardKeys [][]byte, epoch uint32) ([][]byte, error) {
-	equivalentProofs := make([][]byte, 0)
+	reply := newHashArrayReply()
 	for _, hashShardKey := range hashShardKeys {
 		headerHash, shardID, err := common.GetHashAndShardFromKey(hashShardKey)
 		if err != nil {
@@ -190,16 +212,16 @@ func (res *equivalentProofsResolver) fetchEquivalentProofsSlicesForHeaders(hashS
 		}
 
 		equivalentProofForHash, _ := res.fetchEquivalentProofAsByteSlice(headerHash, shardID, epoch)
-		if equivalentProofForHash != nil {
-			equivalentProofs = append(equivalentProofs, equivalentProofForHash)
+		if equivalentProofForHash != nil && !reply.add(equivalentProofForHash) {
+			break
 		}
 	}
 
-	if len(equivalentProofs) == 0 {
+	if len(reply.data) == 0 {
 		return nil, dataRetriever.ErrEquivalentProofsNotFound
 	}
 
-	return equivalentProofs, nil
+	return reply.data, nil
 }
 
 // fetchEquivalentProofAsByteSlice returns the value from equivalent proofs pool or storage if exists
@@ -212,19 +234,35 @@ func (res *equivalentProofsResolver) fetchEquivalentProofAsByteSlice(headerHash 
 	return res.marshalizer.Marshal(proof)
 }
 
-// fetchEquivalentProofFromNonceAsByteSlice returns the value from equivalent proofs pool or storage if exists
-func (res *equivalentProofsResolver) fetchEquivalentProofFromNonceAsByteSlice(nonceShardKey []byte, epoch uint32) ([]byte, error) {
+// fetchEquivalentProofsFromNonceAsByteSlices returns all proofs held at the nonce from the
+// equivalent proofs pool, or the single stored one from storage if the pool has none
+func (res *equivalentProofsResolver) fetchEquivalentProofsFromNonceAsByteSlices(nonceShardKey []byte, epoch uint32) ([][]byte, error) {
 	headerNonce, shardID, err := common.GetNonceAndShardFromKey(nonceShardKey)
 	if err != nil {
-		return nil, fmt.Errorf("fetchEquivalentProofFromNonceAsByteSlice.getNonceAndShard error %w", err)
+		return nil, fmt.Errorf("fetchEquivalentProofsFromNonceAsByteSlices.getNonceAndShard error %w", err)
 	}
 
-	proof, err := res.equivalentProofsPool.GetProofByNonce(headerNonce, shardID)
+	proofs, err := res.equivalentProofsPool.GetProofsByNonce(headerNonce, shardID)
 	if err != nil {
-		return res.getProofFromStorageByNonce(headerNonce, shardID, epoch)
+		buff, errStorage := res.getProofFromStorageByNonce(headerNonce, shardID, epoch)
+		if errStorage != nil {
+			return nil, errStorage
+		}
+
+		return [][]byte{buff}, nil
 	}
 
-	return res.marshalizer.Marshal(proof)
+	proofsBuffs := make([][]byte, 0, len(proofs))
+	for _, proof := range proofs {
+		buff, errMarshal := res.marshalizer.Marshal(proof)
+		if errMarshal != nil {
+			return nil, errMarshal
+		}
+
+		proofsBuffs = append(proofsBuffs, buff)
+	}
+
+	return proofsBuffs, nil
 }
 
 // getProofFromStorageByNonce returns the value from equivalent storage if exists

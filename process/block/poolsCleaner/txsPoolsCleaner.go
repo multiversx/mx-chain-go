@@ -14,7 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-go/storage/txcache"
+	"github.com/multiversx/mx-chain-go/txcache"
 )
 
 var _ closing.Closer = (*txsPoolsCleaner)(nil)
@@ -270,8 +270,9 @@ func (tpc *txsPoolsCleaner) cleanTxsPoolsIfNeeded() int {
 			continue
 		}
 
+		round := tpc.roundHandler.Index()
 		roundDif := tpc.roundHandler.Index() - currTxInfo.round
-		if roundDif <= tpc.maxRoundsToKeepUnprocessedData {
+		if roundDif <= int64(tpc.processConfigsHandler.GetMaxRoundsToKeepUnprocessedTransactions(uint64(round))) {
 			log.Trace("cleaning transaction not yet allowed",
 				"hash", []byte(hash),
 				"round", currTxInfo.round,

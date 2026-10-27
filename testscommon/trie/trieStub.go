@@ -13,6 +13,7 @@ var errNotImplemented = errors.New("not implemented")
 
 // TrieStub -
 type TrieStub struct {
+	GetWithVersionCalled            func(key []byte) ([]byte, uint32, uint32, error)
 	GetCalled                       func(key []byte) ([]byte, uint32, error)
 	UpdateCalled                    func(key, value []byte)
 	UpdateWithVersionCalled         func(key, value []byte, version core.TrieNodeVersion)
@@ -30,6 +31,14 @@ type TrieStub struct {
 	CloseCalled                     func() error
 	CollectLeavesForMigrationCalled func(args vmcommon.ArgsMigrateDataTrieLeaves) error
 	IsMigratedToLatestVersionCalled func() (bool, error)
+}
+
+func (ts *TrieStub) GetWithVersion(key []byte) ([]byte, uint32, uint32, error) {
+	if ts.GetWithVersionCalled != nil {
+		return ts.GetWithVersionCalled(key)
+	}
+	value, depth, err := ts.Get(key)
+	return value, depth, uint32(core.NotSpecified), err
 }
 
 // GetStorageManager -

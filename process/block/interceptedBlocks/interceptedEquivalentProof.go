@@ -11,7 +11,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	logger "github.com/multiversx/mx-chain-logger-go"
-	"github.com/multiversx/mx-chain-vm-v1_2-go/ipc/marshaling"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -31,8 +30,11 @@ type ArgInterceptedEquivalentProof struct {
 	ShardCoordinator  sharding.Coordinator
 	HeaderSigVerifier consensus.HeaderSigVerifier
 	Proofs            dataRetriever.ProofsPool
+	HeadersPool       dataRetriever.HeadersPool
 	ProofSizeChecker  common.FieldsSizeChecker
 	KeyRWMutexHandler sync.KeyRWMutexHandler
+	ValidityAttester  process.ValidityAttester
+	RoundExclusions   common.RoundExclusionHandler
 }
 
 type interceptedEquivalentProof struct {
@@ -40,11 +42,14 @@ type interceptedEquivalentProof struct {
 	isForCurrentShard bool
 	headerSigVerifier consensus.HeaderSigVerifier
 	proofsPool        dataRetriever.ProofsPool
-	marshaller        marshaling.Marshalizer
+	headersPool       dataRetriever.HeadersPool
+	marshaller        marshal.Marshalizer
 	hasher            hashing.Hasher
 	hash              []byte
 	proofSizeChecker  common.FieldsSizeChecker
 	km                sync.KeyRWMutexHandler
+	validityAttester  process.ValidityAttester
+	roundExclusions   common.RoundExclusionHandler
 }
 
 // NewInterceptedEquivalentProof returns a new instance of interceptedEquivalentProof
@@ -66,11 +71,14 @@ func NewInterceptedEquivalentProof(args ArgInterceptedEquivalentProof) (*interce
 		isForCurrentShard: extractIsForCurrentShard(args.ShardCoordinator, equivalentProof),
 		headerSigVerifier: args.HeaderSigVerifier,
 		proofsPool:        args.Proofs,
+		headersPool:       args.HeadersPool,
 		marshaller:        args.Marshaller,
 		hasher:            args.Hasher,
 		proofSizeChecker:  args.ProofSizeChecker,
 		hash:              hash,
 		km:                args.KeyRWMutexHandler,
+		validityAttester:  args.ValidityAttester,
+		roundExclusions:   args.RoundExclusions,
 	}, nil
 }
 
@@ -90,6 +98,9 @@ func checkArgInterceptedEquivalentProof(args ArgInterceptedEquivalentProof) erro
 	if check.IfNil(args.Proofs) {
 		return process.ErrNilProofsPool
 	}
+	if check.IfNil(args.HeadersPool) {
+		return process.ErrNilHeadersDataPool
+	}
 	if check.IfNil(args.Hasher) {
 		return process.ErrNilHasher
 	}
@@ -98,6 +109,12 @@ func checkArgInterceptedEquivalentProof(args ArgInterceptedEquivalentProof) erro
 	}
 	if check.IfNil(args.KeyRWMutexHandler) {
 		return process.ErrNilKeyRWMutexHandler
+	}
+	if check.IfNil(args.ValidityAttester) {
+		return process.ErrNilValidityAttester
+	}
+	if check.IfNil(args.RoundExclusions) {
+		return common.ErrNilRoundExclusionHandler
 	}
 
 	return nil
@@ -139,8 +156,24 @@ func extractIsForCurrentShard(shardCoordinator sharding.Coordinator, equivalentP
 
 // CheckValidity checks if the received proof is valid
 func (iep *interceptedEquivalentProof) CheckValidity() error {
-	log.Debug("Checking intercepted equivalent proof validity", "proof header hash", iep.proof.HeaderHash)
+	log.Trace("Checking intercepted equivalent proof validity", "proof header hash", iep.proof.HeaderHash)
+	if common.IsHeaderExcluded(iep.roundExclusions, iep.proof.GetHeaderRound(), iep.proof.GetHeaderShardId(), iep.proof.GetHeaderHash()) {
+		return common.ErrRoundExcluded
+	}
+
 	err := iep.integrity()
+	if err != nil {
+		return err
+	}
+
+	if !iep.validityAttester.CheckAgainstWhitelist(iep) {
+		err = iep.validityAttester.CheckProofAgainstFinal(iep.proof)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = iep.validityAttester.CheckProofAgainstRoundHandler(iep.proof)
 	if err != nil {
 		return err
 	}
@@ -148,6 +181,17 @@ func (iep *interceptedEquivalentProof) CheckValidity() error {
 	headerHash := string(iep.proof.GetHeaderHash())
 	iep.km.Lock(headerHash)
 	defer iep.km.Unlock(headerHash)
+
+	header, err := iep.headersPool.GetHeaderByHash(iep.proof.GetHeaderHash())
+	if err != nil {
+		log.Trace("Intercepted equivalent proof with missing header, dropping it", "proof header hash", iep.proof.GetHeaderHash())
+		return err
+	}
+
+	err = common.VerifyProofAgainstHeader(iep.proof, header)
+	if err != nil {
+		return fmt.Errorf("failed to verify proof agains header, %w", err)
+	}
 
 	ok := iep.proofsPool.HasProof(iep.proof.GetHeaderShardId(), iep.proof.GetHeaderHash())
 	if ok {
@@ -167,6 +211,11 @@ func (iep *interceptedEquivalentProof) CheckValidity() error {
 	}
 
 	return nil
+}
+
+// ShouldAllowDuplicates returns if this type of intercepted data should allow duplicates
+func (iep *interceptedEquivalentProof) ShouldAllowDuplicates() bool {
+	return true // duplicates are treated separately
 }
 
 func (iep *interceptedEquivalentProof) integrity() error {

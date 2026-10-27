@@ -3,6 +3,7 @@ package smartContract
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/big"
 	"sort"
@@ -65,7 +66,7 @@ type scProcessor struct {
 	builtInFunctions   vmcommon.BuiltInFunctionContainer
 	wasmVMChangeLocker common.Locker
 
-	enableRoundsHandler process.EnableRoundsHandler
+	enableRoundsHandler common.EnableRoundsHandler
 	enableEpochsHandler common.EnableEpochsHandler
 	badTxForwarder      process.IntermediateTransactionHandler
 	scrForwarder        process.IntermediateTransactionHandler
@@ -2330,7 +2331,7 @@ func (sc *scProcessor) createSmartContractResults(
 		isCrossShard := sc.shardCoordinator.ComputeId(outAcc.Address) != sc.shardCoordinator.SelfId()
 
 		if isCrossShard && result.CallType == vmData.AsynchronousCall &&
-			sc.enableRoundsHandler.IsDisableAsyncCallV1Enabled() {
+			sc.enableRoundsHandler.IsFlagEnabled(common.DisableAsyncCallV1Flag) {
 			return false, nil, process.ErrAsyncCallsDisabled
 		}
 
@@ -2785,6 +2786,19 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 
 	dstAcc, err := sc.getAccountFromAddress(scr.RcvAddr)
 	if err != nil {
+		if errors.Is(err, state.ErrAccountAddressIsReserved) {
+			selfShardID := sc.shardCoordinator.SelfId()
+			isCrossShardDestination := selfShardID == sc.shardCoordinator.ComputeId(scr.RcvAddr) &&
+				selfShardID != sc.shardCoordinator.ComputeId(scr.SndAddr)
+			if isCrossShardDestination {
+				snapshot := sc.accounts.JournalLen()
+				gasLocked := sc.getGasLockedFromSCR(scr)
+				defer sc.accounts.SetTxHashForLatestStateAccesses(txHash)
+
+				return returnCode, sc.ProcessIfError(nil, txHash, scr, err.Error(), scr.ReturnMessage, snapshot, gasLocked)
+			}
+		}
+
 		return returnCode, err
 	}
 	sndAcc, err := sc.getAccountFromAddress(scr.SndAddr)
@@ -2805,6 +2819,12 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 		txHash,
 		sc.pubkeyConv,
 	)
+
+	// TODO refactor to set the tx hash for the following state accesses before the processing occurs
+	defer func() {
+		sc.accounts.SetTxHashForLatestStateAccesses(txHash)
+		log.Trace("SetTxHashForLatestStateAccesses", "txHash", txHash)
+	}()
 
 	gasLocked := sc.getGasLockedFromSCR(scr)
 

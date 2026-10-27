@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/state"
@@ -136,7 +137,7 @@ func exportData(identifier string, lines []string, parentDirForFiles string) err
 
 	buffer := bytes.Buffer{}
 	for _, line := range lines {
-		buffer.Write([]byte(fmt.Sprintf("%s\n", line)))
+		_, _ = fmt.Fprintf(&buffer, "%s\n", line)
 	}
 
 	_, _ = f.Write(buffer.Bytes())

@@ -40,6 +40,11 @@ func NewVMOutputAccountsProcessor(
 
 // Run runs the configured processing steps on vm output
 func (oap *VMOutputAccountsProcessor) Run() (bool, []data.TransactionHandler, error) {
+	err := process.VMOutputValidationChecker(oap.vmOutput)
+	if err != nil {
+		return false, nil, err
+	}
+
 	outputAccounts := process.SortVMOutputInsideData(oap.vmOutput)
 	indexedSCResults := make([]internalIndexedScr, 0, len(outputAccounts))
 
@@ -158,7 +163,7 @@ func (oap *VMOutputAccountsProcessor) processStorageUpdatesStep(
 	return nil
 }
 
-// updateSmartContractCode upgrades code for "direct" deployments & upgrades and for "indirect" deployments & upgrades
+// updateSmartContractCodeStep upgrades code for "direct" deployments & upgrades and for "indirect" deployments & upgrades
 // It receives:
 //
 //	(1) the account as found in the State

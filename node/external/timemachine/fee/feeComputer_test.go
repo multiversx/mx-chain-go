@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/economics"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/stretchr/testify/assert"
@@ -21,9 +22,10 @@ import (
 func createEconomicsData() process.EconomicsDataHandler {
 	economicsConfig := testscommon.GetEconomicsConfig()
 	economicsData, _ := economics.NewEconomicsData(economics.ArgsNewEconomicsData{
-		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
-		Economics:        &economicsConfig,
-		EpochNotifier:    &epochNotifier.EpochNotifierStub{},
+		TxVersionChecker:   &testscommon.TxVersionCheckerStub{},
+		Economics:          &economicsConfig,
+		ChainParamsHandler: &chainParameters.ChainParametersHolderMock{},
+		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 				if flag == common.PenalizedTooMuchGasFlag {

@@ -31,6 +31,7 @@ type systemSCFactory struct {
 	addressPubKeyConverter core.PubkeyConverter
 	shardCoordinator       sharding.Coordinator
 	enableEpochsHandler    common.EnableEpochsHandler
+	enableRoundsHandler    common.EnableRoundsHandler
 	nodesCoordinator       vm.NodesCoordinator
 }
 
@@ -47,6 +48,7 @@ type ArgsNewSystemSCFactory struct {
 	AddressPubKeyConverter core.PubkeyConverter
 	ShardCoordinator       sharding.Coordinator
 	EnableEpochsHandler    common.EnableEpochsHandler
+	EnableRoundsHandler    common.EnableRoundsHandler
 	NodesCoordinator       vm.NodesCoordinator
 }
 
@@ -97,6 +99,7 @@ func NewSystemSCFactory(args ArgsNewSystemSCFactory) (*systemSCFactory, error) {
 		addressPubKeyConverter: args.AddressPubKeyConverter,
 		shardCoordinator:       args.ShardCoordinator,
 		enableEpochsHandler:    args.EnableEpochsHandler,
+		enableRoundsHandler:    args.EnableRoundsHandler,
 		nodesCoordinator:       args.NodesCoordinator,
 	}
 
@@ -136,6 +139,11 @@ func (scf *systemSCFactory) createGasConfig(gasMap map[string]map[string]uint64)
 
 	builtInFunctionsCost := &vm.BuiltInCost{}
 	err = mapstructure.Decode(gasMap[common.BuiltInCost], builtInFunctionsCost)
+	if err != nil {
+		return err
+	}
+
+	err = check.ForZeroUintFields(*builtInFunctionsCost)
 	if err != nil {
 		return err
 	}
@@ -182,6 +190,7 @@ func (scf *systemSCFactory) createStakingContract() (vm.SystemSmartContract, err
 		GasCost:              scf.gasCost,
 		Marshalizer:          scf.marshalizer,
 		EnableEpochsHandler:  scf.enableEpochsHandler,
+		EnableRoundsHandler:  scf.enableRoundsHandler,
 	}
 	staking, err := systemSmartContracts.NewStakingSmartContract(argsStaking)
 	return staking, err
@@ -232,17 +241,18 @@ func (scf *systemSCFactory) createGovernanceContract() (vm.SystemSmartContract, 
 	}
 
 	argsGovernance := systemSmartContracts.ArgsNewGovernanceContract{
-		Eei:                    scf.systemEI,
-		GasCost:                scf.gasCost,
-		GovernanceConfig:       scf.systemSCConfig.GovernanceSystemSCConfig,
-		Marshalizer:            scf.marshalizer,
-		Hasher:                 scf.hasher,
-		GovernanceSCAddress:    vm.GovernanceSCAddress,
-		DelegationMgrSCAddress: vm.DelegationManagerSCAddress,
-		ValidatorSCAddress:     vm.ValidatorSCAddress,
-		EnableEpochsHandler:    scf.enableEpochsHandler,
-		UnBondPeriodInEpochs:   scf.systemSCConfig.StakingSystemSCConfig.UnBondPeriodInEpochs,
-		OwnerAddress:           ownerAddress,
+		Eei:                          scf.systemEI,
+		GasCost:                      scf.gasCost,
+		GovernanceConfig:             scf.systemSCConfig.GovernanceSystemSCConfig,
+		Marshalizer:                  scf.marshalizer,
+		Hasher:                       scf.hasher,
+		GovernanceSCAddress:          vm.GovernanceSCAddress,
+		DelegationMgrSCAddress:       vm.DelegationManagerSCAddress,
+		ValidatorSCAddress:           vm.ValidatorSCAddress,
+		EnableEpochsHandler:          scf.enableEpochsHandler,
+		UnBondPeriodInEpochs:         scf.systemSCConfig.StakingSystemSCConfig.UnBondPeriodInEpochs,
+		MaxVotingDelayPeriodInEpochs: scf.systemSCConfig.GovernanceSystemSCConfig.MaxVotingDelayPeriodInEpochs,
+		OwnerAddress:                 ownerAddress,
 	}
 	governance, err := systemSmartContracts.NewGovernanceContract(argsGovernance)
 	return governance, err

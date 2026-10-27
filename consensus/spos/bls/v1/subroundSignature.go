@@ -8,6 +8,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	commonConsensus "github.com/multiversx/mx-chain-go/common/consensus"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -72,7 +73,7 @@ func checkNewSubroundSignatureParams(
 }
 
 // doSignatureJob method does the job of the subround Signature
-func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
+func (sr *subroundSignature) doSignatureJob(ctx context.Context) bool {
 	if !sr.CanDoSubroundJob(sr.Current()) {
 		return false
 	}
@@ -81,8 +82,8 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 		return false
 	}
 
-	isSelfLeader := sr.IsSelfLeaderInCurrentRound() && sr.ShouldConsiderSelfKeyInConsensus()
-	isSelfInConsensusGroup := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) && sr.ShouldConsiderSelfKeyInConsensus()
+	isSelfLeader := sr.IsSelfLeaderInCurrentRound() && commonConsensus.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler())
+	isSelfInConsensusGroup := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) && commonConsensus.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler())
 
 	if isSelfLeader || isSelfInConsensusGroup {
 		selfIndex, err := sr.SelfConsensusGroupIndex()
@@ -92,6 +93,7 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 		}
 
 		signatureShare, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
+			ctx,
 			sr.GetData(),
 			uint16(selfIndex),
 			sr.GetHeader().GetEpoch(),
@@ -115,7 +117,7 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 		}
 	}
 
-	return sr.doSignatureJobForManagedKeys()
+	return sr.doSignatureJobForManagedKeys(ctx)
 }
 
 func (sr *subroundSignature) createAndSendSignatureMessage(signatureShare []byte, pkBytes []byte) bool {
@@ -350,7 +352,7 @@ func (sr *subroundSignature) remainingTime() time.Duration {
 	return remainigTime
 }
 
-func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
+func (sr *subroundSignature) doSignatureJobForManagedKeys(ctx context.Context) bool {
 	isMultiKeyLeader := sr.IsMultiKeyLeaderInCurrentRound()
 
 	numMultiKeysSignaturesSent := 0
@@ -370,6 +372,7 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 		}
 
 		signatureShare, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
+			ctx,
 			sr.GetData(),
 			uint16(selfIndex),
 			sr.GetHeader().GetEpoch(),

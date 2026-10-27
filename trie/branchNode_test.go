@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
+	"github.com/multiversx/mx-chain-go/trie/mock"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 	"github.com/multiversx/mx-chain-go/trie/trieBatchManager"
 	"github.com/stretchr/testify/assert"
@@ -286,7 +287,7 @@ func TestBranchNode_tryGet(t *testing.T) {
 	childPos := byte(2)
 	key := append([]byte{childPos}, []byte("dog")...)
 
-	val, maxDepth, err := bn.tryGet(newKeyData(key), 0, getTrieContextWithCustomStorage(nil))
+	val, maxDepth, _, err := bn.tryGetWithVersion(newKeyData(key), 0, getTrieContextWithCustomStorage(nil))
 	assert.Equal(t, []byte("dog"), val)
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(1), maxDepth)
@@ -298,7 +299,7 @@ func TestBranchNode_tryGetEmptyKey(t *testing.T) {
 	bn, _ := getBnAndCollapsedBn()
 	var key []byte
 
-	val, maxDepth, err := bn.tryGet(newKeyData(key), 0, getTrieContextWithCustomStorage(nil))
+	val, maxDepth, _, err := bn.tryGetWithVersion(newKeyData(key), 0, getTrieContextWithCustomStorage(nil))
 	assert.Nil(t, err)
 	assert.Nil(t, val)
 	assert.Equal(t, uint32(0), maxDepth)
@@ -310,7 +311,7 @@ func TestBranchNode_tryGetChildPosOutOfRange(t *testing.T) {
 	bn, _ := getBnAndCollapsedBn()
 	key := []byte("dog")
 
-	val, maxDepth, err := bn.tryGet(newKeyData(key), 0, getTrieContextWithCustomStorage(nil))
+	val, maxDepth, _, err := bn.tryGetWithVersion(newKeyData(key), 0, getTrieContextWithCustomStorage(nil))
 	assert.Equal(t, ErrChildPosOutOfRange, err)
 	assert.Nil(t, val)
 	assert.Equal(t, uint32(0), maxDepth)
@@ -322,7 +323,7 @@ func TestBranchNode_tryGetNilChild(t *testing.T) {
 	bn, _ := getBnAndCollapsedBn()
 	nilChildKey := []byte{3}
 
-	val, maxDepth, err := bn.tryGet(newKeyData(nilChildKey), 0, getTrieContextWithCustomStorage(nil))
+	val, maxDepth, _, err := bn.tryGetWithVersion(newKeyData(nilChildKey), 0, getTrieContextWithCustomStorage(nil))
 	assert.Nil(t, err)
 	assert.Nil(t, val)
 	assert.Equal(t, uint32(0), maxDepth)
@@ -338,7 +339,7 @@ func TestBranchNode_tryGetCollapsedNode(t *testing.T) {
 	childPos := byte(2)
 	key := append([]byte{childPos}, []byte("dog")...)
 
-	val, maxDepth, err := collapsedBn.tryGet(newKeyData(key), 0, trieCtx)
+	val, maxDepth, _, err := collapsedBn.tryGetWithVersion(newKeyData(key), 0, trieCtx)
 	assert.Equal(t, []byte("dog"), val)
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(1), maxDepth)
@@ -450,7 +451,7 @@ func TestBranchNode_insertCollapsedNode(t *testing.T) {
 	assert.NotNil(t, newBn)
 	assert.Nil(t, goRoutinesManager.GetError())
 
-	val, _, _ := newBn.tryGet(newKeyData(key), 0, trieCtx)
+	val, _, _, _ := newBn.tryGetWithVersion(newKeyData(key), 0, trieCtx)
 	assert.Equal(t, []byte("dogs"), val)
 }
 
@@ -657,7 +658,7 @@ func TestBranchNode_deleteCollapsedNode(t *testing.T) {
 	assert.True(t, dirty)
 	assert.Nil(t, goRoutinesManager.GetError())
 
-	val, _, err := newBn.tryGet(newKeyData(key), 0, trieCtx)
+	val, _, _, err := newBn.tryGetWithVersion(newKeyData(key), 0, trieCtx)
 	assert.Nil(t, val)
 	assert.Nil(t, err)
 }
@@ -1027,7 +1028,7 @@ func TestBranchNode_commitSnapshotContextDone(t *testing.T) {
 func TestBranchNode_commitSnapshotDbIsClosing(t *testing.T) {
 	t.Parallel()
 
-	db := testscommon.NewMemDbMock()
+	db := mock.NewSnapshotDbMock()
 	db.GetCalled = func(key []byte) ([]byte, error) {
 		return nil, core.ErrContextClosing
 	}
@@ -1047,7 +1048,7 @@ func TestBranchNode_commitSnapshotDbIsClosing(t *testing.T) {
 func TestBranchNode_commitSnapshotChildIsMissingErr(t *testing.T) {
 	t.Parallel()
 
-	db := testscommon.NewMemDbMock()
+	db := mock.NewSnapshotDbMock()
 	db.GetCalled = func(key []byte) ([]byte, error) {
 		return nil, core.NewGetNodeFromDBErrWithKey(key, ErrKeyNotFound, "test")
 	}

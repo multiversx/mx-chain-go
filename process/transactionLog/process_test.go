@@ -209,7 +209,7 @@ func TestTxLogProcessor_GetLogFromCache(t *testing.T) {
 
 	logData, found := txLogProcessor.GetLogFromCache([]byte("txhash"))
 	require.True(t, found)
-	require.Equal(t, "txhash", logData.TxHash)
+	require.Equal(t, "txhash", logData.GetTxHash())
 }
 
 func TestTxLogProcessor_GetLogFromCacheNotInCacheShouldReturnFromStorage(t *testing.T) {

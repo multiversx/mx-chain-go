@@ -1,6 +1,8 @@
 package groups
 
 import (
+	"context"
+	stderrors "errors"
 	"fmt"
 	"net/http"
 	"sync"
@@ -22,6 +24,8 @@ const (
 	getStatusPath          = "/status"
 	economicsPath          = "/economics"
 	enableEpochsPath       = "/enable-epochs"
+	enableEpochsV2Path     = "/enable-epochs-v2"
+	enableRoundsPath       = "/enable-rounds"
 	getESDTsPath           = "/esdts"
 	getFFTsPath            = "/esdt/fungible-tokens"
 	getSFTsPath            = "/esdt/semi-fungible-tokens"
@@ -41,7 +45,7 @@ type networkFacadeHandler interface {
 	GetDirectStakedList() ([]*api.DirectStakedValue, error)
 	GetDelegatorsList() ([]*api.Delegator, error)
 	StatusMetrics() external.StatusMetricsHandler
-	GetAllIssuedESDTs(tokenType string) ([]string, error)
+	GetAllIssuedESDTs(ctx context.Context, tokenType string) ([]string, error)
 	GetTokenSupply(token string) (*api.ESDTSupply, error)
 	GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string, error)
 	GetGenesisBalances() ([]*common.InitialAccountAPI, error)
@@ -98,6 +102,16 @@ func NewNetworkGroup(facade networkFacadeHandler) (*networkGroup, error) {
 			Path:    enableEpochsPath,
 			Method:  http.MethodGet,
 			Handler: ng.getEnableEpochs,
+		},
+		{
+			Path:    enableEpochsV2Path,
+			Method:  http.MethodGet,
+			Handler: ng.getEnableEpochsV2,
+		},
+		{
+			Path:    enableRoundsPath,
+			Method:  http.MethodGet,
+			Handler: ng.getEnableRounds,
 		},
 		{
 			Path:    getESDTsPath,
@@ -210,6 +224,34 @@ func (ng *networkGroup) getEnableEpochs(c *gin.Context) {
 	)
 }
 
+// getEnableEpochsV2 returns all enable epoch flags with their activation epochs
+func (ng *networkGroup) getEnableEpochsV2(c *gin.Context) {
+	enableEpochsMetrics := ng.getFacade().StatusMetrics().EnableEpochsMetricsV2()
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"enableEpochs": enableEpochsMetrics},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// getEnableRounds returns metrics related to the activation rounds of the network
+func (ng *networkGroup) getEnableRounds(c *gin.Context) {
+	enableRoundsMetrics := ng.getFacade().StatusMetrics().EnableRoundsMetrics()
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"enableRounds": enableRoundsMetrics},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
 // getNetworkStatus returns metrics related to the network status (shard specific)
 func (ng *networkGroup) getNetworkStatus(c *gin.Context) {
 	networkMetrics, err := ng.getFacade().StatusMetrics().NetworkMetrics()
@@ -278,8 +320,12 @@ func (ng *networkGroup) economicsMetrics(c *gin.Context) {
 
 func (ng *networkGroup) getHandlerFuncForEsdt(tokenType string) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		tokens, err := ng.getFacade().GetAllIssuedESDTs(tokenType)
+		tokens, err := ng.getFacade().GetAllIssuedESDTs(c.Request.Context(), tokenType)
 		if err != nil {
+			if stderrors.Is(err, common.ErrTrieOperationsBusy) {
+				shared.RespondWith(c, http.StatusTooManyRequests, nil, err.Error(), shared.ReturnCodeSystemBusy)
+				return
+			}
 			c.JSON(
 				http.StatusInternalServerError,
 				shared.GenericAPIResponse{

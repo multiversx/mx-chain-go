@@ -51,7 +51,7 @@ func (ps *triePruningStorer) lastEpochNeeded() uint32 {
 	lastEpochNeeded := uint32(0)
 	for i := 0; i < len(ps.activePersisters); i++ {
 		lastEpochNeeded = ps.activePersisters[i].epoch
-		val, err := ps.activePersisters[i].persister.Get([]byte(common.ActiveDBKey))
+		val, err := ps.activePersisters[i].getPersister().Get([]byte(common.ActiveDBKey))
 		if err != nil {
 			continue
 		}
@@ -91,8 +91,8 @@ func (ps *triePruningStorer) PutInEpochWithoutCache(key []byte, data []byte, epo
 	return nil
 }
 
-// GetFromOldEpochsWithoutAddingToCache searches the old epochs for the given key without adding to the cache
-func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte, maxEpochToSearchFrom uint32) ([]byte, core.OptionalUint32, error) {
+// GetWithoutAddingToCache searches for the given key without adding to the cache
+func (ps *triePruningStorer) GetWithoutAddingToCache(key []byte, maxEpochToSearchFrom uint32) ([]byte, core.OptionalUint32, error) {
 	v, ok := ps.cacher.Get(key)
 	if ok && !bytes.Equal([]byte(common.ActiveDBKey), key) {
 		ps.stateStatsHandler.IncrSnapshotCache()
@@ -103,16 +103,17 @@ func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte, ma
 	defer ps.lock.RUnlock()
 
 	numClosedDbs := 0
-	for idx := 1; idx < len(ps.activePersisters); idx++ {
-		if ps.activePersisters[idx].epoch >= maxEpochToSearchFrom {
+	for idx := 0; idx < len(ps.activePersisters); idx++ {
+		if ps.activePersisters[idx].epoch > maxEpochToSearchFrom {
 			continue
 		}
-		val, err := ps.activePersisters[idx].persister.Get(key)
+		val, err := ps.activePersisters[idx].getPersister().Get(key)
 		if err != nil {
 			if errors.Is(err, storage.ErrDBIsClosed) {
 				numClosedDbs++
 			}
 
+			ps.stateStatsHandler.IncrSnapshotPersister(ps.activePersisters[idx].epoch)
 			continue
 		}
 
@@ -126,7 +127,7 @@ func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte, ma
 		return val, epoch, nil
 	}
 
-	if numClosedDbs+1 == len(ps.activePersisters) && len(ps.activePersisters) > 1 {
+	if numClosedDbs == len(ps.activePersisters) {
 		return nil, core.OptionalUint32{}, storage.ErrDBIsClosed
 	}
 
@@ -142,7 +143,7 @@ func (ps *triePruningStorer) GetFromLastEpoch(key []byte) ([]byte, error) {
 		return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
 	}
 
-	return ps.activePersisters[lastEpochIndex].persister.Get(key)
+	return ps.activePersisters[lastEpochIndex].getPersister().Get(key)
 }
 
 // GetFromCurrentEpoch searches only the current epoch storer for the given key
@@ -154,7 +155,7 @@ func (ps *triePruningStorer) GetFromCurrentEpoch(key []byte) ([]byte, error) {
 		return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
 	}
 
-	persister := ps.activePersisters[currentEpochIndex].persister
+	persister := ps.activePersisters[currentEpochIndex].getPersister()
 	ps.lock.RUnlock()
 
 	return persister.Get(key)
@@ -180,7 +181,7 @@ func (ps *triePruningStorer) RemoveFromAllActiveEpochs(key []byte) error {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 	for _, pd := range ps.activePersisters {
-		err = pd.persister.Remove(key)
+		err = pd.getPersister().Remove(key)
 		if err != nil {
 			return err
 		}

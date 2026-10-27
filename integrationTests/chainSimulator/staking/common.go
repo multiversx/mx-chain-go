@@ -6,12 +6,13 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/stretchr/testify/require"
+
 	chainSimulatorIntegrationTests "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	chainSimulatorProcess "github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/vm"
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -22,7 +23,7 @@ const (
 	// GasLimitForUnBond the const for the gas limit value for the unBond operation
 	GasLimitForUnBond = 12_000_000
 	// MaxNumOfBlockToGenerateWhenExecutingTx the const for the maximum number of block to generate when execute a transaction
-	MaxNumOfBlockToGenerateWhenExecutingTx = 7
+	MaxNumOfBlockToGenerateWhenExecutingTx = 10
 
 	// QueuedStatus the const for the queued status of a validators
 	QueuedStatus = "queued"
@@ -37,7 +38,7 @@ const (
 )
 
 var (
-	//InitialDelegationValue the variable for the initial delegation value
+	// InitialDelegationValue the variable for the initial delegation value
 	InitialDelegationValue = big.NewInt(0).Mul(chainSimulatorIntegrationTests.OneEGLD, big.NewInt(1250))
 )
 

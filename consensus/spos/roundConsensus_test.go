@@ -2,6 +2,7 @@ package spos_test
 
 import (
 	"bytes"
+	"sync"
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -9,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func initRoundConsensus() *spos.RoundConsensus {
@@ -37,15 +39,39 @@ func initRoundConsensusWithKeysHandler(keysHandler consensus.KeysHandler) *spos.
 	return spos.NewRoundConsensusWrapper(rcns)
 }
 
-func TestRoundConsensus_NewRoundConsensusShouldWork(t *testing.T) {
+func TestRoundConsensus_NewRoundConsensus(t *testing.T) {
 	t.Parallel()
 
-	rcns := *initRoundConsensus()
+	t.Run("nil keys handler, should fail", func(t *testing.T) {
+		t.Parallel()
 
-	assert.NotNil(t, rcns)
-	assert.Equal(t, 3, len(rcns.ConsensusGroup()))
-	assert.Equal(t, "3", rcns.ConsensusGroup()[2])
-	assert.Equal(t, "2", rcns.SelfPubKey())
+		pubKeys := []string{"1", "2", "3"}
+		eligibleNodes := make(map[string]struct{})
+
+		for i := range pubKeys {
+			eligibleNodes[pubKeys[i]] = struct{}{}
+		}
+
+		rcns, err := spos.NewRoundConsensus(
+			eligibleNodes,
+			len(eligibleNodes),
+			"2",
+			nil,
+		)
+		require.Nil(t, rcns)
+		require.Equal(t, spos.ErrNilKeysHandler, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		rcns := *initRoundConsensus()
+
+		assert.NotNil(t, rcns)
+		assert.Equal(t, 3, len(rcns.ConsensusGroup()))
+		assert.Equal(t, "3", rcns.ConsensusGroup()[2])
+		assert.Equal(t, "2", rcns.SelfPubKey())
+	})
 }
 
 func TestRoundConsensus_ConsensusGroupIndexFound(t *testing.T) {
@@ -310,4 +336,60 @@ func TestRoundConsensus_IncrementRoundsWithoutReceivedMessages(t *testing.T) {
 	roundConsensus := initRoundConsensusWithKeysHandler(keysHandler)
 	roundConsensus.IncrementRoundsWithoutReceivedMessages(managedPkBytes)
 	assert.True(t, wasCalled)
+}
+
+func TestRoundsConsensus_Concurrency(t *testing.T) {
+	t.Parallel()
+
+	rcns := *initRoundConsensus()
+
+	numOperations := 1000
+
+	wg := sync.WaitGroup{}
+	wg.Add(numOperations)
+
+	for i := 0; i < numOperations; i++ {
+		go func(idx int) {
+			switch idx % 16 {
+			case 0:
+				_ = rcns.ComputeSize(0)
+			case 1:
+				_ = rcns.ConsensusGroup()
+			case 2:
+				rcns.SetConsensusGroup([]string{})
+			case 3:
+				_ = rcns.ConsensusGroupSize()
+			case 4:
+				rcns.SetConsensusGroupSize(1)
+			case 5:
+				_ = rcns.EligibleList()
+			case 6:
+				_ = rcns.GetKeysHandler()
+			case 7:
+				_ = rcns.IsKeyManagedBySelf([]byte{})
+			case 8:
+				_ = rcns.IsMultiKeyInConsensusGroup()
+			case 9:
+				_ = rcns.IsNodeInConsensusGroup("")
+			case 10:
+				_ = rcns.Leader()
+			case 11:
+				rcns.SetLeader("")
+			case 12:
+				_ = rcns.SelfPubKey()
+			case 13:
+				rcns.SetSelfPubKey("")
+			case 14:
+				_ = rcns.SetJobDone("key", 0, true)
+			case 15:
+				_, _ = rcns.SelfConsensusGroupIndex()
+			default:
+				assert.Fail(t, "should have not been called")
+			}
+
+			wg.Done()
+		}(i)
+	}
+
+	wg.Wait()
 }

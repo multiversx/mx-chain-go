@@ -4,7 +4,9 @@ import (
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
@@ -30,6 +32,7 @@ type InterceptedHeader struct {
 	epochStartTrigger             process.EpochStartTriggerHandler
 	enableEpochsHandler           common.EnableEpochsHandler
 	epochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
+	roundExclusions               common.RoundExclusionHandler
 }
 
 // NewInterceptedHeader creates a new instance of InterceptedHeader struct
@@ -43,6 +46,10 @@ func NewInterceptedHeader(arg *ArgInterceptedBlockHeader) (*InterceptedHeader, e
 	if err != nil {
 		return nil, err
 	}
+	roundExclusions := arg.RoundExclusions
+	if check.IfNil(roundExclusions) {
+		roundExclusions, _ = common.NewRoundExclusionHandler(nil)
+	}
 
 	inHdr := &InterceptedHeader{
 		hdr:                           hdr,
@@ -54,6 +61,7 @@ func NewInterceptedHeader(arg *ArgInterceptedBlockHeader) (*InterceptedHeader, e
 		epochStartTrigger:             arg.EpochStartTrigger,
 		enableEpochsHandler:           arg.EnableEpochsHandler,
 		epochChangeGracePeriodHandler: arg.EpochChangeGracePeriodHandler,
+		roundExclusions:               roundExclusions,
 	}
 	inHdr.processFields(arg.HdrBuff)
 
@@ -70,6 +78,10 @@ func (inHdr *InterceptedHeader) processFields(txBuff []byte) {
 
 // CheckValidity checks if the received header is valid (not nil fields, valid sig and so on)
 func (inHdr *InterceptedHeader) CheckValidity() error {
+	if common.IsHeaderExcluded(inHdr.roundExclusions, inHdr.hdr.GetRound(), inHdr.hdr.GetShardID(), inHdr.hash) {
+		return common.ErrRoundExcluded
+	}
+
 	err := inHdr.integrityVerifier.Verify(inHdr.hdr)
 	if err != nil {
 		return err
@@ -81,6 +93,11 @@ func (inHdr *InterceptedHeader) CheckValidity() error {
 	}
 
 	return inHdr.verifySignatures()
+}
+
+// ShouldAllowDuplicates returns if this type of intercepted data should allow duplicates
+func (inHdr *InterceptedHeader) ShouldAllowDuplicates() bool {
+	return false
 }
 
 func (inHdr *InterceptedHeader) verifySignatures() error {
@@ -141,7 +158,7 @@ func (inHdr *InterceptedHeader) integrity() error {
 		return err
 	}
 
-	if !inHdr.validityAttester.CheckBlockAgainstWhitelist(inHdr) {
+	if !inHdr.validityAttester.CheckAgainstWhitelist(inHdr) {
 		err = inHdr.validityAttester.CheckBlockAgainstFinal(inHdr.HeaderHandler())
 		if err != nil {
 			return err
@@ -158,6 +175,18 @@ func (inHdr *InterceptedHeader) integrity() error {
 		return err
 	}
 
+	if inHdr.hdr.IsHeaderV3() {
+		for i, result := range inHdr.hdr.GetExecutionResultsHandlers() {
+			executionResult, ok := result.(*block.ExecutionResult)
+			if !ok {
+				return fmt.Errorf("failed to cast execution result at index %d to block.ExecutionResult", i)
+			}
+			err = checkMiniBlocksHeaders(executionResult.GetMiniBlockHeadersHandlers(), inHdr.shardCoordinator)
+			if err != nil {
+				return err
+			}
+		}
+	}
 	return nil
 }
 
@@ -195,9 +224,8 @@ func (inHdr *InterceptedHeader) String() string {
 // Identifiers returns the identifiers used in requests
 func (inHdr *InterceptedHeader) Identifiers() [][]byte {
 	keyNonce := []byte(fmt.Sprintf("%d-%d", inHdr.hdr.GetShardID(), inHdr.hdr.GetNonce()))
-	keyEpoch := []byte(core.EpochStartIdentifier(inHdr.hdr.GetEpoch()))
 
-	return [][]byte{inHdr.hash, keyNonce, keyEpoch}
+	return [][]byte{inHdr.hash, keyNonce}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

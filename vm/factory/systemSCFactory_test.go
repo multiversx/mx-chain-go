@@ -57,7 +57,8 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 					MinVetoThreshold: 0.5,
 					LostProposalFee:  "1",
 				},
-				OwnerAddress: "3132333435363738393031323334353637383930313233343536373839303234",
+				OwnerAddress:                 "3132333435363738393031323334353637383930313233343536373839303234",
+				MaxVotingDelayPeriodInEpochs: 30,
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     "1000",
@@ -65,6 +66,7 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
+				UnBondPeriodSupernova:                2,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
@@ -93,6 +95,7 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 		AddressPubKeyConverter: &testscommon.PubkeyConverterMock{},
 		ShardCoordinator:       &mock.ShardCoordinatorStub{},
 		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EnableRoundsHandler:    &testscommon.EnableRoundsHandlerStub{},
 		NodesCoordinator:       &mock.NodesCoordinatorStub{},
 	}
 }
@@ -305,4 +308,21 @@ func TestSystemSCFactory_IsInterfaceNil(t *testing.T) {
 
 	scFactory = nil
 	assert.True(t, check.IfNil(scFactory))
+}
+
+func TestSystemSCFactory_CreateGasConfig_ZeroBuiltInCostShouldError(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockNewSystemScFactoryArgs()
+	scFactory, err := NewSystemSCFactory(arguments)
+	require.Nil(t, err)
+
+	gasMap := wasmConfig.MakeGasMapForTests()
+	gasMap = defaults.FillGasMapInternal(gasMap, 1)
+
+	// Set a BuiltInCost field to 0
+	gasMap[common.BuiltInCost]["ChangeOwnerAddress"] = 0
+
+	err = scFactory.createGasConfig(gasMap)
+	assert.Error(t, err)
 }

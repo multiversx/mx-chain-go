@@ -13,16 +13,18 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/receipt"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/mock"
-	"github.com/multiversx/mx-chain-go/storage/storageunit"
-	"github.com/multiversx/mx-chain-go/storage/txcache"
-	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/process/transactionLog"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/txcache"
 )
 
 func TestNewTransactionSimulator(t *testing.T) {
@@ -104,6 +106,24 @@ func TestNewTransactionSimulator(t *testing.T) {
 			exError: ErrNilCacher,
 		},
 		{
+			name: "NilSCRProcessor",
+			argsFunc: func() ArgsTxSimulator {
+				args := getTxSimulatorArgs()
+				args.SCRProcessor = nil
+				return args
+			},
+			exError: process.ErrNilSmartContractResultProcessor,
+		},
+		{
+			name: "NilTxLogsProcessor",
+			argsFunc: func() ArgsTxSimulator {
+				args := getTxSimulatorArgs()
+				args.TxLogsProcessor = nil
+				return args
+			},
+			exError: process.ErrNilTxLogsProcessor,
+		},
+		{
 			name: "Ok",
 			argsFunc: func() ArgsTxSimulator {
 				args := getTxSimulatorArgs()
@@ -126,10 +146,16 @@ func TestTransactionSimulator_ProcessTxProcessingErrShouldSignal(t *testing.T) {
 
 	expRetCode := vmcommon.Ok
 	expErr := errors.New("transaction failed")
+	cleanCalled := false
 	args := getTxSimulatorArgs()
 	args.TransactionProcessor = &testscommon.TxProcessorStub{
 		ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
 			return expRetCode, expErr
+		},
+	}
+	args.TxLogsProcessor = &mock.TxLogsProcessorStub{
+		CleanCalled: func() {
+			cleanCalled = true
 		},
 	}
 	ts, _ := NewTransactionSimulator(args)
@@ -137,6 +163,32 @@ func TestTransactionSimulator_ProcessTxProcessingErrShouldSignal(t *testing.T) {
 	results, err := ts.ProcessTx(&transaction.Transaction{Nonce: 37}, &block.Header{})
 	require.NoError(t, err)
 	require.Equal(t, expErr.Error(), results.FailReason)
+	require.True(t, cleanCalled)
+}
+
+func TestTransactionSimulator_ProcessSCR(t *testing.T) {
+	t.Parallel()
+
+	expRetCode := vmcommon.Ok
+	expErr := errors.New("scr failed")
+	cleanCalled := false
+	args := getTxSimulatorArgs()
+	args.SCRProcessor = &testscommon.SCProcessorMock{
+		ProcessSmartContractResultCalled: func(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error) {
+			return expRetCode, expErr
+		},
+	}
+	args.TxLogsProcessor = &mock.TxLogsProcessorStub{
+		CleanCalled: func() {
+			cleanCalled = true
+		},
+	}
+	ts, _ := NewTransactionSimulator(args)
+
+	results, err := ts.ProcessSCR(&smartContractResult.SmartContractResult{Nonce: 37}, &block.Header{})
+	require.NoError(t, err)
+	require.Equal(t, expErr.Error(), results.FailReason)
+	require.True(t, cleanCalled)
 }
 
 func TestTransactionSimulator_getVMOutputComputeHashFails(t *testing.T) {
@@ -149,7 +201,7 @@ func TestTransactionSimulator_getVMOutputComputeHashFails(t *testing.T) {
 	ts, _ := NewTransactionSimulator(args)
 	require.False(t, ts.IsInterfaceNil())
 
-	_, ok := ts.getVMOutputOfTx(nil)
+	_, ok := ts.getVMOutput(nil)
 	require.False(t, ok)
 }
 
@@ -166,14 +218,14 @@ func TestTransactionSimulator_getVMOutput(t *testing.T) {
 	require.False(t, ts.IsInterfaceNil())
 
 	// cannot find vm output in cacher
-	_, ok := ts.getVMOutputOfTx(&transaction.Transaction{})
+	_, ok := ts.getVMOutput(&transaction.Transaction{})
 	require.False(t, ok)
 
 	// wrong data in cacher
 	tx := &transaction.Transaction{}
 	txHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, tx)
 	args.VMOutputCacher.Put(txHash, 1, 0)
-	_, ok = ts.getVMOutputOfTx(tx)
+	_, ok = ts.getVMOutput(tx)
 	require.False(t, ok)
 }
 
@@ -230,6 +282,74 @@ func TestTransactionSimulator_ProcessTxShouldIncludeScrsAndReceipts(t *testing.T
 	)
 }
 
+func TestTransactionSimulator_ProcessTxShouldCleanLogsAfterPreparingOutput(t *testing.T) {
+	t.Parallel()
+
+	txLogsProcessor, err := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
+		Marshalizer:          &mock.MarshalizerMock{},
+		SaveInStorageEnabled: false,
+	})
+	require.NoError(t, err)
+
+	logEntry := &vmcommon.LogEntry{
+		Identifier: []byte("event"),
+		Address:    make([]byte, 32),
+	}
+	tx := &transaction.Transaction{Nonce: 37}
+	args := getTxSimulatorArgs()
+	args.TxLogsProcessor = txLogsProcessor
+	args.TransactionProcessor = &testscommon.TxProcessorStub{
+		ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+			errSave := txLogsProcessor.SaveLog([]byte("txHash"), transaction, []*vmcommon.LogEntry{logEntry})
+			return vmcommon.Ok, errSave
+		},
+	}
+	args.VMOutputCacher, err = storageunit.NewCache(storageunit.CacheConfig{
+		Type:     storageunit.LRUCache,
+		Capacity: 100,
+	})
+	require.NoError(t, err)
+
+	txHash, err := core.CalculateHash(args.Marshalizer, args.Hasher, tx)
+	require.NoError(t, err)
+	args.VMOutputCacher.Put(txHash, &vmcommon.VMOutput{
+		Logs: []*vmcommon.LogEntry{logEntry},
+	}, 0)
+
+	ts, err := NewTransactionSimulator(args)
+	require.NoError(t, err)
+	results, err := ts.ProcessTx(tx, &block.Header{})
+	require.NoError(t, err)
+	require.Len(t, results.Logs.Events, 1)
+	require.Equal(t, "event", results.Logs.Events[0].Identifier)
+	require.Empty(t, txLogsProcessor.GetAllCurrentLogs())
+}
+
+func TestTransactionSimulator_ProcessTxShouldCleanLogsOnEarlyError(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("cannot set current header")
+	cleanCalls := 0
+	args := getTxSimulatorArgs()
+	args.BlockChainHook = &testscommon.BlockChainHookStub{
+		SetCurrentHeaderCalled: func(_ data.HeaderHandler) error {
+			return expectedErr
+		},
+	}
+	args.TxLogsProcessor = &mock.TxLogsProcessorStub{
+		CleanCalled: func() {
+			cleanCalls++
+		},
+	}
+
+	ts, err := NewTransactionSimulator(args)
+	require.NoError(t, err)
+	results, err := ts.ProcessTx(&transaction.Transaction{}, &block.Header{})
+	require.Nil(t, results)
+	require.ErrorIs(t, err, expectedErr)
+	require.Equal(t, 1, cleanCalls)
+}
+
 func getTxSimulatorArgs() ArgsTxSimulator {
 	pubKeyConverter := testscommon.NewPubkeyConverterMock(32)
 	dataFieldParser, _ := datafield.NewOperationDataFieldParser(&datafield.ArgsOperationDataFieldParser{
@@ -246,6 +366,8 @@ func getTxSimulatorArgs() ArgsTxSimulator {
 		Hasher:                    &hashingMocks.HasherMock{},
 		DataFieldParser:           dataFieldParser,
 		BlockChainHook:            &testscommon.BlockChainHookStub{},
+		SCRProcessor:              &testscommon.SCProcessorMock{},
+		TxLogsProcessor:           &mock.TxLogsProcessorStub{},
 	}
 }
 
@@ -253,6 +375,7 @@ func TestTransactionSimulator_ProcessTxConcurrentCalls(t *testing.T) {
 	t.Parallel()
 
 	numTransactionProcessorCalls := 0
+	numCleanCalls := 0
 	args := getTxSimulatorArgs()
 	args.TransactionProcessor = &testscommon.TxProcessorStub{
 		ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
@@ -260,6 +383,11 @@ func TestTransactionSimulator_ProcessTxConcurrentCalls(t *testing.T) {
 			numTransactionProcessorCalls++
 
 			return vmcommon.Ok, nil
+		},
+	}
+	args.TxLogsProcessor = &mock.TxLogsProcessorStub{
+		CleanCalled: func() {
+			numCleanCalls++
 		},
 	}
 	txSimulator, _ := NewTransactionSimulator(args)
@@ -278,4 +406,5 @@ func TestTransactionSimulator_ProcessTxConcurrentCalls(t *testing.T) {
 
 	wg.Wait()
 	assert.Equal(t, numCalls, numTransactionProcessorCalls)
+	assert.Equal(t, numCalls, numCleanCalls)
 }

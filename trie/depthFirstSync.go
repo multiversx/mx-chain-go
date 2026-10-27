@@ -37,7 +37,7 @@ func NewDepthFirstTrieSyncer(arg ArgTrieSyncer) (*depthFirstTrieSyncer, error) {
 		return nil, err
 	}
 
-	stsm, err := NewSyncTrieStorageManager(arg.DB)
+	stsm, err := newStorageForTrieSync(arg)
 	if err != nil {
 		return nil, err
 	}
@@ -83,6 +83,12 @@ func (d *depthFirstTrieSyncer) StartSyncing(rootHash []byte, ctx context.Context
 
 	d.nodes.addInitialRootHash(string(rootHash))
 	d.requestedHashes = make(map[string]*request)
+	if d.checkNodesOnDisk {
+		root, err := d.getNode(rootHash)
+		if err == nil {
+			d.nodes.processMissingHashWasFound(root, string(rootHash))
+		}
+	}
 
 	timeStart := time.Now()
 	defer func() {
@@ -238,7 +244,7 @@ func (d *depthFirstTrieSyncer) processFirstExistingNode() (bool, error) {
 }
 
 func (d *depthFirstTrieSyncer) storeTrieNode(element node) error {
-	numBytes, err := encodeNodeAndCommitToDB(element, d.trieContext)
+	numBytes, err := commitSyncedNode(element, d.trieContext)
 	if err != nil {
 		return err
 	}

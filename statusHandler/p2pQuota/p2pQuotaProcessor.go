@@ -24,11 +24,11 @@ type p2pQuotaProcessor struct {
 	peakPeerQuota    *quota
 	peakNumReceivers uint64
 	handler          core.AppStatusHandler
-	quotaIdentifier  string
+	quotaIdentifier  common.FloodPreventerType
 }
 
 // NewP2PQuotaProcessor creates a new p2pQuotaProcessor instance
-func NewP2PQuotaProcessor(handler core.AppStatusHandler, quotaIdentifier string) (*p2pQuotaProcessor, error) {
+func NewP2PQuotaProcessor(handler core.AppStatusHandler, quotaIdentifier common.FloodPreventerType) (*p2pQuotaProcessor, error) {
 	if check.IfNil(handler) {
 		return nil, statusHandler.ErrNilAppStatusHandler
 	}
@@ -98,7 +98,7 @@ func (pqp *p2pQuotaProcessor) moveStatisticsInAppStatusHandler(
 }
 
 func (pqp *p2pQuotaProcessor) getMetric(metric string) string {
-	return metric + "_" + pqp.quotaIdentifier
+	return metric + "_" + string(pqp.quotaIdentifier)
 }
 
 // AddQuota adds a quota statistics

@@ -2,6 +2,7 @@ package trie
 
 import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
@@ -53,7 +54,7 @@ func IsBaseTrieStorageManager(tsm common.StorageManager) bool {
 	return ok
 }
 
-// IsInEpochTrieStorageManager -
+// IsTrieStorageManagerInEpoch -
 func IsTrieStorageManagerInEpoch(tsm common.StorageManager) bool {
 	_, ok := tsm.(*trieStorageManagerInEpoch)
 	return ok
@@ -67,9 +68,9 @@ func NewBaseIterator(trie common.Trie, rootHash []byte) (*baseIterator, error) {
 // GetDefaultTrieStorageManagerParameters -
 func GetDefaultTrieStorageManagerParameters() NewTrieStorageManagerArgs {
 	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:      1000,
-		SnapshotsBufferLen:    10,
-		SnapshotsGoroutineNum: 1,
+		PruningBufferLen:           1000,
+		SnapshotsBufferLen:         10,
+		SnapshotsGoroutinesPerCore: 1,
 	}
 
 	return NewTrieStorageManagerArgs{
@@ -81,6 +82,11 @@ func GetDefaultTrieStorageManagerParameters() NewTrieStorageManagerArgs {
 		Identifier:     dataRetriever.UserAccountsUnit.String(),
 		StatsCollector: statistics.NewStateStatistics(),
 	}
+}
+
+// SnapshotsGoroutineNum -
+func SnapshotsGoroutineNum(perCore uint32) int32 {
+	return snapshotsGoroutineNum(perCore)
 }
 
 // ExecuteUpdatesFromBatch -

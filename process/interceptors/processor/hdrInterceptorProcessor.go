@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/p2p"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -21,6 +22,7 @@ type HdrInterceptorProcessor struct {
 	proofs              dataRetriever.ProofsPool
 	blackList           process.TimeCacher
 	enableEpochsHandler common.EnableEpochsHandler
+	roundExclusions     common.RoundExclusionHandler
 	registeredHandlers  []func(topic string, hash []byte, data interface{})
 	mutHandlers         sync.RWMutex
 }
@@ -42,12 +44,16 @@ func NewHdrInterceptorProcessor(argument *ArgHdrInterceptorProcessor) (*HdrInter
 	if check.IfNil(argument.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(argument.RoundExclusions) {
+		return nil, common.ErrNilRoundExclusionHandler
+	}
 
 	return &HdrInterceptorProcessor{
 		headers:             argument.Headers,
 		proofs:              argument.Proofs,
 		blackList:           argument.BlockBlackList,
 		enableEpochsHandler: argument.EnableEpochsHandler,
+		roundExclusions:     argument.RoundExclusions,
 		registeredHandlers:  make([]func(topic string, hash []byte, data interface{}), 0),
 	}, nil
 }
@@ -57,6 +63,10 @@ func (hip *HdrInterceptorProcessor) Validate(data process.InterceptedData, _ cor
 	interceptedHdr, ok := data.(process.HdrValidatorHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
+	}
+	header := interceptedHdr.HeaderHandler()
+	if !check.IfNil(header) && common.IsHeaderExcluded(hip.roundExclusions, header.GetRound(), header.GetShardID(), interceptedHdr.Hash()) {
+		return common.ErrRoundExcluded
 	}
 
 	hip.blackList.Sweep()
@@ -70,17 +80,21 @@ func (hip *HdrInterceptorProcessor) Validate(data process.InterceptedData, _ cor
 
 // Save will save the received data into the headers cacher as hash<->[plain header structure]
 // and in headersNonces as nonce<->hash
-func (hip *HdrInterceptorProcessor) Save(data process.InterceptedData, _ core.PeerID, topic string) error {
+func (hip *HdrInterceptorProcessor) Save(data process.InterceptedData, _ core.PeerID, topic string, _ p2p.BroadcastMethod) (bool, error) {
 	interceptedHdr, ok := data.(process.HdrValidatorHandler)
 	if !ok {
-		return process.ErrWrongTypeAssertion
+		return false, process.ErrWrongTypeAssertion
+	}
+	header := interceptedHdr.HeaderHandler()
+	if !check.IfNil(header) && common.IsHeaderExcluded(hip.roundExclusions, header.GetRound(), header.GetShardID(), interceptedHdr.Hash()) {
+		return false, common.ErrRoundExcluded
 	}
 
-	go hip.notify(interceptedHdr.HeaderHandler(), interceptedHdr.Hash(), topic)
+	go hip.notify(header, interceptedHdr.Hash(), topic)
 
-	hip.headers.AddHeader(interceptedHdr.Hash(), interceptedHdr.HeaderHandler())
+	hip.headers.AddHeader(interceptedHdr.Hash(), header)
 
-	return nil
+	return true, nil
 }
 
 // RegisterHandler registers a callback function to be notified of incoming headers

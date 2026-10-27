@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 )
@@ -13,6 +14,9 @@ import (
 // ChainSimulator defines the operations for an entity that can simulate operations of a chain
 type ChainSimulator interface {
 	GenerateBlocks(numOfBlocks int) error
+	GenerateBlocksSkippingShards(numOfBlocks int, skippedShardIDs []uint32) error
+	GenerateBlockWithoutBroadcast(shardID uint32) (*dtos.BroadcastData, error)
+	BroadcastCompetingBlock(shardID uint32) (*dtos.BroadcastData, error)
 	GenerateBlocksUntilEpochIsReached(targetEpoch int32) error
 	AddValidatorKeys(validatorsPrivateKeys [][]byte) error
 	GetNodeHandler(shardID uint32) process.NodeHandler

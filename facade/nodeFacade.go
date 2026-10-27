@@ -15,10 +15,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	apiData "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/debug"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
@@ -39,6 +41,8 @@ const DefaultRestInterface = "localhost:8080"
 // to start the node without a REST endpoint available
 const DefaultRestPortOff = "off"
 
+const simulateSelectionMaxDuration = time.Millisecond * 150
+
 var log = logger.GetOrCreate("facade")
 
 // ArgNodeFacade represents the argument for the nodeFacade
@@ -49,8 +53,7 @@ type ArgNodeFacade struct {
 	WsAntifloodConfig      config.WebServerAntifloodConfig
 	FacadeConfig           config.FacadeConfig
 	ApiRoutesConfig        config.ApiRoutesConfig
-	AccountsState          state.AccountsAdapter
-	PeerState              state.AccountsAdapter
+	AccountsStateAPI       state.AccountsAdapter
 	Blockchain             chainData.ChainHandler
 }
 
@@ -64,8 +67,7 @@ type nodeFacade struct {
 	endpointsThrottlers    map[string]core.Throttler
 	wsAntifloodConfig      config.WebServerAntifloodConfig
 	restAPIServerDebugMode bool
-	accountsState          state.AccountsAdapter
-	peerState              state.AccountsAdapter
+	accountsStateAPI       state.AccountsAdapter
 	blockchain             chainData.ChainHandler
 }
 
@@ -84,11 +86,8 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 	if err != nil {
 		return nil, err
 	}
-	if check.IfNil(arg.AccountsState) {
+	if check.IfNil(arg.AccountsStateAPI) {
 		return nil, ErrNilAccountState
-	}
-	if check.IfNil(arg.PeerState) {
-		return nil, ErrNilPeerState
 	}
 	if check.IfNil(arg.Blockchain) {
 		return nil, ErrNilBlockchain
@@ -104,8 +103,7 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 		config:                 arg.FacadeConfig,
 		apiRoutesConfig:        arg.ApiRoutesConfig,
 		endpointsThrottlers:    throttlersMap,
-		accountsState:          arg.AccountsState,
-		peerState:              arg.PeerState,
+		accountsStateAPI:       arg.AccountsStateAPI,
 		blockchain:             arg.Blockchain,
 	}
 
@@ -198,40 +196,40 @@ func (nf *nodeFacade) GetESDTData(address string, key string, nonce uint64, opti
 }
 
 // GetESDTsRoles returns all the tokens identifiers and roles for the given address
-func (nf *nodeFacade) GetESDTsRoles(address string, options apiData.AccountQueryOptions) (map[string][]string, apiData.BlockInfo, error) {
-	ctx, cancel := nf.getContextForApiTrieRangeOperations()
+func (nf *nodeFacade) GetESDTsRoles(ctx context.Context, address string, options apiData.AccountQueryOptions) (map[string][]string, apiData.BlockInfo, error) {
+	ctx, cancel := nf.getContextForApiTrieRangeOperations(ctx)
 	defer cancel()
 
 	return nf.node.GetESDTsRoles(address, options, ctx)
 }
 
 // GetNFTTokenIDsRegisteredByAddress returns all the token identifiers for semi or non fungible tokens registered by the address
-func (nf *nodeFacade) GetNFTTokenIDsRegisteredByAddress(address string, options apiData.AccountQueryOptions) ([]string, apiData.BlockInfo, error) {
-	ctx, cancel := nf.getContextForApiTrieRangeOperations()
+func (nf *nodeFacade) GetNFTTokenIDsRegisteredByAddress(ctx context.Context, address string, options apiData.AccountQueryOptions) ([]string, apiData.BlockInfo, error) {
+	ctx, cancel := nf.getContextForApiTrieRangeOperations(ctx)
 	defer cancel()
 
 	return nf.node.GetNFTTokenIDsRegisteredByAddress(address, options, ctx)
 }
 
 // GetESDTsWithRole returns all the tokens with the given role for the given address
-func (nf *nodeFacade) GetESDTsWithRole(address string, role string, options apiData.AccountQueryOptions) ([]string, apiData.BlockInfo, error) {
-	ctx, cancel := nf.getContextForApiTrieRangeOperations()
+func (nf *nodeFacade) GetESDTsWithRole(ctx context.Context, address string, role string, options apiData.AccountQueryOptions) ([]string, apiData.BlockInfo, error) {
+	ctx, cancel := nf.getContextForApiTrieRangeOperations(ctx)
 	defer cancel()
 
 	return nf.node.GetESDTsWithRole(address, role, options, ctx)
 }
 
 // GetKeyValuePairs returns all the key-value pairs under the provided address
-func (nf *nodeFacade) GetKeyValuePairs(address string, options apiData.AccountQueryOptions) (map[string]string, apiData.BlockInfo, error) {
-	ctx, cancel := nf.getContextForApiTrieRangeOperations()
+func (nf *nodeFacade) GetKeyValuePairs(ctx context.Context, address string, options apiData.AccountQueryOptions) (map[string]string, apiData.BlockInfo, error) {
+	ctx, cancel := nf.getContextForApiTrieRangeOperations(ctx)
 	defer cancel()
 
 	return nf.node.GetKeyValuePairs(address, options, ctx)
 }
 
 // IterateKeys starts from the given iteratorState and returns the next key-value pairs and the new iteratorState
-func (nf *nodeFacade) IterateKeys(address string, numKeys uint, iteratorState [][]byte, options apiData.AccountQueryOptions) (map[string]string, [][]byte, apiData.BlockInfo, error) {
-	ctx, cancel := nf.getContextForApiTrieRangeOperations()
+func (nf *nodeFacade) IterateKeys(ctx context.Context, address string, numKeys uint, iteratorState [][]byte, options apiData.AccountQueryOptions) (map[string]string, [][]byte, apiData.BlockInfo, error) {
+	ctx, cancel := nf.getContextForApiTrieRangeOperations(ctx)
 	defer cancel()
 
 	return nf.node.IterateKeys(address, numKeys, iteratorState, options, ctx)
@@ -243,8 +241,8 @@ func (nf *nodeFacade) GetGuardianData(address string, options apiData.AccountQue
 }
 
 // GetAllESDTTokens returns all the esdt tokens for a given address
-func (nf *nodeFacade) GetAllESDTTokens(address string, options apiData.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, apiData.BlockInfo, error) {
-	ctx, cancel := nf.getContextForApiTrieRangeOperations()
+func (nf *nodeFacade) GetAllESDTTokens(ctx context.Context, address string, options apiData.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, apiData.BlockInfo, error) {
+	ctx, cancel := nf.getContextForApiTrieRangeOperations(ctx)
 	defer cancel()
 
 	return nf.node.GetAllESDTTokens(address, options, ctx)
@@ -256,20 +254,20 @@ func (nf *nodeFacade) GetTokenSupply(token string) (*apiData.ESDTSupply, error) 
 }
 
 // GetAllIssuedESDTs returns all the issued esdts from the esdt system smart contract
-func (nf *nodeFacade) GetAllIssuedESDTs(tokenType string) ([]string, error) {
-	ctx, cancel := nf.getContextForApiTrieRangeOperations()
+func (nf *nodeFacade) GetAllIssuedESDTs(ctx context.Context, tokenType string) ([]string, error) {
+	ctx, cancel := nf.getContextForApiTrieRangeOperations(ctx)
 	defer cancel()
 
 	return nf.node.GetAllIssuedESDTs(tokenType, ctx)
 }
 
-func (nf *nodeFacade) getContextForApiTrieRangeOperations() (context.Context, context.CancelFunc) {
+func (nf *nodeFacade) getContextForApiTrieRangeOperations(ctx context.Context) (context.Context, context.CancelFunc) {
 	if !nf.wsAntifloodConfig.WebServerAntifloodEnabled {
-		return context.WithCancel(context.Background())
+		return context.WithCancel(ctx)
 	}
 
 	timeout := time.Duration(nf.wsAntifloodConfig.TrieOperationsDeadlineMilliseconds) * time.Millisecond
-	return context.WithTimeout(context.Background(), timeout)
+	return context.WithTimeout(ctx, timeout)
 }
 
 // CreateTransaction creates a transaction from all needed fields
@@ -307,6 +305,11 @@ func (nf *nodeFacade) SimulateTransactionExecution(tx *transaction.Transaction) 
 	return nf.apiResolver.SimulateTransactionExecution(tx)
 }
 
+// SimulateSCRExecutionCost will simulate a smart contract results and will return the gas cost
+func (nf *nodeFacade) SimulateSCRExecutionCost(scr *smartContractResult.SmartContractResult) (*transaction.CostResponse, error) {
+	return nf.apiResolver.SimulateSCRExecutionCost(scr)
+}
+
 // GetTransaction gets the transaction with a specified hash
 func (nf *nodeFacade) GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error) {
 	return nf.apiResolver.GetTransaction(hash, withResults)
@@ -342,19 +345,51 @@ func (nf *nodeFacade) GetTransactionsPoolNonceGapsForSender(sender string) (*com
 	return nf.apiResolver.GetTransactionsPoolNonceGapsForSender(sender, accountResponse.Nonce)
 }
 
+// GetSelectedTransactions will simulate a SelectTransactions, and it will return the corresponding hash of each selected transaction
+func (nf *nodeFacade) GetSelectedTransactions(fields string) (*common.TransactionsSelectionSimulationResult, error) {
+	// simulation only, should be safe to pass true here
+	startTime := time.Now()
+	haveTimeForSimulation := func() bool {
+		return time.Since(startTime) <= simulateSelectionMaxDuration
+	}
+
+	selectionOptions, err := holders.NewTxSelectionOptions(
+		nf.config.TxCacheSelectionConfig.SelectionGasRequested,
+		nf.config.TxCacheSelectionConfig.SelectionMaxNumTxs,
+		nf.config.TxCacheSelectionConfig.SelectionLoopDurationCheckInterval,
+		haveTimeForSimulation,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	selectionOptionsAPI := holders.NewTxSelectionOptionsAPI(
+		selectionOptions,
+		fields,
+	)
+
+	// TODO brainstorm if this could be handled by the node
+	return nf.apiResolver.GetSelectedTransactions(selectionOptionsAPI, nf.blockchain, nf.accountsStateAPI)
+}
+
+// GetVirtualNonce will return the virtual nonce of an account
+func (nf *nodeFacade) GetVirtualNonce(address string) (*common.VirtualNonceOfAccountResponse, error) {
+	return nf.apiResolver.GetVirtualNonce(address)
+}
+
 // ComputeTransactionGasLimit will estimate how many gas a transaction will consume
 func (nf *nodeFacade) ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error) {
 	return nf.apiResolver.ComputeTransactionGasLimit(tx)
 }
 
 // GetAccount returns a response containing information about the account correlated with provided address
-func (nf *nodeFacade) GetAccount(address string, options apiData.AccountQueryOptions) (apiData.AccountResponse, apiData.BlockInfo, error) {
+func (nf *nodeFacade) GetAccount(ctx context.Context, address string, options apiData.AccountQueryOptions) (apiData.AccountResponse, apiData.BlockInfo, error) {
 	var accountResponse apiData.AccountResponse
 	var blockInfo apiData.BlockInfo
 	var err error
 
 	if options.WithKeys {
-		ctx, cancel := nf.getContextForApiTrieRangeOperations()
+		ctx, cancel := nf.getContextForApiTrieRangeOperations(ctx)
 		defer cancel()
 
 		accountResponse, blockInfo, err = nf.node.GetAccountWithKeys(address, options, ctx)
@@ -425,7 +460,7 @@ func (nf *nodeFacade) StatusMetrics() external.StatusMetricsHandler {
 
 // GetTotalStakedValue will return total staked value
 func (nf *nodeFacade) GetTotalStakedValue() (*apiData.StakeValues, error) {
-	ctx, cancel := nf.getContextForApiTrieRangeOperations()
+	ctx, cancel := nf.getContextForApiTrieRangeOperations(context.Background())
 	defer cancel()
 
 	return nf.apiResolver.GetTotalStakedValue(ctx)
@@ -433,7 +468,7 @@ func (nf *nodeFacade) GetTotalStakedValue() (*apiData.StakeValues, error) {
 
 // GetDirectStakedList will output the list for the direct staked addresses
 func (nf *nodeFacade) GetDirectStakedList() ([]*apiData.DirectStakedValue, error) {
-	ctx, cancel := nf.getContextForApiTrieRangeOperations()
+	ctx, cancel := nf.getContextForApiTrieRangeOperations(context.Background())
 	defer cancel()
 
 	return nf.apiResolver.GetDirectStakedList(ctx)
@@ -441,7 +476,7 @@ func (nf *nodeFacade) GetDirectStakedList() ([]*apiData.DirectStakedValue, error
 
 // GetDelegatorsList will output the list for the delegators addresses
 func (nf *nodeFacade) GetDelegatorsList() ([]*apiData.Delegator, error) {
-	ctx, cancel := nf.getContextForApiTrieRangeOperations()
+	ctx, cancel := nf.getContextForApiTrieRangeOperations(context.Background())
 	defer cancel()
 
 	return nf.apiResolver.GetDelegatorsList(ctx)
@@ -601,7 +636,7 @@ func (nf *nodeFacade) GetProofDataTrie(rootHash string, address string, key stri
 
 // GetProofCurrentRootHash returns the Merkle proof for the given address and current root hash
 func (nf *nodeFacade) GetProofCurrentRootHash(address string) (*common.GetProofResponse, error) {
-	rootHash := nf.blockchain.GetCurrentBlockRootHash()
+	rootHash := nf.getCurrentRootHash()
 	if len(rootHash) == 0 {
 		return nil, ErrEmptyRootHash
 	}
@@ -609,6 +644,16 @@ func (nf *nodeFacade) GetProofCurrentRootHash(address string) (*common.GetProofR
 	hexRootHash := hex.EncodeToString(rootHash)
 
 	return nf.node.GetProof(hexRootHash, address)
+}
+
+func (nf *nodeFacade) getCurrentRootHash() []byte {
+	currentHeader := nf.blockchain.GetCurrentBlockHeader()
+	if currentHeader != nil && currentHeader.IsHeaderV3() {
+		_, _, lastExecutedRootHash := nf.blockchain.GetLastExecutedBlockInfo()
+		return lastExecutedRootHash
+	}
+
+	return nf.blockchain.GetCurrentBlockRootHash()
 }
 
 // VerifyProof verifies the given Merkle proof

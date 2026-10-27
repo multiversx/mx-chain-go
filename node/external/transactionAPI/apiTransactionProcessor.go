@@ -1,37 +1,44 @@
 package transactionAPI
 
 import (
+	"bytes"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/batch"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	rewardTxData "github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/holders"
+	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/process/txstatus"
 	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-go/storage/txcache"
-	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/txcache"
 )
 
 var log = logger.GetOrCreate("node/transactionAPI")
 
 type apiTransactionProcessor struct {
-	roundDuration               uint64
-	genesisTime                 time.Time
+	roundHandler                consensus.RoundHandler
 	marshalizer                 marshal.Marshalizer
 	addressPubKeyConverter      core.PubkeyConverter
 	shardCoordinator            sharding.Coordinator
@@ -46,6 +53,11 @@ type apiTransactionProcessor struct {
 	refundDetector              *refundDetector
 	gasUsedAndFeeProcessor      *gasUsedAndFeeProcessor
 	enableEpochsHandler         common.EnableEpochsHandler
+	enableRoundsHandler         common.EnableRoundsHandler
+	txVersionChecker            process.TxVersionCheckerHandler
+	chainHandler                data.ChainHandler
+	txProcessor                 process.TransactionProcessor
+	roundExclusionHandler       common.RoundExclusionHandler
 }
 
 // NewAPITransactionProcessor will create a new instance of apiTransactionProcessor
@@ -55,7 +67,13 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		return nil, err
 	}
 
-	txUnmarshalerAndPreparer := newTransactionUnmarshaller(args.Marshalizer, args.AddressPubKeyConverter, args.DataFieldParser, args.ShardCoordinator)
+	txUnmarshalerAndPreparer := newTransactionUnmarshaller(
+		args.Marshalizer,
+		args.AddressPubKeyConverter,
+		args.DataFieldParser,
+		args.ShardCoordinator,
+		args.EnableEpochsHandler,
+	)
 	txResultsProc := newAPITransactionResultProcessor(
 		args.AddressPubKeyConverter,
 		args.HistoryRepository,
@@ -65,6 +83,7 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		args.LogsFacade,
 		args.ShardCoordinator,
 		args.DataFieldParser,
+		args.EnableRoundsHandler,
 	)
 
 	refundDetectorInstance := NewRefundDetector()
@@ -77,8 +96,7 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 	)
 
 	return &apiTransactionProcessor{
-		roundDuration:               args.RoundDuration,
-		genesisTime:                 args.GenesisTime,
+		roundHandler:                args.RoundHandler,
 		marshalizer:                 args.Marshalizer,
 		addressPubKeyConverter:      args.AddressPubKeyConverter,
 		shardCoordinator:            args.ShardCoordinator,
@@ -93,6 +111,11 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		refundDetector:              refundDetectorInstance,
 		gasUsedAndFeeProcessor:      gasUsedAndFeeProc,
 		enableEpochsHandler:         args.EnableEpochsHandler,
+		enableRoundsHandler:         args.EnableRoundsHandler,
+		txVersionChecker:            args.TxVersionChecker,
+		chainHandler:                args.ChainHandler,
+		txProcessor:                 args.TxProcessor,
+		roundExclusionHandler:       args.RoundExclusionHandler,
 	}, nil
 }
 
@@ -115,6 +138,10 @@ func (atp *apiTransactionProcessor) GetSCRsByTxHash(txHash string, scrHash strin
 	miniblockMetadata, err := atp.historyRepository.GetMiniblockMetadataByTxHash(decodedScrHash)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", ErrTransactionNotFound.Error(), err)
+	}
+
+	if atp.isRoundExcluded(miniblockMetadata.Round) {
+		return nil, ErrTransactionNotFound
 	}
 
 	resultsHashes, err := atp.historyRepository.GetResultsHashesByTxHash(decodedTxHash, miniblockMetadata.Epoch)
@@ -152,6 +179,10 @@ func (atp *apiTransactionProcessor) GetTransaction(txHash string, withResults bo
 		return nil, err
 	}
 
+	if atp.isRoundExcluded(tx.Round) {
+		return nil, ErrTransactionNotFound
+	}
+
 	tx.Hash = txHash
 	atp.PopulateComputedFields(tx)
 
@@ -163,11 +194,23 @@ func (atp *apiTransactionProcessor) GetTransaction(txHash string, withResults bo
 }
 
 func (atp *apiTransactionProcessor) doGetTransaction(hash []byte, withResults bool) (*transaction.ApiTransactionResult, error) {
-	tx := atp.optionallyGetTransactionFromPool(hash)
-	if tx != nil {
-		return tx, nil
+	txFromPool := atp.optionallyGetTransactionFromPool(hash)
+	if txFromPool != nil {
+		// we don't return immediately because storage/history takes priority if it succeeds
+		txFromStorage, err := atp.fetchFromStorageOrHistory(hash, withResults)
+		if err == nil {
+			return txFromStorage, nil
+		}
+
+		// storage/history failed, but pool has it
+		return txFromPool, nil
 	}
 
+	// no pool entry — just return storage/history result
+	return atp.fetchFromStorageOrHistory(hash, withResults)
+}
+
+func (atp *apiTransactionProcessor) fetchFromStorageOrHistory(hash []byte, withResults bool) (*transaction.ApiTransactionResult, error) {
 	if atp.historyRepository.IsEnabled() {
 		return atp.lookupHistoricalTransaction(hash, withResults)
 	}
@@ -183,7 +226,7 @@ func (atp *apiTransactionProcessor) PopulateComputedFields(tx *transaction.ApiTr
 }
 
 func (atp *apiTransactionProcessor) populateComputedFieldsProcessingType(tx *transaction.ApiTransactionResult) {
-	typeOnSource, typeOnDestination, _ := atp.txTypeHandler.ComputeTransactionType(tx.Tx)
+	typeOnSource, typeOnDestination, _ := atp.txTypeHandler.ComputeTransactionTypeInEpoch(tx.Tx, tx.Epoch)
 	tx.ProcessingTypeOnSource = typeOnSource.String()
 	tx.ProcessingTypeOnDestination = typeOnDestination.String()
 }
@@ -261,7 +304,7 @@ func (atp *apiTransactionProcessor) GetTransactionsPoolForSender(sender, fields 
 	requestedFieldsHandler := newFieldsHandler(fields)
 	transactions := &common.TransactionsPoolForSenderApiResponse{}
 	for _, wrappedTx := range wrappedTxs {
-		tx := atp.extractRequestedTxInfo(wrappedTx, requestedFieldsHandler)
+		tx := atp.extractRequestedTxInfo(wrappedTx, requestedFieldsHandler, transaction.TxTypeNormal) // use TxTypeNormal for all, only used for sender encoding
 
 		transactions.Transactions = append(transactions.Transactions, tx)
 	}
@@ -304,6 +347,41 @@ func (atp *apiTransactionProcessor) GetTransactionsPoolNonceGapsForSender(sender
 	}, nil
 }
 
+// GetSelectedTransactions will simulate a SelectTransactions, and it will return the corresponding hash of each selected transaction
+func (atp *apiTransactionProcessor) GetSelectedTransactions(selectionOptions common.TxSelectionOptionsAPI, blockchain data.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error) {
+	err := atp.recreateTrie(blockchain, accountsAdapter)
+	if err != nil {
+		return nil, err
+	}
+
+	selectedTransactions, err := atp.selectTransactions(accountsAdapter, selectionOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	return &common.TransactionsSelectionSimulationResult{
+		Transactions: selectedTransactions,
+	}, nil
+}
+
+// GetVirtualNonce will return the virtual nonce of an account
+func (atp *apiTransactionProcessor) GetVirtualNonce(address string) (*common.VirtualNonceOfAccountResponse, error) {
+	pubKey, err := atp.addressPubKeyConverter.Decode(address)
+	if err != nil {
+		return nil, fmt.Errorf("%s, %w", ErrInvalidAddress.Error(), err)
+	}
+
+	virtualNonce, latestCommittedBlockResponse, err := atp.getVirtualNonceWithBlockInfo(pubKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return &common.VirtualNonceOfAccountResponse{
+		VirtualNonce:         virtualNonce,
+		LatestCommittedBlock: *latestCommittedBlockResponse,
+	}, nil
+}
+
 func (atp *apiTransactionProcessor) extractRequestedTxInfoFromObj(txObj interface{}, txType transaction.TxType, txHash []byte, requestedFieldsHandler fieldsHandler) common.Transaction {
 	txResult := atp.getApiResultFromObj(txObj, txType)
 
@@ -312,7 +390,7 @@ func (atp *apiTransactionProcessor) extractRequestedTxInfoFromObj(txObj interfac
 		TxHash: txHash,
 	}
 
-	requestedTxInfo := atp.extractRequestedTxInfo(wrappedTx, requestedFieldsHandler)
+	requestedTxInfo := atp.extractRequestedTxInfo(wrappedTx, requestedFieldsHandler, txType)
 
 	return requestedTxInfo
 }
@@ -368,8 +446,12 @@ func (atp *apiTransactionProcessor) getUnsignedTransactionsFromPool(requestedFie
 	return unsignedTxs
 }
 
-func (atp *apiTransactionProcessor) extractRequestedTxInfo(wrappedTx *txcache.WrappedTransaction, requestedFieldsHandler fieldsHandler) common.Transaction {
-	fieldGetters := atp.getFieldGettersForTx(wrappedTx)
+func (atp *apiTransactionProcessor) extractRequestedTxInfo(
+	wrappedTx *txcache.WrappedTransaction,
+	requestedFieldsHandler fieldsHandler,
+	txType transaction.TxType,
+) common.Transaction {
+	fieldGetters := atp.getFieldGettersForTx(wrappedTx, txType)
 	tx := common.Transaction{
 		TxFields: make(map[string]interface{}),
 	}
@@ -383,14 +465,23 @@ func (atp *apiTransactionProcessor) extractRequestedTxInfo(wrappedTx *txcache.Wr
 	return tx
 }
 
-func (atp *apiTransactionProcessor) getFieldGettersForTx(wrappedTx *txcache.WrappedTransaction) map[string]interface{} {
+func (atp *apiTransactionProcessor) getFieldGettersForTx(
+	wrappedTx *txcache.WrappedTransaction,
+	txType transaction.TxType,
+) map[string]interface{} {
+	senderStr := "metachain"
+	if txType != transaction.TxTypeReward {
+		senderStr = atp.addressPubKeyConverter.SilentEncode(wrappedTx.Tx.GetSndAddr(), log)
+	}
+
 	var fieldGetters = map[string]interface{}{
 		hashField:        hex.EncodeToString(wrappedTx.TxHash),
 		nonceField:       wrappedTx.Tx.GetNonce(),
-		senderField:      atp.addressPubKeyConverter.SilentEncode(wrappedTx.Tx.GetSndAddr(), log),
+		senderField:      senderStr,
 		receiverField:    atp.addressPubKeyConverter.SilentEncode(wrappedTx.Tx.GetRcvAddr(), log),
 		gasLimitField:    wrappedTx.Tx.GetGasLimit(),
 		gasPriceField:    wrappedTx.Tx.GetGasPrice(),
+		ppu:              wrappedTx.PricePerUnit,
 		rcvUsernameField: wrappedTx.Tx.GetRcvUserName(),
 		dataField:        wrappedTx.Tx.GetData(),
 		valueField:       getTxValue(wrappedTx),
@@ -416,6 +507,154 @@ func (atp *apiTransactionProcessor) getFieldGettersForTx(wrappedTx *txcache.Wrap
 	}
 
 	return fieldGetters
+}
+
+func (atp *apiTransactionProcessor) recreateTrie(blockchain data.ChainHandler, accountStateAPI state.AccountsAdapter) error {
+	if accountStateAPI == nil {
+		return ErrNilAccountStateAPI
+	}
+
+	if blockchain == nil {
+		return ErrNilBlockchain
+	}
+
+	currentRootHash, err := atp.getCurrentRootHash(blockchain)
+	if err != nil {
+		return err
+	}
+
+	blockHeader := blockchain.GetCurrentBlockHeader()
+	if blockHeader == nil {
+		return ErrNilBlockHeader
+	}
+
+	epoch := blockHeader.GetEpoch()
+	rootHashHolder := holders.NewRootHashHolder(currentRootHash, core.OptionalUint32{Value: epoch, HasValue: true})
+
+	// TODO: keep in mind that the selection simulation can be affected by other API requests which might alter the trie
+	err = accountStateAPI.RecreateTrie(rootHashHolder)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (atp *apiTransactionProcessor) getCurrentRootHash(
+	blockchain data.ChainHandler,
+) ([]byte, error) {
+	blockHeader := blockchain.GetCurrentBlockHeader()
+	if blockHeader == nil {
+		return nil, ErrNilBlockHeader
+	}
+
+	if blockHeader.IsHeaderV3() {
+		return getHeaderV3RootHash(blockchain)
+	}
+
+	currentRootHash := blockchain.GetCurrentBlockRootHash()
+	if currentRootHash == nil {
+		return nil, ErrNilCurrentRootHash
+	}
+
+	return currentRootHash, nil
+}
+
+func getHeaderV3RootHash(
+	blockchain data.ChainHandler,
+) ([]byte, error) {
+	_, _, lastExecutedRootHash := blockchain.GetLastExecutedBlockInfo()
+	if len(lastExecutedRootHash) != 0 {
+		return lastExecutedRootHash, nil
+	}
+
+	blockHeader := blockchain.GetCurrentBlockHeader()
+
+	// is first header v3, last executed block info might not be updated yet
+	// rootHash can be taken from last execution results directly from header
+	// on creation, the first header v3 has the last execution info from last header v2
+	// and it should be available
+	lastExecutionResult, err := common.ExtractBaseExecutionResultHandler(blockHeader.GetLastExecutionResultHandler())
+	if err != nil {
+		return nil, err
+	}
+
+	return lastExecutionResult.GetRootHash(), nil
+}
+
+func (atp *apiTransactionProcessor) selectTransactions(accountsAdapter state.AccountsAdapter, selectionOptions common.TxSelectionOptionsAPI) ([]common.Transaction, error) {
+	cacheId := process.ShardCacherIdentifier(atp.shardCoordinator.SelfId(), atp.shardCoordinator.SelfId())
+	cache := atp.dataPool.Transactions().ShardDataStore(cacheId)
+	txCache, ok := cache.(*txcache.TxCache)
+	if !ok {
+		log.Warn("apiTransactionProcessor.selectTransactions could not cast to TxCache")
+		return nil, ErrCouldNotCastToTxCache
+	}
+
+	argsSelectionSession := preprocess.ArgsSelectionSession{
+		AccountsAdapter:         accountsAdapter,
+		TransactionsProcessor:   atp.txProcessor,
+		TxVersionCheckerHandler: atp.txVersionChecker,
+	}
+
+	selectionSession, err := preprocess.NewSelectionSession(argsSelectionSession)
+	if err != nil {
+		log.Warn("apiTransactionProcessor.selectTransactions could not create SelectionSession")
+		return nil, err
+	}
+
+	selectedTxs, _, err := txCache.SimulateSelectTransactions(selectionSession, selectionOptions, 0)
+	if err != nil {
+		log.Warn("apiTransactionProcessor.selectTransactions could not SelectTransactions")
+		return nil, err
+	}
+
+	// selection done from outgoing txPool
+	return atp.extractTransactions(selectedTxs, selectionOptions, transaction.TxTypeNormal), nil
+}
+
+func (atp *apiTransactionProcessor) extractTransactions(txs []*txcache.WrappedTransaction, selectionOptions common.TxSelectionOptionsAPI, txType transaction.TxType) []common.Transaction {
+	requestedFieldsHandler := newFieldsHandler(selectionOptions.GetRequestedFields())
+
+	transactions := make([]common.Transaction, len(txs))
+	for i, tx := range txs {
+		transactions[i] = atp.extractRequestedTxInfo(tx, requestedFieldsHandler, txType)
+	}
+
+	return transactions
+}
+
+func (atp *apiTransactionProcessor) getVirtualNonceWithBlockInfo(
+	address []byte,
+) (uint64, *common.LatestCommittedBlockResponse, error) {
+	cacheId := process.ShardCacherIdentifier(atp.shardCoordinator.SelfId(), atp.shardCoordinator.SelfId())
+	cache := atp.dataPool.Transactions().ShardDataStore(cacheId)
+	txCache, ok := cache.(*txcache.TxCache)
+	if !ok {
+		log.Warn("apiTransactionProcessor.getVirtualNonceWithBlockInfo could not cast to TxCache")
+		return 0, nil, ErrCouldNotCastToTxCache
+	}
+
+	// the SelectionSession is used in this flow for fallbacks (e.g. the account does not exist in the proposed blocks, unexpected errors etc.)
+
+	latestCommittedBlockHash := atp.chainHandler.GetCurrentBlockHeaderHash()
+	currentHeader := atp.chainHandler.GetCurrentBlockHeader()
+	currentNonce := uint64(0)
+	if !check.IfNil(currentHeader) {
+		currentNonce = currentHeader.GetNonce()
+	}
+
+	virtualNonce, rootHash, err := txCache.GetVirtualNonceAndRootHash(address)
+	if err != nil {
+		log.Warn("apiTransactionProcessor.getVirtualNonceWithBlockInfo could not get virtual nonce")
+		return 0, nil, err
+	}
+
+	return virtualNonce, &common.LatestCommittedBlockResponse{
+		Nonce:    currentNonce,
+		Hash:     hex.EncodeToString(latestCommittedBlockHash),
+		RootHash: hex.EncodeToString(rootHash),
+	}, nil
 }
 
 func (atp *apiTransactionProcessor) fetchTxsForSender(sender string, senderShard uint32) []*txcache.WrappedTransaction {
@@ -511,20 +750,128 @@ func (atp *apiTransactionProcessor) getApiResultFromObj(txObj interface{}, txTyp
 	return tx
 }
 
-// computeTimestampForRound will return the timestamp for the given round
-func (atp *apiTransactionProcessor) computeTimestampForRound(round uint64) int64 {
+func (atp *apiTransactionProcessor) computeTimestampsForRound(round uint64) (int64, int64) {
 	if round == 0 {
-		return 0
+		return 0, 0
 	}
 
-	secondsSinceGenesis := round * atp.roundDuration
-	timestamp := atp.genesisTime.Add(time.Duration(secondsSinceGenesis) * time.Millisecond)
+	timestampMs := int64(atp.roundHandler.GetTimeStampForRound(round))
+	timestampSec := timestampMs / 1000
 
-	return timestamp.Unix()
+	return timestampSec, timestampMs
+}
+
+func (atp *apiTransactionProcessor) checkExecutionResultAndTx(txHash []byte, miniblockMetadata *dblookupext.MiniblockMetadata) (bool, error) {
+	isSupernovaEnabled := atp.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, miniblockMetadata.Round)
+	if !isSupernovaEnabled {
+		return true, nil
+	}
+
+	headerHash := miniblockMetadata.GetHeaderHash()
+	executionResultsStorer, errG := atp.storageService.GetStorer(dataRetriever.ExecutionResultsUnit)
+	if errG != nil {
+		return false, errG
+	}
+
+	executionResultsBytes, err := executionResultsStorer.GetFromEpoch(headerHash, miniblockMetadata.GetEpoch())
+	if err != nil {
+		return false, err
+	}
+
+	if atp.shardCoordinator.SelfId() == core.MetachainShardId {
+		// we cannot have unexecutable txs on metachain
+		return true, nil
+	}
+	executionResult, err := atp.getExecutionResultFromBytes(executionResultsBytes)
+	if err != nil {
+		return false, err
+	}
+
+	// check if the transaction miniblock metadata has a mb header on execution result
+	// if yes - the transaction was executed
+	// if no  - the transaction was proposed but not executed, unless it was settled through receipts
+	for _, mbHeader := range executionResult.GetMiniBlockHeaders() {
+		if bytes.Equal(mbHeader.Hash, miniblockMetadata.MiniblockHash) {
+			return true, nil
+		}
+	}
+
+	return atp.isTxSettledThroughReceipts(txHash, executionResult)
+}
+
+// isTxSettledThroughReceipts checks whether the transaction is part of a receipt of the block, that is of an
+// intra-shard miniblock created and settled during the execution of the block (for example, an in-shard refund).
+// Such miniblocks are not part of the execution result's miniblock headers, but their transactions were settled
+// during the execution of the parent transaction, so they must not be reported as not executed.
+func (atp *apiTransactionProcessor) isTxSettledThroughReceipts(txHash []byte, executionResult *block.ExecutionResult) (bool, error) {
+	receiptsHash := executionResult.GetReceiptsHash()
+	if len(receiptsHash) == 0 {
+		return false, nil
+	}
+
+	receiptsStorer, err := atp.storageService.GetStorer(dataRetriever.ReceiptsUnit)
+	if err != nil {
+		log.Debug("isTxSettledThroughReceipts(): cannot get the receipts storer", "error", err.Error())
+		return false, nil
+	}
+
+	receiptsBytes, err := receiptsStorer.GetFromEpoch(receiptsHash, executionResult.GetHeaderEpoch())
+	if err != nil {
+		if storage.IsNotFoundInStorageErr(err) {
+			return false, nil
+		}
+
+		return false, err
+	}
+
+	if len(receiptsBytes) == 0 {
+		return false, nil
+	}
+
+	receiptsBatch := &batch.Batch{}
+	err = atp.marshalizer.Unmarshal(receiptsBatch, receiptsBytes)
+	if err != nil {
+		return false, err
+	}
+
+	for _, miniBlockBytes := range receiptsBatch.Data {
+		miniBlock := &block.MiniBlock{}
+		err = atp.marshalizer.Unmarshal(miniBlock, miniBlockBytes)
+		if err != nil {
+			return false, err
+		}
+
+		for _, txHashInMiniBlock := range miniBlock.TxHashes {
+			if bytes.Equal(txHashInMiniBlock, txHash) {
+				return true, nil
+			}
+		}
+	}
+
+	return false, nil
+}
+
+func (atp *apiTransactionProcessor) getExecutionResultFromBytes(executionResultBytes []byte) (*block.ExecutionResult, error) {
+	executionResult := &block.ExecutionResult{}
+	err := atp.marshalizer.Unmarshal(executionResult, executionResultBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return executionResult, nil
 }
 
 func (atp *apiTransactionProcessor) lookupHistoricalTransaction(hash []byte, withResults bool) (*transaction.ApiTransactionResult, error) {
 	miniblockMetadata, err := atp.historyRepository.GetMiniblockMetadataByTxHash(hash)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", ErrTransactionNotFound.Error(), err)
+	}
+
+	if atp.isRoundExcluded(miniblockMetadata.Round) {
+		return nil, ErrTransactionNotFound
+	}
+
+	isExecuted, err := atp.checkExecutionResultAndTx(hash, miniblockMetadata)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", ErrTransactionNotFound.Error(), err)
 	}
@@ -542,17 +889,22 @@ func (atp *apiTransactionProcessor) lookupHistoricalTransaction(hash []byte, wit
 		txType = transaction.TxTypeInvalid
 	}
 
-	tx, err := atp.txUnmarshaller.unmarshalTransaction(txBytes, txType)
+	tx, err := atp.txUnmarshaller.unmarshalTransaction(txBytes, txType, miniblockMetadata.Epoch)
 	if err != nil {
 		log.Warn("lookupHistoricalTransaction(): unexpected condition, cannot unmarshal transaction")
 		return nil, fmt.Errorf("%s: %w", ErrCannotRetrieveTransaction.Error(), err)
 	}
 
 	putMiniblockFieldsInTransaction(tx, miniblockMetadata)
-	tx.Timestamp = atp.computeTimestampForRound(tx.Round)
+	tx.Timestamp, tx.TimestampMs = atp.computeTimestampsForRound(tx.Round)
 	statusComputer, err := txstatus.NewStatusComputer(atp.shardCoordinator.SelfId(), atp.uint64ByteSliceConverter, atp.storageService)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", ErrNilStatusComputer.Error(), err)
+	}
+
+	if !isExecuted {
+		tx.Status = transaction.TxStatusNotExecutable
+		return tx, nil
 	}
 
 	if ok, _ := statusComputer.SetStatusIfIsRewardReverted(
@@ -567,7 +919,7 @@ func (atp *apiTransactionProcessor) lookupHistoricalTransaction(hash []byte, wit
 		block.Type(miniblockMetadata.Type), tx)
 
 	if withResults {
-		err = atp.transactionResultsProcessor.putResultsInTransaction(hash, tx, miniblockMetadata.Epoch)
+		err = atp.transactionResultsProcessor.putResultsInTransaction(hash, tx, miniblockMetadata.Epoch, miniblockMetadata.Round)
 		if err != nil {
 			return nil, err
 		}
@@ -601,12 +953,17 @@ func (atp *apiTransactionProcessor) getTransactionFromStorage(hash []byte) (*tra
 		return nil, ErrTransactionNotFound
 	}
 
-	tx, err := atp.txUnmarshaller.unmarshalTransaction(txBytes, txType)
+	// will use the current epoch here as it is unknown at this point
+	// considering that this epoch will be used for relayed v1/v2, this may lead
+	// to inconsistent responses for relayed v1/v2 that will be returned from storage
+	// that were executed before deactivation and the request is made after
+	currentEpoch := atp.enableEpochsHandler.GetCurrentEpoch()
+	tx, err := atp.txUnmarshaller.unmarshalTransaction(txBytes, txType, currentEpoch)
 	if err != nil {
 		return nil, err
 	}
 
-	tx.Timestamp = atp.computeTimestampForRound(tx.Round)
+	tx.Timestamp, tx.TimestampMs = atp.computeTimestampsForRound(tx.Round)
 
 	// TODO: take care of this when integrating the adaptivity
 	statusComputer, err := txstatus.NewStatusComputer(atp.shardCoordinator.SelfId(), atp.uint64ByteSliceConverter, atp.storageService)
@@ -759,8 +1116,8 @@ func getTxValue(wrappedTx *txcache.WrappedTransaction) string {
 }
 
 // UnmarshalTransaction will try to unmarshal the transaction bytes based on the transaction type
-func (atp *apiTransactionProcessor) UnmarshalTransaction(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error) {
-	tx, err := atp.txUnmarshaller.unmarshalTransaction(txBytes, txType)
+func (atp *apiTransactionProcessor) UnmarshalTransaction(txBytes []byte, txType transaction.TxType, epoch uint32) (*transaction.ApiTransactionResult, error) {
+	tx, err := atp.txUnmarshaller.unmarshalTransaction(txBytes, txType, epoch)
 	if err != nil {
 		return nil, err
 	}
@@ -771,6 +1128,14 @@ func (atp *apiTransactionProcessor) UnmarshalTransaction(txBytes []byte, txType 
 // UnmarshalReceipt will try to unmarshal the provided receipts bytes
 func (atp *apiTransactionProcessor) UnmarshalReceipt(receiptBytes []byte) (*transaction.ApiReceipt, error) {
 	return atp.txUnmarshaller.unmarshalReceipt(receiptBytes)
+}
+
+func (atp *apiTransactionProcessor) isRoundExcluded(round uint64) bool {
+	if check.IfNil(atp.roundExclusionHandler) {
+		return false
+	}
+
+	return atp.roundExclusionHandler.IsRoundExcluded(round)
 }
 
 // IsInterfaceNil returns true if underlying object is nil

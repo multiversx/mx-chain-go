@@ -64,6 +64,12 @@
     # GovernanceEnableEpoch represents the epoch when governance is enabled
     GovernanceEnableEpoch = 1
 
+    # GovernanceDisableProposeEnableEpoch represents the epoch when governance disable proposal is enabled
+    GovernanceDisableProposeEnableEpoch = 1
+
+    # GovernanceFixesEnableEpoch represents the epoch when governance fixes are enabled
+    GovernanceFixesEnableEpoch = 1
+
     # DelegationManagerEnableEpoch represents the epoch when the delegation manager is enabled
     # epoch should not be 0
     DelegationManagerEnableEpoch = 1
@@ -159,9 +165,6 @@
 
     # StorageAPICostOptimizationEnableEpoch represents the epoch when new storage helper functions are enabled and cost is reduced in Wasm VM
     StorageAPICostOptimizationEnableEpoch = 1
-
-    # TransformToMultiShardCreateEnableEpoch represents the epoch when the new function on esdt system sc is enabled to transfer create role into multishard
-    TransformToMultiShardCreateEnableEpoch = 1
 
     # ESDTRegisterAndSetAllRolesEnableEpoch represents the epoch when new function to register tickerID and set all roles is enabled
     ESDTRegisterAndSetAllRolesEnableEpoch = 1
@@ -342,23 +345,57 @@
     # AndromedaEnableEpoch represents the epoch when the equivalent messages and fix order for consensus features are enabled
     AndromedaEnableEpoch = 1
 
+    # SupernovaEnableEpoch represents the epoch when sub-second finality will be enabled
+    SupernovaEnableEpoch = 2
+
+    # FixEpochChangeProposedCurrentEpochEnableEpoch represents the epoch when epoch change proposed blocks expose the prepared epoch
+    FixEpochChangeProposedCurrentEpochEnableEpoch = 3
+
+    # Keep disabled until a coordinated activation epoch is selected.
+    FixDataTrieLeafValidationEnableEpoch = 1 # TODO can be removed if proven that there is no import-db issue or set to the activation epoch when released
+
     # CheckBuiltInCallOnTransferValueAndFailEnableRound represents the ROUND when the check on transfer value fix is activated
     CheckBuiltInCallOnTransferValueAndFailEnableRound = 1
 
     # MaskVMInternalDependenciesErrorsEnableEpoch represents the epoch when the additional internal erorr masking in vm is enabled
-    MaskVMInternalDependenciesErrorsEnableEpoch = 2
+    MaskVMInternalDependenciesErrorsEnableEpoch = 1
 
     # FixBackTransferOPCODEEnableEpoch represents the epoch when the fix for back transfers opcode will be enabled
-    FixBackTransferOPCODEEnableEpoch = 2
+    FixBackTransferOPCODEEnableEpoch = 1
 
     # ValidationOnGobDecodeEnableEpoch represents the epoch when validation on GobDecode will be taken into account
-    ValidationOnGobDecodeEnableEpoch = 2
+    ValidationOnGobDecodeEnableEpoch = 1
 
     # BarnardOpcodesEnableEpoch represents the epoch when Barnard opcodes will be enabled
-    BarnardOpcodesEnableEpoch = 2
+    BarnardOpcodesEnableEpoch = 1
+
+    # FixGetBalanceEnableEpoch represents the epoch when get balance opcode fix is enabled
+    FixGetBalanceEnableEpoch = 1
 
     # AutomaticActivationOfNodesDisableEpoch represents the epoch when automatic activation of nodes for validators is disabled
-    AutomaticActivationOfNodesDisableEpoch = 2
+    AutomaticActivationOfNodesDisableEpoch = 1
+
+    # RelayedTransactionsV1V2DisableEpoch represents the epoch when relayed transactions v1 and v2 are disabled
+    RelayedTransactionsV1V2DisableEpoch = 1
+
+    # FullShardDataValidationEnableEpoch represents the epoch when NumPendingMiniBlocks and LastIncludedMetaNonce
+    # in meta ShardData are enforced during verification; before it, these two fields are skipped.
+    FullShardDataValidationEnableEpoch = 1
+
+    # ConsumedGasInEconomicsFixEnableEpoch represents the epoch when consumed gas in accumulated economics is fixed
+    ConsumedGasInEconomicsFixEnableEpoch = 1
+
+    # AttributeExtraGasUsageEnableEpoch represents the epoch when the extra gas usage for attributes is enabled
+    AttributeExtraGasUsageEnableEpoch = 1
+
+    # FixCorrectSmallIntAndGasLimitsEnableEpoch represents the epoch when the fix for signed small int encoding and gas loopholes is enabled
+    FixCorrectSmallIntAndGasLimitsEnableEpoch = 2
+
+    # OutputRollbackOnDestContextEnableEpoch represents the epoch when output state rollback on failed destination context calls is enabled
+    OutputRollbackOnDestContextEnableEpoch = 2
+
+    # KeepReturnDataOnAsyncTransferCallbackEnableEpoch represents the epoch when return data is preserved in async transfer callbacks
+    KeepReturnDataOnAsyncTransferCallbackEnableEpoch = 2
 
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [

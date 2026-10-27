@@ -18,8 +18,16 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/scheduled"
 	dataTransaction "github.com/multiversx/mx-chain-core-go/data/transaction"
-	dataTx "github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
+	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/forking"
@@ -52,8 +60,8 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
-	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
@@ -65,15 +73,8 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
+	"github.com/multiversx/mx-chain-go/txcache"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
-	"github.com/multiversx/mx-chain-vm-common-go/parsers"
-	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
-	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 // EpochGuardianDelay is the test constant for the delay in epochs for the guardian feature
@@ -318,7 +319,7 @@ func CreateAccount(accnts state.AccountsAdapter, pubKey []byte, nonce uint64, ba
 }
 
 func createEconomicsData(enableEpochsConfig config.EnableEpochs, gasPriceModifier float64) (process.EconomicsDataHandler, error) {
-	maxGasLimitPerBlock := strconv.FormatUint(math.MaxUint64, 10)
+	maxGasLimitPerBlock := strconv.FormatUint(math.MaxUint64-1, 10)
 	minGasPrice := strconv.FormatUint(1, 10)
 	minGasLimit := strconv.FormatUint(1, 10)
 	testProtocolSustainabilityAddress := "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp"
@@ -327,7 +328,8 @@ func createEconomicsData(enableEpochsConfig config.EnableEpochs, gasPriceModifie
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, realEpochNotifier)
 
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
-		TxVersionChecker: versioning.NewTxVersionChecker(minTransactionVersion),
+		TxVersionChecker:   versioning.NewTxVersionChecker(minTransactionVersion),
+		ChainParamsHandler: &chainParameters.ChainParametersHolderMock{},
 		Economics: &config.EconomicsConfig{
 			GlobalSettings: config.GlobalSettings{
 				GenesisTotalSupply: "2000000000000000000000",
@@ -347,6 +349,10 @@ func createEconomicsData(enableEpochsConfig config.EnableEpochs, gasPriceModifie
 						DeveloperPercentage:              0.1,
 						ProtocolSustainabilityAddress:    testProtocolSustainabilityAddress,
 						TopUpGradientPoint:               "100000",
+						EcosystemGrowthPercentage:        0.0,
+						EcosystemGrowthAddress:           testProtocolSustainabilityAddress,
+						GrowthDividendPercentage:         0.0,
+						GrowthDividendAddress:            testProtocolSustainabilityAddress,
 					},
 				},
 			},
@@ -578,7 +584,7 @@ func CreateVMAndBlockchainHookAndDataPool(
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(integrationtests.TestMarshalizer)
-	counter, _ := counters.NewUsageCounter(esdtTransferParser)
+	counter, _ := counters.NewUsageCounter(esdtTransferParser, enableEpochsHandler)
 
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
@@ -720,6 +726,7 @@ func CreateVMAndBlockchainHookMeta(
 		ChanceComputer:      &shardingMocks.NodesCoordinatorMock{},
 		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(1),
 		EnableEpochsHandler: enableEpochsHandler,
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 		NodesCoordinator:    &shardingMocks.NodesCoordinatorMock{},
 	}
 	vmFactory, err := metachain.NewVMContainerFactory(argVMContainer)
@@ -759,7 +766,8 @@ func createSystemSCConfig() *config.SystemSmartContractsConfig {
 				MinVetoThreshold: 0.5,
 				LostProposalFee:  "1",
 			},
-			OwnerAddress: "3132333435363738393031323334353637383930313233343536373839303234",
+			OwnerAddress:                 "3132333435363738393031323334353637383930313233343536373839303234",
+			MaxVotingDelayPeriodInEpochs: 30,
 		},
 		StakingSystemSCConfig: config.StakingSystemSCConfig{
 			GenesisNodePrice:                     "2500000000000000000000",
@@ -768,6 +776,7 @@ func createSystemSCConfig() *config.SystemSmartContractsConfig {
 			UnJailValue:                          "2500000000000000000",
 			MinStepValue:                         "100000000000000000000",
 			UnBondPeriod:                         250,
+			UnBondPeriodSupernova:                2500,
 			UnBondPeriodInEpochs:                 1,
 			NumRoundsWithoutBleed:                100,
 			MaximumPercentageToBleed:             0.5,
@@ -987,8 +996,9 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	})
 
 	dataFieldParser, err := datafield.NewOperationDataFieldParser(&datafield.ArgsOperationDataFieldParser{
-		AddressLength: pubkeyConv.Len(),
-		Marshalizer:   integrationtests.TestMarshalizer,
+		AddressLength:                       pubkeyConv.Len(),
+		Marshalizer:                         integrationtests.TestMarshalizer,
+		RelayedTransactionsV1V2DisableEpoch: enableEpochsHandler.GetActivationEpoch(common.RelayedTransactionsV1V2DisableFlag),
 	})
 	if err != nil {
 		return nil, err
@@ -1002,6 +1012,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		Hasher:                 integrationtests.TestHasher,
 		DataFieldParser:        dataFieldParser,
 		BlockChainHook:         blockChainHook,
+		TxLogsProcessor:        logProc,
 	}
 
 	argsNewSCProcessor.VMOutputCacher = txSimulatorProcessorArgs.VMOutputCacher
@@ -1013,6 +1024,8 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	if err != nil {
 		return nil, err
 	}
+
+	txSimulatorProcessorArgs.SCRProcessor = proxyProcessor
 
 	txSimulatorProcessorArgs.IntermediateProcContainer = interimProcContainer
 
@@ -1029,6 +1042,10 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		ShardCoordinator:    shardCoordinator,
 		EnableEpochsHandler: argsNewSCProcessor.EnableEpochsHandler,
 		BlockChain:          chainHandler,
+	}
+	if shardCoordinator.SelfId() == core.MetachainShardId {
+		// This fixture shares user and validator accounts.
+		argsTransactionEvaluator.PeerAccounts = simulationAccountsDB
 	}
 	apiTransactionEvaluator, err := transactionEvaluator.NewAPITransactionEvaluator(argsTransactionEvaluator)
 	if err != nil {
@@ -1761,7 +1778,7 @@ func GetVmOutput(
 }
 
 // ComputeGasLimit -
-func ComputeGasLimit(gasSchedule map[string]map[string]uint64, testContext *VMTestContext, tx *dataTx.Transaction) uint64 {
+func ComputeGasLimit(gasSchedule map[string]map[string]uint64, testContext *VMTestContext, tx *dataTransaction.Transaction) uint64 {
 	vmConfig := createDefaultVMConfig()
 	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasSchedule)
 	vmContainer, blockChainHook, _ := CreateVMAndBlockchainHookAndDataPool(

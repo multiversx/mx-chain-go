@@ -3,14 +3,16 @@ package preprocess
 import (
 	"bytes"
 	"errors"
+	"math/big"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/storage/txcache"
+	"github.com/multiversx/mx-chain-go/txcache"
 )
 
 func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
@@ -38,6 +40,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 			sortedTxs[index],
 			mbInfo)
 		if !shouldContinue {
+			txs.addUnExecutableTransaction(sortedTxs[index].TxHash)
 			continue
 		}
 
@@ -52,7 +55,8 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 			receiverShardID,
 			mbInfo)
 
-		if isMaxBlockSizeReached(txMbInfo.numNewMiniBlocks, txMbInfo.numNewTxs) {
+		if isMaxBlockSizeReached(txMbInfo.numNewMiniBlocks, txMbInfo.numNewTxs) &&
+			!common.IsAsyncExecutionEnabled(txs.enableEpochsHandler, txs.enableRoundsHandler) {
 			log.Debug("max txs accepted in one block is reached",
 				"num txs added", mbInfo.processingInfo.numTxsAdded,
 				"total txs", len(sortedTxs))
@@ -113,13 +117,35 @@ func (txs *transactions) createEmptyMiniBlocks(blockType block.Type, reserved []
 }
 
 func (txs *transactions) hasAddressEnoughInitialBalance(tx *transaction.Transaction) bool {
-	addressHasEnoughBalance := true
-	isAddressSet := txs.balanceComputation.IsAddressSet(tx.GetSndAddr())
-	if isAddressSet {
-		addressHasEnoughBalance = txs.balanceComputation.AddressHasEnoughBalance(tx.GetSndAddr(), getTxMaxTotalCost(tx))
+	sender := tx.GetSndAddr()
+	feePayer := sender
+	if common.IsAsyncExecutionEnabled(txs.enableEpochsHandler, txs.enableRoundsHandler) {
+		feePayer = common.GetFeePayer(tx)
 	}
 
-	return addressHasEnoughBalance
+	if bytes.Equal(feePayer, sender) {
+		if txs.balanceComputation.IsAddressSet(sender) {
+			return txs.balanceComputation.AddressHasEnoughBalance(sender, txs.getTxMaxTotalCost(tx))
+		}
+		return true
+	}
+
+	// fee payer pays only the fee, sender pays only the value
+	if txs.balanceComputation.IsAddressSet(feePayer) {
+		if !txs.balanceComputation.AddressHasEnoughBalance(feePayer, txs.getTxFee(tx)) {
+			return false
+		}
+	}
+
+	if tx.GetValue() != nil && tx.GetValue().Sign() > 0 {
+		if txs.balanceComputation.IsAddressSet(sender) {
+			if !txs.balanceComputation.AddressHasEnoughBalance(sender, tx.GetValue()) {
+				return false
+			}
+		}
+	}
+
+	return true
 }
 
 func (txs *transactions) processTransaction(
@@ -135,6 +161,7 @@ func (txs *transactions) processTransaction(
 	oldGasConsumedByMiniBlocksInSenderShard := mbInfo.gasInfo.gasConsumedByMiniBlocksInSenderShard
 	oldGasConsumedByMiniBlockInReceiverShard := mbInfo.gasInfo.gasConsumedByMiniBlockInReceiverShard
 	oldTotalGasConsumedInSelfShard := mbInfo.gasInfo.totalGasConsumedInSelfShard
+	isAsyncExecEnabled := common.IsAsyncExecutionEnabled(txs.enableEpochsHandler, txs.enableRoundsHandler)
 
 	startTime := time.Now()
 	gasProvidedByTxInSelfShard, err := txs.computeGasProvided(
@@ -142,7 +169,8 @@ func (txs *transactions) processTransaction(
 		receiverShardID,
 		tx,
 		txHash,
-		&mbInfo.gasInfo)
+		&mbInfo.gasInfo,
+		isAsyncExecEnabled)
 	elapsedTime := time.Since(startTime)
 	mbInfo.processingInfo.totalTimeUsedForComputeGasProvided += elapsedTime
 	if err != nil {
@@ -150,8 +178,10 @@ func (txs *transactions) processTransaction(
 		isTxTargetedForDeletion := errors.Is(err, process.ErrMaxGasLimitPerOneTxInReceiverShardIsReached)
 		if isTxTargetedForDeletion {
 			mbInfo.processingInfo.numCrossShardTxsWithTooMuchGas++
-			strCache := process.ShardCacherIdentifier(senderShardID, receiverShardID)
-			txs.txPool.RemoveData(txHash, strCache)
+			if !isAsyncExecEnabled {
+				strCache := process.ShardCacherIdentifier(senderShardID, receiverShardID)
+				txs.txPool.RemoveData(txHash, strCache)
+			}
 			return false, err
 		}
 		return true, err
@@ -191,6 +221,7 @@ func (txs *transactions) processTransaction(
 		mbInfo.gasInfo.gasConsumedByMiniBlocksInSenderShard = oldGasConsumedByMiniBlocksInSenderShard
 		mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] = oldGasConsumedByMiniBlockInReceiverShard
 		mbInfo.gasInfo.totalGasConsumedInSelfShard = oldTotalGasConsumedInSelfShard
+		txs.addUnExecutableTransaction(txHash)
 
 		return false, err
 	}
@@ -227,14 +258,23 @@ func (txs *transactions) processTransaction(
 		)
 		if !mbInfo.firstInvalidTxFound {
 			mbInfo.firstInvalidTxFound = true
-			txs.blockSizeComputation.AddNumMiniBlocks(1)
+			txs.addNumMiniBlocks(1)
 		}
 
-		txs.blockSizeComputation.AddNumTxs(1)
+		txs.addNumTxs(1)
 		mbInfo.processingInfo.numTxsFailed++
 	}
 
 	return false, err
+}
+
+func (txs *transactions) addUnExecutableTransaction(txHash []byte) {
+	if common.IsAsyncExecutionEnabled(txs.enableEpochsHandler, txs.enableRoundsHandler) {
+		log.Warn("createAndProcessMiniBlocksFromMeV2 found unexecutable tx", "txHash", txHash)
+		txs.mutUnExecutableTxs.Lock()
+		txs.unExecutableTransactions[string(txHash)] = struct{}{}
+		txs.mutUnExecutableTxs.Unlock()
+	}
 }
 
 func (txs *transactions) getMiniBlockSliceFromMapV2(mapMiniBlocks map[uint32]*block.MiniBlock) block.MiniBlockSlice {
@@ -342,14 +382,14 @@ func (txs *transactions) verifyTransaction(
 	oldGasConsumedByMiniBlocksInSenderShard := mbInfo.gasInfo.gasConsumedByMiniBlocksInSenderShard
 	oldGasConsumedByMiniBlockInReceiverShard := mbInfo.gasInfo.gasConsumedByMiniBlockInReceiverShard
 	oldTotalGasConsumedInSelfShard := mbInfo.gasInfo.totalGasConsumedInSelfShard
-
 	startTime := time.Now()
 	gasProvidedByTxInSelfShard, err := txs.computeGasProvided(
 		senderShardID,
 		receiverShardID,
 		tx,
 		txHash,
-		&mbInfo.gasInfo)
+		&mbInfo.gasInfo,
+		false)
 	elapsedTime := time.Since(startTime)
 	mbInfo.schedulingInfo.totalTimeUsedForScheduledComputeGasProvided += elapsedTime
 	if err != nil {
@@ -390,11 +430,7 @@ func (txs *transactions) verifyTransaction(
 		return err
 	}
 
-	txShardInfoToSet := &txShardInfo{senderShardID: senderShardID, receiverShardID: receiverShardID}
-	txs.txsForCurrBlock.mutTxsForBlock.Lock()
-	txs.txsForCurrBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: tx, txShardInfo: txShardInfoToSet}
-	txs.txsForCurrBlock.mutTxsForBlock.Unlock()
-
+	txs.txsForCurrBlock.AddTransaction(txHash, tx, senderShardID, receiverShardID)
 	return nil
 }
 
@@ -500,8 +536,9 @@ func (txs *transactions) shouldContinueProcessingTx(
 	txHash := wrappedTx.TxHash
 	senderShardID := wrappedTx.SenderShardID
 	receiverShardID := wrappedTx.ReceiverShardID
+	asyncExecEnabled := common.IsAsyncExecutionEnabled(txs.enableEpochsHandler, txs.enableRoundsHandler)
 
-	if senderShardID != receiverShardID && isShardStuck != nil && isShardStuck(receiverShardID) {
+	if senderShardID != receiverShardID && isShardStuck != nil && isShardStuck(receiverShardID) && !asyncExecEnabled {
 		log.Trace("shard is stuck", "shard", receiverShardID)
 		return nil, nil, false
 	}
@@ -579,35 +616,31 @@ func (txs *transactions) applyExecutedTransaction(
 	mbInfo *createAndProcessMiniBlocksInfo,
 ) {
 	mbInfo.senderAddressToSkip = []byte("")
-
-	if txs.balanceComputation.IsAddressSet(tx.GetSndAddr()) {
-		txMaxTotalCost := getTxMaxTotalCost(tx)
-		ok := txs.balanceComputation.SubBalanceFromAddress(tx.GetSndAddr(), txMaxTotalCost)
-		if !ok {
-			log.Error("applyExecutedTransaction.SubBalanceFromAddress",
-				"sender address", tx.GetSndAddr(),
-				"tx max total cost", txMaxTotalCost,
-				"err", process.ErrInsufficientFunds)
-		}
+	sender := tx.GetSndAddr()
+	feePayer := sender
+	if common.IsAsyncExecutionEnabled(txs.enableEpochsHandler, txs.enableRoundsHandler) {
+		feePayer = common.GetFeePayer(tx)
 	}
 
+	txs.subtractTxCostFromBalances(tx, sender, feePayer)
+
 	if len(miniBlock.TxHashes) == 0 {
-		txs.blockSizeComputation.AddNumMiniBlocks(1)
+		txs.addNumMiniBlocks(1)
 	}
 
 	miniBlock.TxHashes = append(miniBlock.TxHashes, txHash)
-	txs.blockSizeComputation.AddNumTxs(1)
+	txs.addNumTxs(1)
 	if txMbInfo.isCrossShardScCallOrSpecialTx {
 		if !mbInfo.firstCrossShardScCallOrSpecialTxFound {
 			mbInfo.firstCrossShardScCallOrSpecialTxFound = true
-			txs.blockSizeComputation.AddNumMiniBlocks(1)
+			txs.addNumMiniBlocks(1)
 		}
 		mbInfo.mapCrossShardScCallsOrSpecialTxs[receiverShardID]++
 		crossShardScCallsOrSpecialTxs := mbInfo.mapCrossShardScCallsOrSpecialTxs[receiverShardID]
 		if crossShardScCallsOrSpecialTxs > mbInfo.maxCrossShardScCallsOrSpecialTxsPerShard {
 			mbInfo.maxCrossShardScCallsOrSpecialTxsPerShard = crossShardScCallsOrSpecialTxs
-			//we need to increment this as to account for the corresponding SCR hash
-			txs.blockSizeComputation.AddNumTxs(common.AdditionalScrForEachScCallOrSpecialTx)
+			// we need to increment this as to account for the corresponding SCR hash
+			txs.addNumTxs(common.AdditionalScrForEachScCallOrSpecialTx)
 		}
 		mbInfo.processingInfo.numCrossShardScCallsOrSpecialTxs++
 	}
@@ -620,6 +653,34 @@ func (txs *transactions) applyExecutedTransaction(
 	}
 
 	mbInfo.processingInfo.numTxsAdded++
+}
+
+func (txs *transactions) subtractTxCostFromBalances(tx *transaction.Transaction, sender []byte, feePayer []byte) {
+	if bytes.Equal(feePayer, sender) {
+		txs.subtractBalanceIfSet(sender, txs.getTxMaxTotalCost(tx), "sender address")
+		return
+	}
+
+	// fee payer pays only the fee, sender pays only the value
+	txs.subtractBalanceIfSet(feePayer, txs.getTxFee(tx), "fee payer address")
+
+	if tx.GetValue() != nil && tx.GetValue().Sign() > 0 {
+		txs.subtractBalanceIfSet(sender, tx.GetValue(), "sender address")
+	}
+}
+
+func (txs *transactions) subtractBalanceIfSet(address []byte, amount *big.Int, addressLabel string) {
+	if !txs.balanceComputation.IsAddressSet(address) {
+		return
+	}
+
+	ok := txs.balanceComputation.SubBalanceFromAddress(address, amount)
+	if !ok {
+		log.Error("applyExecutedTransaction.SubBalanceFromAddress",
+			addressLabel, address,
+			"amount", amount,
+			"err", process.ErrInsufficientFunds)
+	}
 }
 
 func (txs *transactions) initCreateScheduledMiniBlocks() *createScheduledMiniBlocksInfo {
@@ -742,7 +803,7 @@ func (txs *transactions) applyVerifiedTransaction(
 	mbInfo *createScheduledMiniBlocksInfo,
 ) {
 	if txs.balanceComputation.IsAddressSet(tx.GetSndAddr()) {
-		txMaxTotalCost := getTxMaxTotalCost(tx)
+		txMaxTotalCost := txs.getTxMaxTotalCost(tx)
 		ok := txs.balanceComputation.SubBalanceFromAddress(tx.GetSndAddr(), txMaxTotalCost)
 		if !ok {
 			log.Error("applyVerifiedTransaction.SubBalanceFromAddress",
@@ -753,22 +814,22 @@ func (txs *transactions) applyVerifiedTransaction(
 	}
 
 	if len(miniBlock.TxHashes) == 0 {
-		txs.blockSizeComputation.AddNumMiniBlocks(1)
+		txs.addNumMiniBlocks(1)
 	}
 
 	miniBlock.TxHashes = append(miniBlock.TxHashes, txHash)
-	txs.blockSizeComputation.AddNumTxs(1)
+	txs.addNumTxs(1)
 	if scheduledTxMbInfo.isCrossShardScCallTx {
 		if !mbInfo.firstCrossShardScCallTxFound {
 			mbInfo.firstCrossShardScCallTxFound = true
-			txs.blockSizeComputation.AddNumMiniBlocks(1)
+			txs.addNumMiniBlocks(1)
 		}
 		mbInfo.mapCrossShardScCallTxs[receiverShardID]++
 		crossShardScCallTxs := mbInfo.mapCrossShardScCallTxs[receiverShardID]
 		if crossShardScCallTxs > mbInfo.maxCrossShardScCallTxsPerShard {
 			mbInfo.maxCrossShardScCallTxsPerShard = crossShardScCallTxs
-			//we need to increment this as to account for the corresponding SCR hash
-			txs.blockSizeComputation.AddNumTxs(common.AdditionalScrForEachScCallOrSpecialTx)
+			// we need to increment this as to account for the corresponding SCR hash
+			txs.addNumTxs(common.AdditionalScrForEachScCallOrSpecialTx)
 		}
 		mbInfo.schedulingInfo.numScheduledCrossShardScCalls++
 	}

@@ -93,6 +93,11 @@ func (srcf *shardRequestersContainerFactory) Create() (dataRetriever.RequestersC
 	return srcf.container, nil
 }
 
+// AddShardTrieNodeRequesters returns nil
+func (srcf *shardRequestersContainerFactory) AddShardTrieNodeRequesters(_ dataRetriever.RequestersContainer) error {
+	return nil
+}
+
 func (srcf *shardRequestersContainerFactory) generateHeaderRequesters() error {
 	shardC := srcf.shardCoordinator
 

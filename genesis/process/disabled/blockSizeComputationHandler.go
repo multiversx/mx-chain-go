@@ -16,6 +16,14 @@ func (b *BlockSizeComputationHandler) AddNumMiniBlocks(_ int) {
 func (b *BlockSizeComputationHandler) AddNumTxs(_ int) {
 }
 
+// DecNumMiniBlocks does nothing
+func (b *BlockSizeComputationHandler) DecNumMiniBlocks(numMiniBlocks int) {
+}
+
+// DecNumTxs does nothing
+func (b *BlockSizeComputationHandler) DecNumTxs(numTxs int) {
+}
+
 // IsMaxBlockSizeReached returns false as it is a disabled components
 func (b *BlockSizeComputationHandler) IsMaxBlockSizeReached(_ int, _ int) bool {
 	return false

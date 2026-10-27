@@ -5,10 +5,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
@@ -99,24 +99,6 @@ func createTriesHolderForShard() common.TriesHolder {
 }
 
 // ------- NewResolversContainerFactory
-
-func TestNewShardResolversContainerFactory_NewNumGoRoutinesThrottlerFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgumentsShard()
-	args.NumConcurrentResolvingJobs = 0
-
-	rcf, err := resolverscontainer.NewShardResolversContainerFactory(args)
-	assert.Nil(t, rcf)
-	assert.Equal(t, core.ErrNotPositiveValue, err)
-
-	args.NumConcurrentResolvingJobs = 10
-	args.NumConcurrentResolvingTrieNodesJobs = 0
-
-	rcf, err = resolverscontainer.NewShardResolversContainerFactory(args)
-	assert.Nil(t, rcf)
-	assert.Equal(t, core.ErrNotPositiveValue, err)
-}
 
 func TestNewShardResolversContainerFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
@@ -479,22 +461,28 @@ func TestShardResolversContainerFactory_IsInterfaceNil(t *testing.T) {
 
 func getArgumentsShard() resolverscontainer.FactoryArgs {
 	return resolverscontainer.FactoryArgs{
-		ShardCoordinator:                    mock.NewOneShardCoordinatorMock(),
-		MainMessenger:                       createMessengerStubForShard("", ""),
-		FullArchiveMessenger:                createMessengerStubForShard("", ""),
-		Store:                               createStoreForShard(),
-		Marshalizer:                         &mock.MarshalizerMock{},
-		DataPools:                           createDataPoolsForShard(),
-		Uint64ByteSliceConverter:            &mock.Uint64ByteSliceConverterMock{},
-		DataPacker:                          &mock.DataPackerStub{},
-		TriesContainer:                      createTriesHolderForShard(),
-		SizeCheckDelta:                      0,
-		InputAntifloodHandler:               &mock.P2PAntifloodHandlerStub{},
-		OutputAntifloodHandler:              &mock.P2PAntifloodHandlerStub{},
-		NumConcurrentResolvingJobs:          10,
-		NumConcurrentResolvingTrieNodesJobs: 3,
-		MainPreferredPeersHolder:            &p2pmocks.PeersHolderStub{},
-		FullArchivePreferredPeersHolder:     &p2pmocks.PeersHolderStub{},
-		PayloadValidator:                    &testscommon.PeerAuthenticationPayloadValidatorStub{},
+		ShardCoordinator:                mock.NewOneShardCoordinatorMock(),
+		MainMessenger:                   createMessengerStubForShard("", ""),
+		FullArchiveMessenger:            createMessengerStubForShard("", ""),
+		Store:                           createStoreForShard(),
+		Marshalizer:                     &mock.MarshalizerMock{},
+		DataPools:                       createDataPoolsForShard(),
+		Uint64ByteSliceConverter:        &mock.Uint64ByteSliceConverterMock{},
+		DataPacker:                      &mock.DataPackerStub{},
+		TriesContainer:                  createTriesHolderForShard(),
+		SizeCheckDelta:                  0,
+		InputAntifloodHandler:           &mock.P2PAntifloodHandlerStub{},
+		OutputAntifloodHandler:          &mock.P2PAntifloodHandlerStub{},
+		MainPreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
+		FullArchivePreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+		PayloadValidator:                &testscommon.PeerAuthenticationPayloadValidatorStub{},
+		AntifloodConfigsHandler: &testscommon.AntifloodConfigsHandlerStub{
+			GetCurrentConfigCalled: func() config.AntifloodConfigByRound {
+				return config.AntifloodConfigByRound{
+					NumConcurrentResolverJobs:           10,
+					NumConcurrentResolvingTrieNodesJobs: 3,
+				}
+			},
+		},
 	}
 }

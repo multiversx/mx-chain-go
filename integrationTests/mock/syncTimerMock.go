@@ -15,6 +15,10 @@ func (stm *SyncTimerMock) StartSyncingTime() {
 	panic("implement me")
 }
 
+// ForceSync -
+func (stm *SyncTimerMock) ForceSync() {
+}
+
 // ClockOffset method gets the current time offset
 func (stm *SyncTimerMock) ClockOffset() time.Duration {
 	if stm.ClockOffsetCalled != nil {

@@ -663,7 +663,10 @@ func (v *validatorSC) registerBLSKeys(
 			v.eei.AddReturnMessage("cannot do register: " + errExec.Error())
 			v.eei.Finish(blsKey)
 			v.eei.Finish([]byte{failed})
-			return nil, nil, err
+			if !v.enableEpochsHandler.IsFlagEnabled(common.ConsumedGasInEconomicsFlag) {
+				return nil, nil, err
+			}
+			return nil, nil, errExec
 		}
 
 		if vmOutput.ReturnCode != vmcommon.Ok {
@@ -802,6 +805,13 @@ func (v *validatorSC) reStakeUnStakedNodes(args *vmcommon.ContractCallInput) vmc
 	if !v.enableEpochsHandler.IsFlagEnabled(common.StakingV2Flag) {
 		v.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
+	}
+
+	if v.enableEpochsHandler.IsFlagEnabled(common.FixCorrectSmallIntAndGasLimitsFlag) {
+		if args.CallValue.Cmp(zero) != 0 {
+			v.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
+			return vmcommon.UserError
+		}
 	}
 
 	if len(args.Arguments) == 0 {

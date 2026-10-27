@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/rewardTransaction"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/state/trackableDataTrie"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -20,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/trie"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewRewardTxProcessor_NilAccountsDbShouldErr(t *testing.T) {
@@ -29,6 +31,8 @@ func TestNewRewardTxProcessor_NilAccountsDbShouldErr(t *testing.T) {
 		nil,
 		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3),
+		&marshallerMock.MarshalizerMock{},
+		&hashingMocks.HasherMock{},
 	)
 
 	assert.Nil(t, rtp)
@@ -42,6 +46,8 @@ func TestNewRewardTxProcessor_NilPubkeyConverterShouldErr(t *testing.T) {
 		&stateMock.AccountsStub{},
 		nil,
 		mock.NewMultiShardsCoordinatorMock(3),
+		&marshallerMock.MarshalizerMock{},
+		&hashingMocks.HasherMock{},
 	)
 
 	assert.Nil(t, rtp)
@@ -55,10 +61,41 @@ func TestNewRewardTxProcessor_NilShardCoordinatorShouldErr(t *testing.T) {
 		&stateMock.AccountsStub{},
 		createMockPubkeyConverter(),
 		nil,
+		&marshallerMock.MarshalizerMock{},
+		&hashingMocks.HasherMock{},
 	)
 
 	assert.Nil(t, rtp)
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
+}
+
+func TestNewRewardTxProcessor_NilMarshallerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	rtp, err := rewardTransaction.NewRewardTxProcessor(
+		&stateMock.AccountsStub{},
+		createMockPubkeyConverter(),
+		mock.NewMultiShardsCoordinatorMock(3),
+		nil,
+		&hashingMocks.HasherMock{},
+	)
+
+	assert.Nil(t, rtp)
+	assert.Equal(t, process.ErrNilMarshalizer, err)
+}
+func TestNewRewardTxProcessor_NilHasherShouldErr(t *testing.T) {
+	t.Parallel()
+
+	rtp, err := rewardTransaction.NewRewardTxProcessor(
+		&stateMock.AccountsStub{},
+		createMockPubkeyConverter(),
+		mock.NewMultiShardsCoordinatorMock(3),
+		&marshallerMock.MarshalizerMock{},
+		nil,
+	)
+
+	assert.Nil(t, rtp)
+	assert.Equal(t, process.ErrNilHasher, err)
 }
 
 func TestNewRewardTxProcessor_OkValsShouldWork(t *testing.T) {
@@ -68,6 +105,8 @@ func TestNewRewardTxProcessor_OkValsShouldWork(t *testing.T) {
 		&stateMock.AccountsStub{},
 		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3),
+		&marshallerMock.MarshalizerMock{},
+		&hashingMocks.HasherMock{},
 	)
 
 	assert.NotNil(t, rtp)
@@ -82,6 +121,8 @@ func TestRewardTxProcessor_ProcessRewardTransactionNilTxShouldErr(t *testing.T) 
 		&stateMock.AccountsStub{},
 		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3),
+		&marshallerMock.MarshalizerMock{},
+		&hashingMocks.HasherMock{},
 	)
 
 	err := rtp.ProcessRewardTransaction(nil)
@@ -95,6 +136,8 @@ func TestRewardTxProcessor_ProcessRewardTransactionNilTxValueShouldErr(t *testin
 		&stateMock.AccountsStub{},
 		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3),
+		&marshallerMock.MarshalizerMock{},
+		&hashingMocks.HasherMock{},
 	)
 
 	rwdTx := rewardTx.RewardTx{Value: nil}
@@ -119,6 +162,8 @@ func TestRewardTxProcessor_ProcessRewardTransactionAddressNotInNodesShardShouldN
 		},
 		createMockPubkeyConverter(),
 		shardCoord,
+		&marshallerMock.MarshalizerMock{},
+		&hashingMocks.HasherMock{},
 	)
 
 	rwdTx := rewardTx.RewardTx{
@@ -146,6 +191,8 @@ func TestRewardTxProcessor_ProcessRewardTransactionCannotGetAccountShouldErr(t *
 		},
 		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3),
+		&marshallerMock.MarshalizerMock{},
+		&hashingMocks.HasherMock{},
 	)
 
 	rwdTx := rewardTx.RewardTx{
@@ -157,6 +204,82 @@ func TestRewardTxProcessor_ProcessRewardTransactionCannotGetAccountShouldErr(t *
 
 	err := rtp.ProcessRewardTransaction(&rwdTx)
 	assert.Equal(t, expectedErr, err)
+}
+
+func TestRewardTxProcessor_ProcessRewardTransactionReservedAddressShouldBeConsumed(t *testing.T) {
+	t.Parallel()
+
+	loadCalls := 0
+	saveCalls := 0
+	stateAccessHashes := make([][]byte, 0)
+	accountsDB := &stateMock.AccountsStub{
+		LoadAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
+			loadCalls++
+			return nil, state.ErrAccountAddressIsReserved
+		},
+		SaveAccountCalled: func(_ vmcommon.AccountHandler) error {
+			saveCalls++
+			return nil
+		},
+		SetTxHashForLatestStateAccessesCalled: func(txHash []byte) {
+			stateAccessHashes = append(stateAccessHashes, append([]byte(nil), txHash...))
+		},
+	}
+	marshalizer := &marshallerMock.MarshalizerMock{}
+	hasher := &hashingMocks.HasherMock{}
+	rtp, err := rewardTransaction.NewRewardTxProcessor(
+		accountsDB,
+		createMockPubkeyConverter(),
+		mock.NewMultiShardsCoordinatorMock(3),
+		marshalizer,
+		hasher,
+	)
+	require.NoError(t, err)
+
+	rwdTx := &rewardTx.RewardTx{
+		Round:   1,
+		Epoch:   2,
+		Value:   big.NewInt(100),
+		RcvAddr: []byte("rcvr"),
+	}
+	expectedHash, err := core.CalculateHash(marshalizer, hasher, rwdTx)
+	require.NoError(t, err)
+
+	require.NoError(t, rtp.ProcessRewardTransaction(rwdTx))
+	require.NoError(t, rtp.ProcessRewardTransaction(rwdTx))
+	require.Equal(t, 2, loadCalls)
+	require.Zero(t, saveCalls)
+	require.Equal(t, [][]byte{expectedHash, expectedHash}, stateAccessHashes)
+}
+
+func TestRewardTxProcessor_ProcessRewardTransactionReservedAddressHashErrorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	stateAccessWasSet := false
+	accountsDB := &stateMock.AccountsStub{
+		LoadAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
+			return nil, state.ErrAccountAddressIsReserved
+		},
+		SetTxHashForLatestStateAccessesCalled: func(_ []byte) {
+			stateAccessWasSet = true
+		},
+	}
+	rtp, err := rewardTransaction.NewRewardTxProcessor(
+		accountsDB,
+		createMockPubkeyConverter(),
+		mock.NewMultiShardsCoordinatorMock(3),
+		&marshallerMock.MarshalizerMock{Fail: true},
+		&hashingMocks.HasherMock{},
+	)
+	require.NoError(t, err)
+
+	err = rtp.ProcessRewardTransaction(&rewardTx.RewardTx{
+		Value:   big.NewInt(100),
+		RcvAddr: []byte("rcvr"),
+	})
+
+	require.ErrorIs(t, err, marshallerMock.ErrMockMarshalizer)
+	require.False(t, stateAccessWasSet)
 }
 
 func TestRewardTxProcessor_ProcessRewardTransactionWrongTypeAssertionAccountHolderShouldErr(t *testing.T) {
@@ -172,6 +295,8 @@ func TestRewardTxProcessor_ProcessRewardTransactionWrongTypeAssertionAccountHold
 		accountsDb,
 		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3),
+		&marshallerMock.MarshalizerMock{},
+		&hashingMocks.HasherMock{},
 	)
 
 	rwdTx := rewardTx.RewardTx{
@@ -204,6 +329,8 @@ func TestRewardTxProcessor_ProcessRewardTransactionShouldWork(t *testing.T) {
 		accountsDb,
 		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3),
+		&marshallerMock.MarshalizerMock{},
+		&hashingMocks.HasherMock{},
 	)
 
 	rwdTx := rewardTx.RewardTx{
@@ -240,6 +367,8 @@ func TestRewardTxProcessor_ProcessRewardTransactionMissingTrieNode(t *testing.T)
 		accountsDb,
 		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3),
+		&marshallerMock.MarshalizerMock{},
+		&hashingMocks.HasherMock{},
 	)
 
 	rwdTx := rewardTx.RewardTx{
@@ -260,7 +389,13 @@ func TestRewardTxProcessor_ProcessRewardTransactionToASmartContractShouldWork(t 
 
 	address := []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6}
 
-	dtt, _ := trackableDataTrie.NewTrackableDataTrie(address, &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
+	dtt, _ := trackableDataTrie.NewTrackableDataTrie(
+		address,
+		&hashingMocks.HasherMock{},
+		&marshallerMock.MarshalizerMock{},
+		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		&stateMock.StateAccessesCollectorStub{},
+	)
 	userAccount, _ := accounts.NewUserAccount(address, dtt, &trie.TrieLeafParserStub{})
 	accountsDb := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
@@ -276,6 +411,8 @@ func TestRewardTxProcessor_ProcessRewardTransactionToASmartContractShouldWork(t 
 		accountsDb,
 		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3),
+		&marshallerMock.MarshalizerMock{},
+		&hashingMocks.HasherMock{},
 	)
 
 	rwdTx := rewardTx.RewardTx{

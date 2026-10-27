@@ -1,7 +1,9 @@
 package enablers
 
 import (
+	"fmt"
 	"math"
+	"reflect"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -38,6 +40,8 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		DoubleKeyProtectionEnableEpoch:                           19,
 		ESDTEnableEpoch:                                          20,
 		GovernanceEnableEpoch:                                    21,
+		GovernanceDisableProposeEnableEpoch:                      22,
+		GovernanceFixesEnableEpoch:                               23,
 		DelegationManagerEnableEpoch:                             22,
 		DelegationSmartContractEnableEpoch:                       23,
 		CorrectLastUnjailedEnableEpoch:                           24,
@@ -69,7 +73,6 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		IsPayableBySCEnableEpoch:                                 52,
 		CleanUpInformativeSCRsEnableEpoch:                        53,
 		StorageAPICostOptimizationEnableEpoch:                    54,
-		TransformToMultiShardCreateEnableEpoch:                   55,
 		ESDTRegisterAndSetAllRolesEnableEpoch:                    56,
 		ScheduledMiniBlocksEnableEpoch:                           57,
 		CorrectJailedNotUnstakedEmptyQueueEpoch:                  58,
@@ -132,6 +135,14 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		ValidationOnGobDecodeEnableEpoch:                         115,
 		BarnardOpcodesEnableEpoch:                                116,
 		AutomaticActivationOfNodesDisableEpoch:                   117,
+		RelayedTransactionsV1V2DisableEpoch:                      118,
+		FullShardDataValidationEnableEpoch:                       119,
+		ConsumedGasInEconomicsFixEnableEpoch:                     120,
+		AttributeExtraGasUsageEnableEpoch:                        121,
+		FixCorrectSmallIntAndGasLimitsEnableEpoch:                122,
+		OutputRollbackOnDestContextEnableEpoch:                   123,
+		SupernovaEnableEpoch:                                     124,
+		FixEpochChangeProposedCurrentEpochEnableEpoch:            125,
 	}
 }
 
@@ -197,6 +208,30 @@ func TestEnableEpochsHandler_IsFlagEnabledInEpoch(t *testing.T) {
 	require.False(t, handler.IsFlagEnabledInEpoch("new flag", 0))
 }
 
+func TestEnableEpochsHandler_FixEpochChangeProposedCurrentEpochFlag(t *testing.T) {
+	t.Parallel()
+
+	cfg := createEnableEpochsConfig()
+	handler, err := NewEnableEpochsHandler(cfg, &epochNotifier.EpochNotifierStub{})
+	require.NoError(t, err)
+
+	require.False(t, handler.IsFlagEnabledInEpoch(common.FixEpochChangeProposedCurrentEpochFlag, cfg.FixEpochChangeProposedCurrentEpochEnableEpoch-1))
+	require.True(t, handler.IsFlagEnabledInEpoch(common.FixEpochChangeProposedCurrentEpochFlag, cfg.FixEpochChangeProposedCurrentEpochEnableEpoch))
+	require.True(t, handler.IsFlagEnabledInEpoch(common.FixEpochChangeProposedCurrentEpochFlag, cfg.FixEpochChangeProposedCurrentEpochEnableEpoch+1))
+}
+
+func TestEnableEpochsHandler_FixDataTrieLeafValidation(t *testing.T) {
+	cfg := createEnableEpochsConfig()
+	cfg.FixDataTrieLeafValidationEnableEpoch = 200
+	handler, err := NewEnableEpochsHandler(cfg, &epochNotifier.EpochNotifierStub{})
+	require.NoError(t, err)
+	require.True(t, handler.IsFlagDefined(common.FixDataTrieLeafValidationFlag))
+	require.False(t, handler.IsFlagEnabledInEpoch(common.FixDataTrieLeafValidationFlag, 199))
+	require.True(t, handler.IsFlagEnabledInEpoch(common.FixDataTrieLeafValidationFlag, 200))
+	require.True(t, handler.IsFlagEnabledInEpoch(common.FixDataTrieLeafValidationFlag, 201))
+	require.Equal(t, uint32(200), handler.GetActivationEpoch(common.FixDataTrieLeafValidationFlag))
+}
+
 func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
 	t.Parallel()
 
@@ -241,6 +276,8 @@ func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
 	require.False(t, handler.IsFlagEnabled(common.ESDTFlagInSpecificEpochOnly)) // ==
 	require.True(t, handler.IsFlagEnabled(common.GovernanceFlag))
 	require.False(t, handler.IsFlagEnabled(common.GovernanceFlagInSpecificEpochOnly)) // ==
+	require.True(t, handler.IsFlagEnabled(common.GovernanceDisableProposeFlag))       // ==
+	require.True(t, handler.IsFlagEnabled(common.GovernanceFixesFlag))                // ==
 	require.True(t, handler.IsFlagEnabled(common.DelegationManagerFlag))
 	require.True(t, handler.IsFlagEnabled(common.DelegationSmartContractFlag))
 	require.False(t, handler.IsFlagEnabled(common.DelegationSmartContractFlagInSpecificEpochOnly)) // ==
@@ -336,6 +373,9 @@ func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
 	require.True(t, handler.IsFlagEnabled(common.FixRelayedMoveBalanceToNonPayableSCFlag))
 	require.True(t, handler.IsFlagEnabled(common.AndromedaFlag))
 	require.True(t, handler.IsFlagEnabled(common.DynamicESDTFlag))
+	require.True(t, handler.IsFlagEnabled(common.RelayedTransactionsV1V2DisableFlag))
+	require.True(t, handler.IsFlagEnabled(common.FullShardDataValidationFlag))
+	require.True(t, handler.IsFlagEnabled(common.SupernovaFlag))
 }
 
 func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
@@ -363,6 +403,8 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.DoubleKeyProtectionEnableEpoch, handler.GetActivationEpoch(common.DoubleKeyProtectionFlag))
 	require.Equal(t, cfg.ESDTEnableEpoch, handler.GetActivationEpoch(common.ESDTFlag))
 	require.Equal(t, cfg.GovernanceEnableEpoch, handler.GetActivationEpoch(common.GovernanceFlag))
+	require.Equal(t, cfg.GovernanceDisableProposeEnableEpoch, handler.GetActivationEpoch(common.GovernanceDisableProposeFlag))
+	require.Equal(t, cfg.GovernanceFixesEnableEpoch, handler.GetActivationEpoch(common.GovernanceFixesFlag))
 	require.Equal(t, cfg.DelegationManagerEnableEpoch, handler.GetActivationEpoch(common.DelegationManagerFlag))
 	require.Equal(t, cfg.DelegationSmartContractEnableEpoch, handler.GetActivationEpoch(common.DelegationSmartContractFlag))
 	require.Equal(t, cfg.CorrectLastUnjailedEnableEpoch, handler.GetActivationEpoch(common.CorrectLastUnJailedFlag))
@@ -468,6 +510,40 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.ValidationOnGobDecodeEnableEpoch, handler.GetActivationEpoch(common.ValidationOnGobDecodeFlag))
 	require.Equal(t, cfg.BarnardOpcodesEnableEpoch, handler.GetActivationEpoch(common.BarnardOpcodesFlag))
 	require.Equal(t, cfg.AutomaticActivationOfNodesDisableEpoch, handler.GetActivationEpoch(common.AutomaticActivationOfNodesDisableFlag))
+	require.Equal(t, cfg.FixGetBalanceEnableEpoch, handler.GetActivationEpoch(common.FixGetBalanceFlag))
+	require.Equal(t, cfg.RelayedTransactionsV1V2DisableEpoch, handler.GetActivationEpoch(common.RelayedTransactionsV1V2DisableFlag))
+	require.Equal(t, cfg.FullShardDataValidationEnableEpoch, handler.GetActivationEpoch(common.FullShardDataValidationFlag))
+	require.Equal(t, cfg.ConsumedGasInEconomicsFixEnableEpoch, handler.GetActivationEpoch(common.ConsumedGasInEconomicsFlag))
+	require.Equal(t, cfg.AttributeExtraGasUsageEnableEpoch, handler.GetActivationEpoch(common.AttributeExtraGasUsageFlag))
+	require.Equal(t, cfg.FixCorrectSmallIntAndGasLimitsEnableEpoch, handler.GetActivationEpoch(common.FixCorrectSmallIntAndGasLimitsFlag))
+	require.Equal(t, cfg.OutputRollbackOnDestContextEnableEpoch, handler.GetActivationEpoch(common.OutputRollbackOnDestContextFlag))
+	require.Equal(t, cfg.SupernovaEnableEpoch, handler.GetActivationEpoch(common.SupernovaFlag))
+	require.Equal(t, cfg.FixEpochChangeProposedCurrentEpochEnableEpoch, handler.GetActivationEpoch(common.FixEpochChangeProposedCurrentEpochFlag))
+}
+
+func TestEnableEpochsHandler_GetAllEnableEpochs(t *testing.T) {
+	t.Parallel()
+
+	cfg := createEnableEpochsConfig()
+	handler, _ := NewEnableEpochsHandler(cfg, &epochNotifier.EpochNotifierStub{})
+	require.NotNil(t, handler)
+
+	allEpochs := handler.GetAllEnableEpochs()
+	typeOfCfg := reflect.TypeOf(cfg)
+	valueOfCfg := reflect.ValueOf(cfg)
+	for i := 0; i < typeOfCfg.NumField(); i++ {
+		field := typeOfCfg.Field(i)
+		value := valueOfCfg.Field(i)
+		if field.Name == "MaxNodesChangeEnableEpoch" ||
+			field.Name == "BLSMultiSignerEnableEpoch" {
+			// slices, ignoring
+			continue
+		}
+
+		epoch, exists := allEpochs[field.Name]
+		require.True(t, exists, fmt.Sprintf("could not find: %s", field.Name))
+		require.Equal(t, value.Uint(), uint64(epoch))
+	}
 }
 
 func TestEnableEpochsHandler_IsInterfaceNil(t *testing.T) {

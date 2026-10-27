@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -43,7 +44,7 @@ type CoreComponentsMock struct {
 	RatingHandler                      sharding.PeerAccountListAndRatingHandler
 	NodesConfig                        sharding.GenesisNodesSetupHandler
 	EpochChangeNotifier                process.EpochNotifier
-	EnableRoundsHandlerField           process.EnableRoundsHandler
+	EnableRoundsHandlerField           common.EnableRoundsHandler
 	EpochNotifierWithConfirm           factory.EpochStartNotifierWithConfirm
 	ChanStopProcess                    chan endProcess.ArgEndProcess
 	Shuffler                           nodesCoordinator.NodesShuffler
@@ -58,6 +59,10 @@ type CoreComponentsMock struct {
 	ChainParametersSubscriberField     process.ChainParametersSubscriber
 	FieldsSizeCheckerField             common.FieldsSizeChecker
 	EpochChangeGracePeriodHandlerField common.EpochChangeGracePeriodHandler
+	ProcessConfigsHandlerField         common.ProcessConfigsHandler
+	CommonConfigsHandlerField          common.CommonConfigsHandler
+	AntifloodConfigsHandlerField       common.AntifloodConfigsHandler
+	ClosingNodeStartedField            *atomic.Bool
 }
 
 // Create -
@@ -142,7 +147,7 @@ func (ccm *CoreComponentsMock) RoundNotifier() process.RoundNotifier {
 }
 
 // EnableRoundsHandler -
-func (ccm *CoreComponentsMock) EnableRoundsHandler() process.EnableRoundsHandler {
+func (ccm *CoreComponentsMock) EnableRoundsHandler() common.EnableRoundsHandler {
 	return ccm.EnableRoundsHandlerField
 }
 
@@ -153,6 +158,11 @@ func (ccm *CoreComponentsMock) EpochStartNotifierWithConfirm() factory.EpochStar
 
 // GenesisTime -
 func (ccm *CoreComponentsMock) GenesisTime() time.Time {
+	return ccm.StartTime
+}
+
+// SupernovaGenesisTime -
+func (ccm *CoreComponentsMock) SupernovaGenesisTime() time.Time {
 	return ccm.StartTime
 }
 
@@ -281,6 +291,30 @@ func (ccm *CoreComponentsMock) FieldsSizeChecker() common.FieldsSizeChecker {
 // EpochChangeGracePeriodHandler -
 func (ccm *CoreComponentsMock) EpochChangeGracePeriodHandler() common.EpochChangeGracePeriodHandler {
 	return ccm.EpochChangeGracePeriodHandlerField
+}
+
+// ProcessConfigsHandler -
+func (ccm *CoreComponentsMock) ProcessConfigsHandler() common.ProcessConfigsHandler {
+	return ccm.ProcessConfigsHandlerField
+}
+
+// CommonConfigsHandler -
+func (ccm *CoreComponentsMock) CommonConfigsHandler() common.CommonConfigsHandler {
+	return ccm.CommonConfigsHandlerField
+}
+
+// AntifloodConfigsHandler -
+func (ccm *CoreComponentsMock) AntifloodConfigsHandler() common.AntifloodConfigsHandler {
+	return ccm.AntifloodConfigsHandlerField
+}
+
+// ClosingNodeStarted -
+func (ccm *CoreComponentsMock) ClosingNodeStarted() *atomic.Bool {
+	if ccm.ClosingNodeStartedField == nil {
+		ccm.ClosingNodeStartedField = &atomic.Bool{}
+	}
+
+	return ccm.ClosingNodeStartedField
 }
 
 // IsInterfaceNil -

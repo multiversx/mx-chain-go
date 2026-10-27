@@ -8,6 +8,9 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 )
 
+// ErrInvalidDataTrieLeaf signals a stored leaf inconsistent with the requested logical key.
+var ErrInvalidDataTrieLeaf = errors.New("invalid data trie leaf binding or version")
+
 // ErrAccountNotFoundAtBlock is an error-compatible struct holding the block info at which an account was not found
 type ErrAccountNotFoundAtBlock struct {
 	BlockInfo common.BlockInfo
@@ -59,6 +62,9 @@ var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 
 // ErrAccNotFound signals that account was not found in state trie
 var ErrAccNotFound = errors.New("account was not found")
+
+// ErrAccountAddressIsReserved signals that an account cannot be created at the requested address
+var ErrAccountAddressIsReserved = errors.New("account address is reserved")
 
 // ErrNilOrEmptyDataTrieUpdates signals that there are no data trie updates
 var ErrNilOrEmptyDataTrieUpdates = errors.New("no data trie updates")
@@ -140,7 +146,7 @@ var ErrNilAddressConverter = errors.New("nil address converter")
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 
 // ErrNilStateMetrics signals that a nil state metrics has been provided
-var ErrNilStateMetrics = errors.New("nil sstate metrics")
+var ErrNilStateMetrics = errors.New("nil state metrics")
 
 // ErrNilChannelsProvider signals that a nil channels provider has been given
 var ErrNilChannelsProvider = errors.New("nil channels provider")
@@ -165,3 +171,37 @@ var ErrValidatorsDifferentShards = errors.New("validators are not in the same sh
 
 // ErrValidatorNotFound signals that a validator was not found
 var ErrValidatorNotFound = errors.New("validator not found")
+
+// ErrNilStateAccessesCollector signals that a nil state access collector has been given
+var ErrNilStateAccessesCollector = errors.New("nil state accesses collector")
+
+// ErrStateAccessesIndexOutOfBounds signals that the state access index is out of bounds
+var ErrStateAccessesIndexOutOfBounds = errors.New("state access index out of bounds")
+
+// ErrNilStateAccessesStorer signals that a nil state accesses storer has been given
+var ErrNilStateAccessesStorer = errors.New("nil state accesses storer")
+
+// ErrStateAccessesRootMismatch signals that retained state accesses have an unexpected root hash
+var ErrStateAccessesRootMismatch = errors.New("state accesses root hash mismatch")
+
+// StateAccessesRootMismatchError contains state-access identity diagnostics
+type StateAccessesRootMismatchError struct {
+	HeaderHash   []byte
+	ExpectedRoot []byte
+	ActualRoot   []byte
+}
+
+// Error returns the root mismatch message
+func (e *StateAccessesRootMismatchError) Error() string {
+	return fmt.Sprintf("%s: headerHash = %s, expectedRoot = %s, actualRoot = %s",
+		ErrStateAccessesRootMismatch.Error(),
+		hex.EncodeToString(e.HeaderHash),
+		hex.EncodeToString(e.ExpectedRoot),
+		hex.EncodeToString(e.ActualRoot),
+	)
+}
+
+// Unwrap returns the root mismatch sentinel
+func (e *StateAccessesRootMismatchError) Unwrap() error {
+	return ErrStateAccessesRootMismatch
+}

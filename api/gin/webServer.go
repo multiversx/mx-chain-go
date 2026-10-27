@@ -12,25 +12,28 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	"github.com/multiversx/mx-chain-go/api/errors"
 	"github.com/multiversx/mx-chain-go/api/groups"
 	"github.com/multiversx/mx-chain-go/api/middleware"
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/facade"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var log = logger.GetOrCreate("api/gin")
 
 const prometheusMetricsRoute = "/debug/metrics/prometheus"
+const readHeaderTimeout = 10 * time.Second
 
 // ArgsNewWebServer holds the arguments needed to create a new instance of webServer
 type ArgsNewWebServer struct {
 	Facade          shared.FacadeHandler
 	ApiConfig       config.ApiRoutesConfig
 	AntiFloodConfig config.WebServerAntifloodConfig
+	TrieOperations  config.TrieOperationsConfig
 }
 
 type webServer struct {
@@ -38,6 +41,7 @@ type webServer struct {
 	facade          shared.FacadeHandler
 	apiConfig       config.ApiRoutesConfig
 	antiFloodConfig config.WebServerAntifloodConfig
+	trieOperations  config.TrieOperationsConfig
 	httpServer      shared.HttpServerCloser
 	groups          map[string]shared.GroupHandler
 	cancelFunc      func()
@@ -53,6 +57,7 @@ func NewGinWebServerHandler(args ArgsNewWebServer) (*webServer, error) {
 	return &webServer{
 		facade:          args.Facade,
 		antiFloodConfig: args.AntiFloodConfig,
+		trieOperations:  args.TrieOperations,
 		apiConfig:       args.ApiConfig,
 	}, nil
 }
@@ -126,7 +131,11 @@ func (ws *webServer) StartHttpServer() error {
 
 	ws.registerRoutes(engine)
 
-	server := &http.Server{Addr: ws.facade.RestApiInterface(), Handler: engine}
+	server := &http.Server{
+		Addr:              ws.facade.RestApiInterface(),
+		Handler:           engine,
+		ReadHeaderTimeout: readHeaderTimeout,
+	}
 	log.Debug("creating gin web sever", "interface", ws.facade.RestApiInterface())
 	ws.httpServer, err = NewHttpServer(server)
 	if err != nil {
@@ -238,11 +247,7 @@ func (ws *webServer) registerRoutes(ginRouter *gin.Engine) {
 
 func (ws *webServer) createMiddlewareLimiters() ([]shared.MiddlewareProcessor, error) {
 	middlewares := make([]shared.MiddlewareProcessor, 0)
-
-	if ws.apiConfig.Logging.LoggingEnabled {
-		responseLoggerMiddleware := middleware.NewResponseLoggerMiddleware(time.Duration(ws.apiConfig.Logging.ThresholdInMicroSeconds) * time.Microsecond)
-		middlewares = append(middlewares, responseLoggerMiddleware)
-	}
+	middlewares = append(middlewares, middleware.NewTrieOperationsTransport(ws.trieOperations))
 
 	if ws.antiFloodConfig.WebServerAntifloodEnabled {
 		sourceLimiter, err := middleware.NewSourceThrottler(ws.antiFloodConfig.SameSourceRequests)
@@ -263,6 +268,13 @@ func (ws *webServer) createMiddlewareLimiters() ([]shared.MiddlewareProcessor, e
 		}
 
 		middlewares = append(middlewares, globalLimiter)
+	}
+
+	middlewares = append(middlewares, middleware.NewTrieOperationsThrottler(ws.trieOperations))
+
+	if ws.apiConfig.Logging.LoggingEnabled {
+		responseLoggerMiddleware := middleware.NewResponseLoggerMiddleware(time.Duration(ws.apiConfig.Logging.ThresholdInMicroSeconds) * time.Microsecond)
+		middlewares = append(middlewares, responseLoggerMiddleware)
 	}
 
 	return middlewares, nil

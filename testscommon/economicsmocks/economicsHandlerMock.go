@@ -9,8 +9,7 @@ import (
 
 // EconomicsHandlerMock -
 type EconomicsHandlerMock struct {
-	MaxInflationRateCalled                              func(year uint32) float64
-	MinInflationRateCalled                              func() float64
+	MaxInflationRateCalled                              func(year uint32, epoch uint32) float64
 	LeaderPercentageCalled                              func() float64
 	ProtocolSustainabilityPercentageCalled              func() float64
 	ProtocolSustainabilityAddressCalled                 func() string
@@ -18,10 +17,13 @@ type EconomicsHandlerMock struct {
 	SetMinGasPriceCalled                                func(minGasPrice uint64)
 	SetMinGasLimitCalled                                func(minGasLimit uint64)
 	MaxGasLimitPerBlockCalled                           func(shardID uint32) uint64
+	MaxGasLimitPerBlockInEpochCalled                    func(shardID uint32, epoch uint32) uint64
 	MaxGasLimitPerMiniBlockCalled                       func(shardID uint32) uint64
 	MaxGasLimitPerBlockForSafeCrossShardCalled          func() uint64
+	MaxGasLimitPerBlockForSafeCrossShardInEpochCalled   func(epoch uint32) uint64
 	MaxGasLimitPerMiniBlockForSafeCrossShardCalled      func() uint64
 	MaxGasLimitPerTxCalled                              func() uint64
+	MaxGasLimitPerTxInEpochCalled                       func(epoch uint32) uint64
 	ComputeGasLimitCalled                               func(tx data.TransactionWithFeeHandler) uint64
 	ComputeFeeCalled                                    func(tx data.TransactionWithFeeHandler) *big.Int
 	CheckValidityTxValuesCalled                         func(tx data.TransactionWithFeeHandler) error
@@ -51,12 +53,18 @@ type EconomicsHandlerMock struct {
 	ComputeTxFeeBasedOnGasUsedInEpochCalled             func(tx data.TransactionWithFeeHandler, gasUsed uint64, epoch uint32) *big.Int
 	GenesisTotalSupplyCalled                            func() *big.Int
 	MaxGasPriceSetGuardianCalled                        func() uint64
+	BlockCapacityOverestimationFactorCalled             func() uint64
 	LeaderPercentageInEpochCalled                       func(epoch uint32) float64
 	DeveloperPercentageInEpochCalled                    func(epoch uint32) float64
 	ProtocolSustainabilityPercentageInEpochCalled       func(epoch uint32) float64
 	ProtocolSustainabilityAddressInEpochCalled          func(epoch uint32) string
 	RewardsTopUpGradientPointInEpochCalled              func(epoch uint32) *big.Int
 	RewardsTopUpFactorInEpochCalled                     func(epoch uint32) float64
+	EcosystemGrowthPercentageInEpochCalled              func(epoch uint32) float64
+	EcosystemGrowthAddressInEpochCalled                 func(epoch uint32) string
+	GrowthDividendPercentageInEpochCalled               func(epoch uint32) float64
+	GrowthDividendAddressInEpochCalled                  func(epoch uint32) string
+	IsTailInflationEnabledCalled                        func(epoch uint32) bool
 }
 
 // ComputeGasUnitsFromRefundValue -
@@ -79,14 +87,14 @@ func (ehm *EconomicsHandlerMock) ProtocolSustainabilityAddress() string {
 	return ehm.ProtocolSustainabilityAddressCalled()
 }
 
-// MinInflationRate -
-func (ehm *EconomicsHandlerMock) MinInflationRate() float64 {
-	return ehm.MinInflationRateCalled()
+// MaxInflationRate -
+func (ehm *EconomicsHandlerMock) MaxInflationRate(year uint32, epoch uint32) float64 {
+	return ehm.MaxInflationRateCalled(year, epoch)
 }
 
-// MaxInflationRate -
-func (ehm *EconomicsHandlerMock) MaxInflationRate(year uint32) float64 {
-	return ehm.MaxInflationRateCalled(year)
+// IsTailInflationEnabled -
+func (ehm *EconomicsHandlerMock) IsTailInflationEnabled(epoch uint32) bool {
+	return ehm.IsTailInflationEnabledCalled(epoch)
 }
 
 // MinGasPrice -
@@ -114,6 +122,14 @@ func (ehm *EconomicsHandlerMock) ExtraGasLimitGuardedTx() uint64 {
 func (ehm *EconomicsHandlerMock) MaxGasPriceSetGuardian() uint64 {
 	if ehm.MaxGasPriceSetGuardianCalled != nil {
 		return ehm.MaxGasPriceSetGuardianCalled()
+	}
+	return 0
+}
+
+// BlockCapacityOverestimationFactor -
+func (ehm *EconomicsHandlerMock) BlockCapacityOverestimationFactor() uint64 {
+	if ehm.BlockCapacityOverestimationFactorCalled != nil {
+		return ehm.BlockCapacityOverestimationFactorCalled()
 	}
 	return 0
 }
@@ -162,6 +178,14 @@ func (ehm *EconomicsHandlerMock) MaxGasLimitPerBlock(shardID uint32) uint64 {
 	return 0
 }
 
+// MaxGasLimitPerBlockInEpoch -
+func (ehm *EconomicsHandlerMock) MaxGasLimitPerBlockInEpoch(shardID uint32, epoch uint32) uint64 {
+	if ehm.MaxGasLimitPerBlockInEpochCalled != nil {
+		return ehm.MaxGasLimitPerBlockInEpochCalled(shardID, epoch)
+	}
+	return 0
+}
+
 // MaxGasLimitPerMiniBlock -
 func (ehm *EconomicsHandlerMock) MaxGasLimitPerMiniBlock(shardID uint32) uint64 {
 	if ehm.MaxGasLimitPerMiniBlockCalled != nil {
@@ -178,6 +202,14 @@ func (ehm *EconomicsHandlerMock) MaxGasLimitPerBlockForSafeCrossShard() uint64 {
 	return 0
 }
 
+// MaxGasLimitPerBlockForSafeCrossShardInEpoch -
+func (ehm *EconomicsHandlerMock) MaxGasLimitPerBlockForSafeCrossShardInEpoch(epoch uint32) uint64 {
+	if ehm.MaxGasLimitPerBlockForSafeCrossShardInEpochCalled != nil {
+		return ehm.MaxGasLimitPerBlockForSafeCrossShardInEpochCalled(epoch)
+	}
+	return 0
+}
+
 // MaxGasLimitPerMiniBlockForSafeCrossShard -
 func (ehm *EconomicsHandlerMock) MaxGasLimitPerMiniBlockForSafeCrossShard() uint64 {
 	if ehm.MaxGasLimitPerMiniBlockForSafeCrossShardCalled != nil {
@@ -190,6 +222,14 @@ func (ehm *EconomicsHandlerMock) MaxGasLimitPerMiniBlockForSafeCrossShard() uint
 func (ehm *EconomicsHandlerMock) MaxGasLimitPerTx() uint64 {
 	if ehm.MaxGasLimitPerTxCalled != nil {
 		return ehm.MaxGasLimitPerTxCalled()
+	}
+	return 0
+}
+
+// MaxGasLimitPerTxInEpoch -
+func (ehm *EconomicsHandlerMock) MaxGasLimitPerTxInEpoch(epoch uint32) uint64 {
+	if ehm.MaxGasLimitPerTxInEpochCalled != nil {
+		return ehm.MaxGasLimitPerTxInEpochCalled(epoch)
 	}
 	return 0
 }
@@ -424,6 +464,38 @@ func (ehm *EconomicsHandlerMock) MaxGasHigherFactorAccepted() uint64 {
 		return ehm.MaxGasHigherFactorAcceptedCalled()
 	}
 	return 10
+}
+
+// EcosystemGrowthAddressInEpoch -
+func (ehm *EconomicsHandlerMock) EcosystemGrowthAddressInEpoch(epoch uint32) string {
+	if ehm.EcosystemGrowthAddressInEpochCalled != nil {
+		return ehm.EcosystemGrowthAddressInEpochCalled(epoch)
+	}
+	return ""
+}
+
+// GrowthDividendAddressInEpoch -
+func (ehm *EconomicsHandlerMock) GrowthDividendAddressInEpoch(epoch uint32) string {
+	if ehm.GrowthDividendAddressInEpochCalled != nil {
+		return ehm.GrowthDividendAddressInEpochCalled(epoch)
+	}
+	return ""
+}
+
+// EcosystemGrowthPercentageInEpoch -
+func (ehm *EconomicsHandlerMock) EcosystemGrowthPercentageInEpoch(epoch uint32) float64 {
+	if ehm.EcosystemGrowthPercentageInEpochCalled != nil {
+		return ehm.EcosystemGrowthPercentageInEpochCalled(epoch)
+	}
+	return 0
+}
+
+// GrowthDividendPercentageInEpoch -
+func (ehm *EconomicsHandlerMock) GrowthDividendPercentageInEpoch(epoch uint32) float64 {
+	if ehm.GrowthDividendPercentageInEpochCalled != nil {
+		return ehm.GrowthDividendPercentageInEpochCalled(epoch)
+	}
+	return 0
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

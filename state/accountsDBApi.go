@@ -6,9 +6,10 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 type accountsDBApi struct {
@@ -165,14 +166,14 @@ func (accountsDB *accountsDBApi) RootHash() ([]byte, error) {
 	return blockInfo.GetRootHash(), nil
 }
 
-// RecreateTrie is a not permitted operation in this implementation and thus, will return an error
+// RecreateTrie is used to reload the trie based on the provided options
 func (accountsDB *accountsDBApi) RecreateTrie(options common.RootHashHolder) error {
-	accountsDB.mutRecreatedTrieBlockInfo.Lock()
-	defer accountsDB.mutRecreatedTrieBlockInfo.Unlock()
-
 	if check.IfNil(options) {
 		return ErrNilRootHashHolder
 	}
+
+	accountsDB.mutRecreatedTrieBlockInfo.Lock()
+	defer accountsDB.mutRecreatedTrieBlockInfo.Unlock()
 
 	newBlockInfo := holders.NewBlockInfo([]byte{}, 0, options.GetRootHash())
 	if newBlockInfo.Equal(accountsDB.blockInfo) {
@@ -190,12 +191,41 @@ func (accountsDB *accountsDBApi) RecreateTrie(options common.RootHashHolder) err
 	return nil
 }
 
+// RecreateTrieIfNeeded is used to reload the trie based on the provided options only if the root hash is different than the current one
+func (accountsDB *accountsDBApi) RecreateTrieIfNeeded(options common.RootHashHolder) error {
+	if check.IfNil(options) {
+		return ErrNilRootHashHolder
+	}
+
+	accountsDB.mutRecreatedTrieBlockInfo.Lock()
+	defer accountsDB.mutRecreatedTrieBlockInfo.Unlock()
+
+	newBlockInfo := holders.NewBlockInfo([]byte{}, 0, options.GetRootHash())
+	if newBlockInfo.Equal(accountsDB.blockInfo) {
+		return nil
+	}
+
+	err := accountsDB.innerAccountsAdapter.RecreateTrieIfNeeded(options)
+	if err != nil {
+		accountsDB.blockInfo = nil
+		return err
+	}
+
+	accountsDB.blockInfo = newBlockInfo
+
+	return nil
+}
+
 // PruneTrie is a not permitted operation in this implementation and thus, does nothing
 func (accountsDB *accountsDBApi) PruneTrie(_ []byte, _ TriePruningIdentifier, _ PruningHandler) {
 }
 
 // CancelPrune is a not permitted operation in this implementation and thus, does nothing
 func (accountsDB *accountsDBApi) CancelPrune(_ []byte, _ TriePruningIdentifier) {
+}
+
+// ResetPruning is a not permitted operation in this implementation and thus, does nothing
+func (accountsDB *accountsDBApi) ResetPruning() {
 }
 
 // SnapshotState is a not permitted operation in this implementation and thus, does nothing
@@ -230,6 +260,11 @@ func (accountsDB *accountsDBApi) GetTrie(rootHash []byte) (common.Trie, error) {
 // GetStackDebugFirstEntry will call the inner accountsAdapter method
 func (accountsDB *accountsDBApi) GetStackDebugFirstEntry() []byte {
 	return accountsDB.innerAccountsAdapter.GetStackDebugFirstEntry()
+}
+
+// SetTxHashForLatestStateAccesses will call the inner accountsAdapter method
+func (accountsDB *accountsDBApi) SetTxHashForLatestStateAccesses(txHash []byte) {
+	accountsDB.innerAccountsAdapter.SetTxHashForLatestStateAccesses(txHash)
 }
 
 // Close will handle the closing of the underlying components
@@ -271,6 +306,11 @@ func (accountsDB *accountsDBApi) GetCodeWithBlockInfo(codeHash []byte, _ common.
 	}
 
 	return accountsDB.innerAccountsAdapter.GetCode(codeHash), blockInfo, nil
+}
+
+// GetEvictionWaitingListSize returns 0 for the API accounts adapter
+func (adb *accountsDBApi) GetEvictionWaitingListSize() int {
+	return 0
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

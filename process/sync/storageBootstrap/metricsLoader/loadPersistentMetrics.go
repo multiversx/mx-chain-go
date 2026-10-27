@@ -47,7 +47,7 @@ func getTotalTxsAndHdrs(metrics map[string]uint64) (uint64, uint64) {
 	return numTxs, numHdrs
 }
 
-// LoadMetricsFromDb will load from storage metrics
+// loadMetricsFromDb will load from storage metrics
 func loadMetricsFromDb(store dataRetriever.StorageService, uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter, marshalizer marshal.Marshalizer, nonce uint64,
 ) (map[string]uint64, map[string]string) {
 	nonceBytes := uint64ByteSliceConverter.ToByteSlice(nonce)

@@ -4,6 +4,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/heartbeat"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -58,10 +59,10 @@ func (hip *heartbeatInterceptorProcessor) Validate(_ process.InterceptedData, _ 
 }
 
 // Save will save the intercepted heartbeat inside the heartbeat cacher
-func (hip *heartbeatInterceptorProcessor) Save(data process.InterceptedData, fromConnectedPeer core.PeerID, _ string) error {
+func (hip *heartbeatInterceptorProcessor) Save(data process.InterceptedData, fromConnectedPeer core.PeerID, _ string, _ p2p.BroadcastMethod) (bool, error) {
 	interceptedHeartbeat, ok := data.(interceptedHeartbeatMessageHandler)
 	if !ok {
-		return process.ErrWrongTypeAssertion
+		return false, process.ErrWrongTypeAssertion
 	}
 
 	hip.heartbeatCacher.Put(fromConnectedPeer.Bytes(), interceptedHeartbeat.Message(), interceptedHeartbeat.SizeInBytes())
@@ -69,10 +70,10 @@ func (hip *heartbeatInterceptorProcessor) Save(data process.InterceptedData, fro
 	return hip.updatePeerInfo(interceptedHeartbeat.Message(), fromConnectedPeer)
 }
 
-func (hip *heartbeatInterceptorProcessor) updatePeerInfo(message interface{}, fromConnectedPeer core.PeerID) error {
+func (hip *heartbeatInterceptorProcessor) updatePeerInfo(message interface{}, fromConnectedPeer core.PeerID) (bool, error) {
 	heartbeatData, ok := message.(*heartbeat.HeartbeatV2)
 	if !ok {
-		return process.ErrWrongTypeAssertion
+		return false, process.ErrWrongTypeAssertion
 	}
 
 	hip.peerShardMapper.PutPeerIdShardId(fromConnectedPeer, hip.shardCoordinator.SelfId())
@@ -80,7 +81,7 @@ func (hip *heartbeatInterceptorProcessor) updatePeerInfo(message interface{}, fr
 
 	log.Trace("Heartbeat message saved")
 
-	return nil
+	return true, nil
 }
 
 // RegisterHandler registers a callback function to be notified of incoming hearbeat

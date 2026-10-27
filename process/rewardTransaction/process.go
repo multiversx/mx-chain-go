@@ -1,17 +1,23 @@
 package rewardTransaction
 
 import (
+	"errors"
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ process.RewardTransactionProcessor = (*rewardTxProcessor)(nil)
+
+var log = logger.GetOrCreate("process/reward")
 
 const rewardKey = "reward"
 
@@ -19,6 +25,8 @@ type rewardTxProcessor struct {
 	accounts         state.AccountsAdapter
 	pubkeyConv       core.PubkeyConverter
 	shardCoordinator sharding.Coordinator
+	marshaller       marshal.Marshalizer
+	hasher           hashing.Hasher
 }
 
 // NewRewardTxProcessor creates a rewardTxProcessor instance
@@ -26,6 +34,8 @@ func NewRewardTxProcessor(
 	accountsDB state.AccountsAdapter,
 	pubkeyConv core.PubkeyConverter,
 	coordinator sharding.Coordinator,
+	marshaller marshal.Marshalizer,
+	hasher hashing.Hasher,
 ) (*rewardTxProcessor, error) {
 	if check.IfNil(accountsDB) {
 		return nil, process.ErrNilAccountsAdapter
@@ -36,11 +46,19 @@ func NewRewardTxProcessor(
 	if check.IfNil(coordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
+	if check.IfNil(marshaller) {
+		return nil, process.ErrNilMarshalizer
+	}
+	if check.IfNil(hasher) {
+		return nil, process.ErrNilHasher
+	}
 
 	return &rewardTxProcessor{
 		accounts:         accountsDB,
 		pubkeyConv:       pubkeyConv,
 		shardCoordinator: coordinator,
+		marshaller:       marshaller,
+		hasher:           hasher,
 	}, nil
 }
 
@@ -75,6 +93,16 @@ func (rtp *rewardTxProcessor) ProcessRewardTransaction(rTx *rewardTx.RewardTx) e
 
 	accHandler, err := rtp.getAccountFromAddress(rTx.RcvAddr)
 	if err != nil {
+		if errors.Is(err, state.ErrAccountAddressIsReserved) {
+			txHash, hashErr := rtp.computeRewardTxHash(rTx)
+			if hashErr != nil {
+				return hashErr
+			}
+
+			rtp.setTxHashForLatestStateAccesses(txHash)
+			return nil
+		}
+
 		return err
 	}
 
@@ -91,6 +119,16 @@ func (rtp *rewardTxProcessor) ProcessRewardTransaction(rTx *rewardTx.RewardTx) e
 		rtp.pubkeyConv,
 	)
 
+	txHash, err := rtp.computeRewardTxHash(rTx)
+	if err != nil {
+		return err
+	}
+
+	// TODO refactor to set the tx hash for the following state accesses before the processing occurs
+	defer func() {
+		rtp.setTxHashForLatestStateAccesses(txHash)
+	}()
+
 	err = accHandler.AddToBalance(rTx.Value)
 	if err != nil {
 		return err
@@ -102,6 +140,21 @@ func (rtp *rewardTxProcessor) ProcessRewardTransaction(rTx *rewardTx.RewardTx) e
 	}
 
 	return rtp.accounts.SaveAccount(accHandler)
+}
+
+func (rtp *rewardTxProcessor) computeRewardTxHash(rTx *rewardTx.RewardTx) ([]byte, error) {
+	txHash, err := core.CalculateHash(rtp.marshaller, rtp.hasher, rTx)
+	if err != nil {
+		log.Debug("CalculateHash error", "error", err)
+		return nil, err
+	}
+
+	return txHash, nil
+}
+
+func (rtp *rewardTxProcessor) setTxHashForLatestStateAccesses(txHash []byte) {
+	rtp.accounts.SetTxHashForLatestStateAccesses(txHash)
+	log.Trace("SetTxHashForLatestStateAccesses", "txHash", txHash)
 }
 
 func (rtp *rewardTxProcessor) saveAccumulatedRewards(

@@ -1365,9 +1365,20 @@ func addEpochStartHeader(t *testing.T, tpn *integrationTests.TestProcessorNode, 
 }
 
 func addRewardsToDelegation(t *testing.T, tpn *integrationTests.TestProcessorNode, recvAddr []byte, value *big.Int, epoch uint32, nonce uint64) {
+	addRewardsToDelegationForHeader(t, tpn, recvAddr, value, &block.Header{Epoch: epoch, Nonce: nonce})
+}
+
+func addRewardsToDelegationForHeader(
+	t *testing.T,
+	tpn *integrationTests.TestProcessorNode,
+	recvAddr []byte,
+	value *big.Int,
+	header data.HeaderHandler,
+) {
+	epoch := header.GetEpoch()
 	addEpochStartHeader(t, tpn, epoch, 0)
 
-	err := tpn.BlockchainHook.SetCurrentHeader(&block.Header{Epoch: epoch, Nonce: nonce})
+	err := tpn.BlockchainHook.SetCurrentHeader(header)
 	assert.Nil(t, err)
 
 	tx := &rewardTx.RewardTx{
@@ -1390,7 +1401,8 @@ func addRewardsToDelegation(t *testing.T, tpn *integrationTests.TestProcessorNod
 	txCacher := dataPool.NewCurrentBlockTransactionsPool()
 	txCacher.AddTx(rewardTxHash, tx)
 
-	_ = tpn.EpochStartSystemSCProcessor.ProcessDelegationRewards(mbSlice, txCacher)
+	err = tpn.EpochStartSystemSCProcessor.ProcessDelegationRewards(mbSlice, txCacher)
+	assert.NoError(t, err)
 }
 
 func verifyDelegatorsStake(
@@ -1445,7 +1457,7 @@ func deployNewSc(
 	tpn.TransactionLogProcessor.Clean()
 
 	for _, log := range logs {
-		for _, event := range log.GetLogEvents() {
+		for _, event := range log.GetLogHandler().GetLogEvents() {
 			if string(event.GetIdentifier()) == "writeLog" && bytes.Equal(event.GetAddress(), vm.DelegationManagerSCAddress) {
 				tokens := strings.Split(string(event.GetData()), "@")
 				address, _ := hex.DecodeString(tokens[2])
