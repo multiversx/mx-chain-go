@@ -139,7 +139,10 @@ func (n *Node) addBlockCoordinatesToAccountQueryOptions(options api.AccountQuery
 			return api.AccountQueryOptions{}, err
 		}
 
-		blockRootHash := n.getBlockRootHash(blockHash, blockHeader)
+		blockRootHash, err := n.getBlockRootHash(blockHash, blockHeader)
+		if err != nil {
+			return api.AccountQueryOptions{}, err
+		}
 
 		return api.AccountQueryOptions{
 			BlockHash:     options.BlockHash,
@@ -155,7 +158,10 @@ func (n *Node) addBlockCoordinatesToAccountQueryOptions(options api.AccountQuery
 			return api.AccountQueryOptions{}, err
 		}
 
-		blockRootHash := n.getBlockRootHash(blockHash, blockHeader)
+		blockRootHash, err := n.getBlockRootHash(blockHash, blockHeader)
+		if err != nil {
+			return api.AccountQueryOptions{}, err
+		}
 
 		return api.AccountQueryOptions{
 			BlockHash:     blockHash,
