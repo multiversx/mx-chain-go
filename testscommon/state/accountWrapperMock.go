@@ -273,3 +273,8 @@ func (awm *AccountWrapMock) GetAllLeaves(_ *common.TrieIteratorChannels, _ conte
 func (awm *AccountWrapMock) SetDataTrieCreator(creator common.DataTrieCreator) {
 	awm.trackableDataTrie.SetDataTrieCreator(creator)
 }
+
+// EnableDataTrieRootValidation -
+func (awm *AccountWrapMock) EnableDataTrieRootValidation() {
+	awm.trackableDataTrie.EnableDataTrieRootValidation()
+}

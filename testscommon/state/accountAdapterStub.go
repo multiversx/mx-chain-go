@@ -9,33 +9,34 @@ import (
 
 // StateUserAccountHandlerStub -
 type StateUserAccountHandlerStub struct {
-	SetDataTrieCreatorCalled    func(creator common.DataTrieCreator)
-	AddressBytesCalled          func() []byte
-	IncreaseNonceCalled         func(nonce uint64)
-	GetNonceCalled              func() uint64
-	SetCodeCalled               func(code []byte)
-	SetCodeMetadataCalled       func(codeMetadata []byte)
-	GetCodeMetadataCalled       func() []byte
-	SetCodeHashCalled           func([]byte)
-	GetCodeHashCalled           func() []byte
-	SetRootHashCalled           func([]byte)
-	GetRootHashCalled           func() []byte
-	DataTrieCalled              func() common.DataTrieHandler
-	RetrieveValueCalled         func(key []byte) ([]byte, uint32, error)
-	SaveKeyValueCalled          func(key []byte, value []byte) error
-	AddToBalanceCalled          func(value *big.Int) error
-	SubFromBalanceCalled        func(value *big.Int) error
-	GetBalanceCalled            func() *big.Int
-	ClaimDeveloperRewardsCalled func([]byte) (*big.Int, error)
-	AddToDeveloperRewardCalled  func(*big.Int)
-	GetDeveloperRewardCalled    func() *big.Int
-	ChangeOwnerAddressCalled    func([]byte, []byte) error
-	SetOwnerAddressCalled       func([]byte)
-	GetOwnerAddressCalled       func() []byte
-	SetUserNameCalled           func(userName []byte)
-	GetUserNameCalled           func() []byte
-	IsGuardedCalled             func() bool
-	GetAllLeavesCalled          func(leavesChannels *common.TrieIteratorChannels, ctx context.Context) error
+	SetDataTrieCreatorCalled           func(creator common.DataTrieCreator)
+	EnableDataTrieRootValidationCalled func()
+	AddressBytesCalled                 func() []byte
+	IncreaseNonceCalled                func(nonce uint64)
+	GetNonceCalled                     func() uint64
+	SetCodeCalled                      func(code []byte)
+	SetCodeMetadataCalled              func(codeMetadata []byte)
+	GetCodeMetadataCalled              func() []byte
+	SetCodeHashCalled                  func([]byte)
+	GetCodeHashCalled                  func() []byte
+	SetRootHashCalled                  func([]byte)
+	GetRootHashCalled                  func() []byte
+	DataTrieCalled                     func() common.DataTrieHandler
+	RetrieveValueCalled                func(key []byte) ([]byte, uint32, error)
+	SaveKeyValueCalled                 func(key []byte, value []byte) error
+	AddToBalanceCalled                 func(value *big.Int) error
+	SubFromBalanceCalled               func(value *big.Int) error
+	GetBalanceCalled                   func() *big.Int
+	ClaimDeveloperRewardsCalled        func([]byte) (*big.Int, error)
+	AddToDeveloperRewardCalled         func(*big.Int)
+	GetDeveloperRewardCalled           func() *big.Int
+	ChangeOwnerAddressCalled           func([]byte, []byte) error
+	SetOwnerAddressCalled              func([]byte)
+	GetOwnerAddressCalled              func() []byte
+	SetUserNameCalled                  func(userName []byte)
+	GetUserNameCalled                  func() []byte
+	IsGuardedCalled                    func() bool
+	GetAllLeavesCalled                 func(leavesChannels *common.TrieIteratorChannels, ctx context.Context) error
 }
 
 // AddressBytes -
@@ -243,6 +244,13 @@ func (aas *StateUserAccountHandlerStub) GetAllLeaves(leavesChannels *common.Trie
 // IsInterfaceNil -
 func (aas *StateUserAccountHandlerStub) IsInterfaceNil() bool {
 	return aas == nil
+}
+
+// EnableDataTrieRootValidation -
+func (aas *StateUserAccountHandlerStub) EnableDataTrieRootValidation() {
+	if aas.EnableDataTrieRootValidationCalled != nil {
+		aas.EnableDataTrieRootValidationCalled()
+	}
 }
 
 // SetDataTrieCreator -

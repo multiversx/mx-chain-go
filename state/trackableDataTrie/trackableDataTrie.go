@@ -293,7 +293,13 @@ func (tdt *trackableDataTrie) SetRootHash(rootHash []byte) {
 // before its first data-trie access.
 func (tdt *trackableDataTrie) SetDataTrieCreator(creator common.DataTrieCreator) {
 	tdt.dataTrieCreator = creator
-	tdt.dataTriesHolder = &historicalDataTriesHolder{
+	tdt.EnableDataTrieRootValidation()
+}
+
+// EnableDataTrieRootValidation binds cache hits to this read-only account's root
+// before its first data-trie access.
+func (tdt *trackableDataTrie) EnableDataTrieRootValidation() {
+	tdt.dataTriesHolder = &rootValidatedDataTriesHolder{
 		TriesHolder: tdt.dataTriesHolder,
 		rootHash:    bytes.Clone(tdt.rootHash),
 	}

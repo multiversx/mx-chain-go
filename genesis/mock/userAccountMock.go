@@ -165,3 +165,6 @@ func (uam *UserAccountMock) GetAllLeaves(_ *common.TrieIteratorChannels, _ conte
 
 // SetDataTrieCreator -
 func (uam *UserAccountMock) SetDataTrieCreator(_ common.DataTrieCreator) {}
+
+// EnableDataTrieRootValidation -
+func (uam *UserAccountMock) EnableDataTrieRootValidation() {}

@@ -11,8 +11,9 @@ import (
 
 // DataTrieTrackerStub -
 type DataTrieTrackerStub struct {
-	SetDataTrieCreatorCalled func(creator common.DataTrieCreator)
-	dataTrie                 common.Trie
+	SetDataTrieCreatorCalled           func(creator common.DataTrieCreator)
+	EnableDataTrieRootValidationCalled func()
+	dataTrie                           common.Trie
 
 	RetrieveValueCalled         func(key []byte) ([]byte, uint32, error)
 	SaveKeyValueCalled          func(key []byte, value []byte) error
@@ -82,6 +83,13 @@ func (dtts *DataTrieTrackerStub) MigrateDataTrieLeaves(args vmcommon.ArgsMigrate
 // IsInterfaceNil returns true if there is no value under the interface
 func (dtts *DataTrieTrackerStub) IsInterfaceNil() bool {
 	return dtts == nil
+}
+
+// EnableDataTrieRootValidation -
+func (dtts *DataTrieTrackerStub) EnableDataTrieRootValidation() {
+	if dtts.EnableDataTrieRootValidationCalled != nil {
+		dtts.EnableDataTrieRootValidationCalled()
+	}
 }
 
 // SetDataTrieCreator -

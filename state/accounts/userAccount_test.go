@@ -324,3 +324,13 @@ func TestUserAccount_SetDataTrieCreator(t *testing.T) {
 	account.SetDataTrieCreator(creator)
 	require.True(t, forwarded)
 }
+
+func TestUserAccount_EnableDataTrieRootValidation(t *testing.T) {
+	t.Parallel()
+	calls := 0
+	tracker := &testTrie.DataTrieTrackerStub{EnableDataTrieRootValidationCalled: func() { calls++ }}
+	account, err := accounts.NewUserAccount(make([]byte, 32), tracker, &testTrie.TrieLeafParserStub{})
+	require.NoError(t, err)
+	account.EnableDataTrieRootValidation()
+	require.Equal(t, 1, calls)
+}
