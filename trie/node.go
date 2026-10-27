@@ -28,6 +28,10 @@ const (
 	// maxUnreportedParkedTime bounds how long a snapshot goroutine may sit parked behind node
 	// operations before reporting it: sustained parking starves the snapshot and defers pruning
 	maxUnreportedParkedTime = time.Minute
+	hashSizeInBytes         = 32                                                            // size of the hash in bytes
+	baseNodeSizeInBytes     = hashSizeInBytes + numNodeInnerPointers*pointerSizeInBytes + 1 // 1 for the dirty flag
+	bnChildrenPointersSize  = nrOfChildren * pointerSizeInBytes
+	nodeVersionSizeInBytes  = 4
 )
 
 type baseNode struct {
@@ -141,7 +145,7 @@ func treatLogError(logInstance logger.Logger, err error, key []byte) {
 	logInstance.Trace(core.GetNodeFromDBErrorString, "error", err, "key", key, "stack trace", string(debug.Stack()))
 }
 
-func resolveIfCollapsed(n node, pos byte, db common.TrieStorageInteractor) error {
+func resolveIfCollapsed(n node, pos byte, tmc MetricsCollector, db common.TrieStorageInteractor) error {
 	err := n.isEmptyOrNil()
 	if err != nil {
 		return err
@@ -152,7 +156,7 @@ func resolveIfCollapsed(n node, pos byte, db common.TrieStorageInteractor) error
 		return nil
 	}
 
-	return n.resolveCollapsed(pos, db)
+	return n.resolveCollapsed(pos, tmc, db)
 }
 
 func handleStorageInteractorStats(db common.TrieStorageInteractor) {
@@ -355,7 +359,7 @@ func commitSnapshot(
 	ctx context.Context,
 	stats common.TrieStatisticsHandler,
 	idleProvider IdleNodeProvider,
-	depthLevel int,
+	tmc MetricsCollector,
 	hash []byte,
 ) error {
 	encChild, foundInEpoch, err := db.GetWithoutAddingToCache(hash, maxEpochToSearchFrom)
@@ -376,7 +380,7 @@ func commitSnapshot(
 		return err
 	}
 
-	err = child.commitSnapshot(db, foundInEpoch, leavesChan, missingNodesChan, ctx, stats, idleProvider, encChild, depthLevel+1)
+	err = child.commitSnapshot(db, foundInEpoch, leavesChan, missingNodesChan, ctx, stats, idleProvider, encChild, tmc)
 	if err != nil {
 		return err
 	}

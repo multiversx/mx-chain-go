@@ -54,16 +54,15 @@ type ArgsExporter struct {
 	ExportTriesStorageConfig                config.StorageConfig
 	ExportStateStorageConfig                config.StorageConfig
 	ExportStateKeysConfig                   config.StorageConfig
-	MaxTrieLevelInMemory                    uint
-	WhiteListHandler                        process.WhiteListHandler
-	WhiteListerVerifiedTxs                  process.WhiteListHandler
-	MainInterceptorsContainer               process.InterceptorsContainer
-	FullArchiveInterceptorsContainer        process.InterceptorsContainer
-	NodesCoordinator                        nodesCoordinator.NodesCoordinator
-	HeaderSigVerifier                       process.InterceptedHeaderSigVerifier
-	HeaderIntegrityVerifier                 process.HeaderIntegrityVerifier
-	ValidityAttester                        process.ValidityAttester
-	RoundHandler                            process.RoundHandler
+	WhiteListHandler                 process.WhiteListHandler
+	WhiteListerVerifiedTxs           process.WhiteListHandler
+	MainInterceptorsContainer        process.InterceptorsContainer
+	FullArchiveInterceptorsContainer process.InterceptorsContainer
+	NodesCoordinator                 nodesCoordinator.NodesCoordinator
+	HeaderSigVerifier                process.InterceptedHeaderSigVerifier
+	HeaderIntegrityVerifier          process.HeaderIntegrityVerifier
+	ValidityAttester                 process.ValidityAttester
+	RoundHandler                     process.RoundHandler
 	InterceptorDebugConfig                  config.InterceptorResolverDebugConfig
 	MaxHardCapForMissingNodes               int
 	NumConcurrentTrieSyncers                int
@@ -90,22 +89,21 @@ type exportHandlerFactory struct {
 	exportTriesStorageConfig                config.StorageConfig
 	exportStateStorageConfig                config.StorageConfig
 	exportStateKeysConfig                   config.StorageConfig
-	maxTrieLevelInMemory                    uint
-	whiteListHandler                        process.WhiteListHandler
-	whiteListerVerifiedTxs                  process.WhiteListHandler
-	mainInterceptorsContainer               process.InterceptorsContainer
-	fullArchiveInterceptorsContainer        process.InterceptorsContainer
-	existingResolvers                       dataRetriever.ResolversContainer
-	existingRequesters                      dataRetriever.RequestersContainer
-	epochStartTrigger                       epochStart.TriggerHandler
-	accounts                                state.AccountsAdapter
-	nodesCoordinator                        nodesCoordinator.NodesCoordinator
-	headerSigVerifier                       process.InterceptedHeaderSigVerifier
-	headerIntegrityVerifier                 process.HeaderIntegrityVerifier
-	validityAttester                        process.ValidityAttester
-	resolverContainer                       dataRetriever.ResolversContainer
-	requestersContainer                     dataRetriever.RequestersContainer
-	roundHandler                            process.RoundHandler
+	whiteListHandler                 process.WhiteListHandler
+	whiteListerVerifiedTxs           process.WhiteListHandler
+	mainInterceptorsContainer        process.InterceptorsContainer
+	fullArchiveInterceptorsContainer process.InterceptorsContainer
+	existingResolvers                dataRetriever.ResolversContainer
+	existingRequesters               dataRetriever.RequestersContainer
+	epochStartTrigger                epochStart.TriggerHandler
+	accounts                         state.AccountsAdapter
+	nodesCoordinator                 nodesCoordinator.NodesCoordinator
+	headerSigVerifier                process.InterceptedHeaderSigVerifier
+	headerIntegrityVerifier          process.HeaderIntegrityVerifier
+	validityAttester                 process.ValidityAttester
+	resolverContainer                dataRetriever.ResolversContainer
+	requestersContainer              dataRetriever.RequestersContainer
+	roundHandler                     process.RoundHandler
 	interceptorDebugConfig                  config.InterceptorResolverDebugConfig
 	maxHardCapForMissingNodes               int
 	numConcurrentTrieSyncers                int
@@ -264,8 +262,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		headerSigVerifier:                       args.HeaderSigVerifier,
 		headerIntegrityVerifier:                 args.HeaderIntegrityVerifier,
 		validityAttester:                        args.ValidityAttester,
-		maxTrieLevelInMemory:                    args.MaxTrieLevelInMemory,
-		roundHandler:                            args.RoundHandler,
+		roundHandler:                     		 args.RoundHandler,
 		interceptorDebugConfig:                  args.InterceptorDebugConfig,
 		maxHardCapForMissingNodes:               args.MaxHardCapForMissingNodes,
 		numConcurrentTrieSyncers:                args.NumConcurrentTrieSyncers,
@@ -328,14 +325,13 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	}
 
 	argsDataTrieFactory := ArgsNewDataTrieFactory{
-		StorageConfig:        e.exportTriesStorageConfig,
-		SyncFolder:           e.exportFolder,
-		Marshalizer:          e.coreComponents.InternalMarshalizer(),
-		Hasher:               e.coreComponents.Hasher(),
-		ShardCoordinator:     e.shardCoordinator,
-		MaxTrieLevelInMemory: e.maxTrieLevelInMemory,
-		EnableEpochsHandler:  e.coreComponents.EnableEpochsHandler(),
-		StateStatsCollector:  e.statusCoreComponents.StateStatsHandler(),
+		StorageConfig:       e.exportTriesStorageConfig,
+		SyncFolder:          e.exportFolder,
+		Marshalizer:         e.coreComponents.InternalMarshalizer(),
+		Hasher:              e.coreComponents.Hasher(),
+		ShardCoordinator:    e.shardCoordinator,
+		EnableEpochsHandler: e.coreComponents.EnableEpochsHandler(),
+		StateStatsCollector: e.statusCoreComponents.StateStatsHandler(),
 	}
 	dataTriesContainerFactory, err := NewDataTrieFactory(argsDataTrieFactory)
 	if err != nil {
@@ -420,7 +416,6 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		Marshalizer:               e.coreComponents.InternalMarshalizer(),
 		TrieStorageManager:        trieStorageManager,
 		TimoutGettingTrieNode:     common.TimeoutGettingTrieNodesInHardfork,
-		MaxTrieLevelInMemory:      e.maxTrieLevelInMemory,
 		MaxHardCapForMissingNodes: e.maxHardCapForMissingNodes,
 		NumConcurrentTrieSyncers:  e.numConcurrentTrieSyncers,
 		TrieSyncerVersion:         e.trieSyncerVersion,

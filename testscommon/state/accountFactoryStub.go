@@ -13,7 +13,10 @@ type AccountsFactoryStub struct {
 
 // CreateAccount -
 func (afs *AccountsFactoryStub) CreateAccount(address []byte) (vmcommon.AccountHandler, error) {
-	return afs.CreateAccountCalled(address)
+	if afs.CreateAccountCalled != nil {
+		return afs.CreateAccountCalled(address)
+	}
+	return nil, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

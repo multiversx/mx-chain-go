@@ -2589,7 +2589,6 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 		args.Accounts = &stateMock.AccountsStub{
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				addressHandler := stateMock.NewAccountWrapMock(address)
-				addressHandler.SetDataTrie(nil)
 
 				return addressHandler, nil
 			},
@@ -2610,12 +2609,16 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 		args := createMockBlockChainHookArgs()
 		args.Accounts = &stateMock.AccountsStub{
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
-				addressHandler := stateMock.NewAccountWrapMock(address)
-				addressHandler.SetDataTrie(&trie.TrieStub{
-					GetCalled: func(_ []byte) ([]byte, uint32, error) {
-						return make([]byte, 0), 0, nil
+				dth := &trie.TriesHolderStub{
+					GetCalled: func(_ []byte) common.Trie {
+						return &trie.TrieStub{
+							GetCalled: func(_ []byte) ([]byte, uint32, error) {
+								return make([]byte, 0), 0, nil
+							},
+						}
 					},
-				})
+				}
+				addressHandler := stateMock.NewAccountWrapMockWithDataTrieHolder(dth)
 
 				return addressHandler, nil
 			},

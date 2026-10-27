@@ -9,6 +9,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/triesHolder"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	mockState "github.com/multiversx/mx-chain-go/testscommon/state"
@@ -17,6 +18,7 @@ import (
 )
 
 func createMockAccountsArgs() state.ArgsAccountsDB {
+	dth, _ := triesHolder.NewDataTriesHolder(common.TenMbSize)
 	return state.ArgsAccountsDB{
 		Trie: &mockTrie.TrieStub{
 			GetStorageManagerCalled: func() common.StorageManager {
@@ -30,6 +32,7 @@ func createMockAccountsArgs() state.ArgsAccountsDB {
 		AddressConverter:       &testscommon.PubkeyConverterMock{},
 		SnapshotsManager:       &mockState.SnapshotsManagerStub{},
 		StateAccessesCollector: &mockState.StateAccessesCollectorStub{},
+		DataTriesHolder:        dth,
 	}
 }
 

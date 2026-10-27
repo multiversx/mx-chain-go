@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -34,14 +35,15 @@ func getArgs() factory.TrieFactoryArgs {
 
 func getCreateArgs() factory.TrieCreateArgs {
 	return factory.TrieCreateArgs{
-		MainStorer:          testscommon.CreateMemUnit(),
-		PruningEnabled:      false,
-		SnapshotsEnabled:    true,
-		MaxTrieLevelInMem:   5,
-		IdleProvider:        &testscommon.ProcessStatusHandlerStub{},
-		Identifier:          dataRetriever.UserAccountsUnit.String(),
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		StatsCollector:      disabled.NewStateStatistics(),
+		MainStorer:                   testscommon.CreateMemUnit(),
+		PruningEnabled:               false,
+		SnapshotsEnabled:             true,
+		IdleProvider:                 &testscommon.ProcessStatusHandlerStub{},
+		Identifier:                   dataRetriever.UserAccountsUnit.String(),
+		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		StatsCollector:               disabled.NewStateStatistics(),
+		MaxSizeInMemory:              common.TenMbSize,
+		NumLeavesToCollapseSingleRun: common.NumLeavesToCollapseSingleRun,
 	}
 }
 
@@ -139,20 +141,6 @@ func TestTrieCreator_CreateWithNilMainStorerShouldErr(t *testing.T) {
 	require.Nil(t, tr)
 	require.NotNil(t, err)
 	require.True(t, strings.Contains(err.Error(), trie.ErrNilStorer.Error()))
-}
-
-func TestTrieCreator_CreateWithInvalidMaxTrieLevelInMemShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgs()
-	tf, _ := factory.NewTrieFactory(args)
-
-	createArgs := getCreateArgs()
-	createArgs.MaxTrieLevelInMem = 0
-	_, tr, err := tf.Create(createArgs)
-	require.Nil(t, tr)
-	require.NotNil(t, err)
-	require.Contains(t, err.Error(), trie.ErrInvalidLevelValue.Error())
 }
 
 func TestTrieCreator_CreateTriesComponentsForShardId(t *testing.T) {

@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/trie/trieMetricsCollector"
 )
 
 type trieNodeInfo struct {
@@ -176,6 +177,7 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 	missingNodes := make(map[string]struct{})
 	currentMissingNodes := make([][]byte, 0)
 	checkedNodes := make(map[string]struct{})
+	tmc := trieMetricsCollector.NewDisabledTrieMetricsCollector()
 
 	newElement := true
 	shouldRetryAfterRequest := false
@@ -234,7 +236,7 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 				continue
 			}
 
-			nextNodes, err = currentNode.getChildren(ts.db)
+			nextNodes, err = currentNode.getChildren(tmc, ts.db)
 			if err != nil {
 				return false, err
 			}
