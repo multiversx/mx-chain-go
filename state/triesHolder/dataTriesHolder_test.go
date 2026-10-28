@@ -294,9 +294,9 @@ func TestDataTriesHolder_GetAll(t *testing.T) {
 
 		dirtyTries := dth.GetAll()
 		assert.Equal(t, numEntries-1, len(dirtyTries))
-		assert.Equal(t, 0, len(dth.dirtyTries))
+		assert.Equal(t, numEntries, len(dth.dirtyTries))
 	})
-	t.Run("trie size is correctly computed after GetAll and eviction", func(t *testing.T) {
+	t.Run("trie size is correctly computed after acknowledgment and eviction", func(t *testing.T) {
 		t.Parallel()
 
 		dth, _ := NewDataTriesHolder(dthSize)
@@ -309,6 +309,7 @@ func TestDataTriesHolder_GetAll(t *testing.T) {
 		assert.Equal(t, uint64(numEntries*oneKB), dth.cacher.SizeInBytesContained())
 
 		dirtyTries := dth.GetAll()
+		dth.MarkAllAsCommitted()
 		assert.Equal(t, numEntries, len(dirtyTries))
 		assert.Equal(t, 0, len(dth.dirtyTries))
 		assert.Equal(t, uint64(numEntries*oneKB), dth.cacher.SizeInBytesContained())
@@ -334,6 +335,7 @@ func TestDataTriesHolder_GetAll(t *testing.T) {
 		assert.Equal(t, 1, len(dth.touchedTries))
 
 		dirtyTries = dth.GetAll()
+		dth.MarkAllAsCommitted()
 		assert.Equal(t, 0, len(dirtyTries))
 		assert.Equal(t, 0, len(dth.dirtyTries))
 		assert.Equal(t, uint64(dthSize), dth.cacher.SizeInBytesContained()) // size is updated
@@ -349,6 +351,7 @@ func TestDataTriesHolder_GetAll(t *testing.T) {
 		assert.Equal(t, numEntries+1, dth.cacher.Len())                     // no eviction
 
 		dirtyTries = dth.GetAll()
+		dth.MarkAllAsCommitted()
 		assert.Equal(t, 0, len(dirtyTries))
 		assert.Equal(t, 0, len(dth.dirtyTries))
 		assert.Equal(t, uint64(dthSize-oneKB/2), dth.cacher.SizeInBytesContained()) // size is updated
@@ -367,7 +370,7 @@ func TestDataTriesHolder_GetAll(t *testing.T) {
 
 		dirtyTries := dth.GetAll()
 		assert.Equal(t, numEntries, len(dirtyTries))
-		assert.Equal(t, 0, len(dth.dirtyTries))
+		assert.Equal(t, numEntries, len(dth.dirtyTries))
 	})
 }
 
@@ -408,6 +411,9 @@ func TestDataTriesHolder_MarkAsDirty(t *testing.T) {
 
 		dirtyTries := dth.GetAll()
 		assert.Equal(t, []common.Trie{entry.trie}, dirtyTries)
+		assert.Equal(t, 1, len(dth.dirtyTries))
+		assert.Equal(t, 1, len(dth.touchedTries))
+		dth.MarkAllAsCommitted()
 		assert.Equal(t, 0, len(dth.dirtyTries))
 		assert.Equal(t, 0, len(dth.touchedTries))
 	})

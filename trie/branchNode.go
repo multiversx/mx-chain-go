@@ -272,12 +272,12 @@ func (bn *branchNode) commitDirty(originDb common.TrieStorageInteractor, targetD
 			return err
 		}
 	}
-	bn.dirty = false
 	_, err = encodeNodeAndCommitToDB(bn, targetDb)
 	if err != nil {
 		return err
 	}
 
+	bn.dirty = false
 	return nil
 }
 

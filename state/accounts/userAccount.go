@@ -155,6 +155,16 @@ func (a *userAccount) SetDataTrieRootHash() {
 	a.dataTrieInteractor.SetRootHash(a.RootHash)
 }
 
+// SetDataTrieCreator binds the lazy loader before the account is returned to its caller.
+func (a *userAccount) SetDataTrieCreator(creator common.DataTrieCreator) {
+	a.dataTrieInteractor.SetDataTrieCreator(creator)
+}
+
+// EnableDataTrieRootValidation enables cache-root checks for a read-only account.
+func (a *userAccount) EnableDataTrieRootValidation() {
+	a.dataTrieInteractor.EnableDataTrieRootValidation()
+}
+
 // SetCodeMetadata sets the code metadata
 func (a *userAccount) SetCodeMetadata(codeMetadata []byte) {
 	a.CodeMetadata = codeMetadata

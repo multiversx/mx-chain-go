@@ -154,7 +154,7 @@ func (dth *dataTriesHolder) Get(key []byte) common.Trie {
 }
 
 // GetAll returns all the tries that are marked as dirty for this implementation.
-// It also resets their dirty flag and recomputes the total size.
+// Pending tries remain retained until MarkAllAsCommitted or an explicit reset.
 func (dth *dataTriesHolder) GetAll() []common.Trie {
 	dth.mutex.Lock()
 	defer dth.mutex.Unlock()
@@ -168,11 +168,19 @@ func (dth *dataTriesHolder) GetAll() []common.Trie {
 		log.Trace("getting dirty trie from data tries holder", "key", []byte(keyString))
 		tries = append(tries, tr)
 	}
+	log.Trace("data tries holder returned all dirty tries", "numTries", len(tries), "totalCacheSize", dth.cacher.SizeInBytesContained())
+	return tries
+}
+
+// MarkAllAsCommitted releases evicted tries and reconciles cache sizes only after
+// all pending data tries have been successfully persisted.
+func (dth *dataTriesHolder) MarkAllAsCommitted() {
+	dth.mutex.Lock()
+	defer dth.mutex.Unlock()
+
 	dth.dirtyTries = make(map[string]struct{})
 	dth.evictedBuffer = make(map[string]common.Trie)
 	dth.recomputeTotalSize()
-	log.Trace("data tries holder returned all dirty tries", "numTries", len(tries), "totalCacheSize", dth.cacher.SizeInBytesContained())
-	return tries
 }
 
 func (dth *dataTriesHolder) getDirtyTrieNoLock(key string) common.Trie {

@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state/accounts"
 	testTrie "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createUserAcc(address []byte) state.UserAccountHandler {
@@ -308,4 +309,28 @@ func TestUserAccount_IsDataTrieMigrated(t *testing.T) {
 		assert.Nil(t, err)
 		assert.True(t, isMigratedCalled)
 	})
+}
+
+func TestUserAccount_SetDataTrieCreator(t *testing.T) {
+	t.Parallel()
+	creator := &testTrie.TrieStub{}
+	forwarded := false
+	tracker := &testTrie.DataTrieTrackerStub{SetDataTrieCreatorCalled: func(actual common.DataTrieCreator) {
+		require.Same(t, creator, actual)
+		forwarded = true
+	}}
+	account, err := accounts.NewUserAccount(make([]byte, 32), tracker, &testTrie.TrieLeafParserStub{})
+	require.NoError(t, err)
+	account.SetDataTrieCreator(creator)
+	require.True(t, forwarded)
+}
+
+func TestUserAccount_EnableDataTrieRootValidation(t *testing.T) {
+	t.Parallel()
+	calls := 0
+	tracker := &testTrie.DataTrieTrackerStub{EnableDataTrieRootValidationCalled: func() { calls++ }}
+	account, err := accounts.NewUserAccount(make([]byte, 32), tracker, &testTrie.TrieLeafParserStub{})
+	require.NoError(t, err)
+	account.EnableDataTrieRootValidation()
+	require.Equal(t, 1, calls)
 }

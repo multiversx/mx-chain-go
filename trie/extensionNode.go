@@ -190,12 +190,12 @@ func (en *extensionNode) commitDirty(originDb common.TrieStorageInteractor, targ
 		}
 	}
 
-	en.dirty = false
 	_, err = encodeNodeAndCommitToDB(en, targetDb)
 	if err != nil {
 		return err
 	}
 
+	en.dirty = false
 	return nil
 }
 

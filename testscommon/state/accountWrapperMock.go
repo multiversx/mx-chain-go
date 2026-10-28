@@ -268,3 +268,13 @@ func (awm *AccountWrapMock) IsGuarded() bool {
 func (awm *AccountWrapMock) GetAllLeaves(_ *common.TrieIteratorChannels, _ context.Context) error {
 	return nil
 }
+
+// SetDataTrieCreator -
+func (awm *AccountWrapMock) SetDataTrieCreator(creator common.DataTrieCreator) {
+	awm.trackableDataTrie.SetDataTrieCreator(creator)
+}
+
+// EnableDataTrieRootValidation -
+func (awm *AccountWrapMock) EnableDataTrieRootValidation() {
+	awm.trackableDataTrie.EnableDataTrieRootValidation()
+}

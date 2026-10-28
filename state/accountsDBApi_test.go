@@ -755,13 +755,7 @@ func TestAccountsDBApi_GetAccountWithBlockInfoWhenHighConcurrency(t *testing.T) 
 }
 
 func createDummyAccountWithBalanceBytes(balanceBytes []byte) state.UserAccountHandler {
-	dummyAccount := &mockState.AccountWrapMock{
-		Balance: big.NewInt(0),
-	}
-	dummyBalance := big.NewInt(0).SetBytes(balanceBytes)
-	_ = dummyAccount.AddToBalance(dummyBalance)
-
-	return dummyAccount
+	return &mockState.UserAccountStub{Balance: new(big.Int).SetBytes(balanceBytes)}
 }
 
 func createDummyBlockInfoWithNonce(nonce uint64) common.BlockInfo {

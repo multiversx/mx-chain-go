@@ -233,6 +233,8 @@ type DataTrie interface {
 // UserAccountHandler models a user account, which can journalize account's data with some extra features
 // like balance, developer rewards, owner
 type UserAccountHandler interface {
+	SetDataTrieCreator(creator common.DataTrieCreator)
+	EnableDataTrieRootValidation()
 	SetCode(code []byte)
 	SetCodeMetadata(codeMetadata []byte)
 	GetCodeMetadata() []byte
@@ -261,6 +263,8 @@ type UserAccountHandler interface {
 
 // DataTrieTracker models how to manipulate data held by a SC account
 type DataTrieTracker interface {
+	SetDataTrieCreator(creator common.DataTrieCreator)
+	EnableDataTrieRootValidation()
 	RetrieveValue(key []byte) ([]byte, uint32, error)
 	SaveKeyValue(key []byte, value []byte) error
 	SetRootHash(rootHash []byte)

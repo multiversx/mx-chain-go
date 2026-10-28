@@ -129,10 +129,13 @@ func (ln *leafNode) commitDirty(_ common.TrieStorageInteractor, targetDb common.
 		return nil
 	}
 
-	ln.dirty = false
 	_, err = encodeNodeAndCommitToDB(ln, targetDb)
+	if err != nil {
+		return err
+	}
 
-	return err
+	ln.dirty = false
+	return nil
 }
 
 func (ln *leafNode) shouldCollapseChild(hexKey []byte, _ MetricsCollector) bool {

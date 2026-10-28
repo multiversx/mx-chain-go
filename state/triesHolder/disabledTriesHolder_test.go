@@ -30,6 +30,7 @@ func TestDisabledDataTriesHolder_MarkAsDirtyAndReset(t *testing.T) {
 
 	dth := NewDisabledDataTriesHolder()
 	dth.MarkAsDirty([]byte("key"))
+	dth.MarkAllAsCommitted()
 	dth.Reset()
 
 	assert.Empty(t, dth.GetAll())
@@ -44,4 +45,3 @@ func TestDisabledDataTriesHolder_IsInterfaceNil(t *testing.T) {
 	dth = NewDisabledDataTriesHolder()
 	assert.False(t, dth.IsInterfaceNil())
 }
-

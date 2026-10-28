@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	mockState "github.com/multiversx/mx-chain-go/testscommon/state"
+	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -105,6 +106,7 @@ func TestAccountsDBApiWithHistory_GetAccountWithBlockInfo(t *testing.T) {
 		expectedErr := errors.New("expected error")
 
 		accountsAdapter := &mockState.AccountsStub{
+			GetTrieCalled: func(_ []byte) (common.Trie, error) { return &trieMock.TrieStub{}, nil },
 			RecreateTrieCalled: func(_ common.RootHashHolder) error {
 				return expectedErr
 			},
@@ -121,6 +123,7 @@ func TestAccountsDBApiWithHistory_GetAccountWithBlockInfo(t *testing.T) {
 		var recreatedRootHash []byte
 
 		accountsAdapter := &mockState.AccountsStub{
+			GetTrieCalled: func(_ []byte) (common.Trie, error) { return &trieMock.TrieStub{}, nil },
 			RecreateTrieCalled: func(options common.RootHashHolder) error {
 				recreatedRootHash = options.GetRootHash()
 				return nil
@@ -146,6 +149,7 @@ func TestAccountsDBApiWithHistory_GetAccountWithBlockInfo(t *testing.T) {
 		var recreatedRootHash []byte
 
 		accountsAdapter := &mockState.AccountsStub{
+			GetTrieCalled: func(_ []byte) (common.Trie, error) { return &trieMock.TrieStub{}, nil },
 			RecreateTrieCalled: func(options common.RootHashHolder) error {
 				recreatedRootHash = options.GetRootHash()
 				return nil
@@ -167,6 +171,7 @@ func TestAccountsDBApiWithHistory_GetAccountWithBlockInfo(t *testing.T) {
 		var recreatedRootHash []byte
 
 		accountsAdapter := &mockState.AccountsStub{
+			GetTrieCalled: func(_ []byte) (common.Trie, error) { return &trieMock.TrieStub{}, nil },
 			RecreateTrieCalled: func(options common.RootHashHolder) error {
 				recreatedRootHash = options.GetRootHash()
 				return nil
@@ -194,6 +199,7 @@ func TestAccountsDBApiWithHistory_GetCodeWithBlockInfo(t *testing.T) {
 		expectedErr := errors.New("expected error")
 
 		accountsAdapter := &mockState.AccountsStub{
+			GetTrieCalled: func(_ []byte) (common.Trie, error) { return &trieMock.TrieStub{}, nil },
 			RecreateTrieCalled: func(_ common.RootHashHolder) error {
 				return expectedErr
 			},
@@ -210,6 +216,7 @@ func TestAccountsDBApiWithHistory_GetCodeWithBlockInfo(t *testing.T) {
 		var recreatedRootHash []byte
 
 		accountsAdapter := &mockState.AccountsStub{
+			GetTrieCalled: func(_ []byte) (common.Trie, error) { return &trieMock.TrieStub{}, nil },
 			RecreateTrieCalled: func(options common.RootHashHolder) error {
 				recreatedRootHash = options.GetRootHash()
 				return nil
@@ -248,6 +255,7 @@ func TestAccountsDBApiWithHistory_GetAccountWithBlockInfoWhenHighConcurrency(t *
 		var dummyAccountMutex sync.RWMutex
 
 		accountsAdapter := &mockState.AccountsStub{
+			GetTrieCalled: func(_ []byte) (common.Trie, error) { return &trieMock.TrieStub{}, nil },
 			RecreateTrieCalled: func(options common.RootHashHolder) error {
 				rootHash := options.GetRootHash()
 
@@ -305,11 +313,6 @@ func TestAccountsDBApiWithHistory_GetAccountWithBlockInfoWhenHighConcurrency(t *
 }
 
 func createDummyAccountWithBalanceString(balanceString string) state.UserAccountHandler {
-	dummyAccount := &mockState.AccountWrapMock{
-		Balance: big.NewInt(0),
-	}
 	dummyBalance, _ := big.NewInt(0).SetString(balanceString, 10)
-	_ = dummyAccount.AddToBalance(dummyBalance)
-
-	return dummyAccount
+	return &mockState.UserAccountStub{Balance: dummyBalance}
 }

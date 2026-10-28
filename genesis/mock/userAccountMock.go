@@ -162,3 +162,9 @@ func (uam *UserAccountMock) IsGuarded() bool {
 func (uam *UserAccountMock) GetAllLeaves(_ *common.TrieIteratorChannels, _ context.Context) error {
 	return nil
 }
+
+// SetDataTrieCreator -
+func (uam *UserAccountMock) SetDataTrieCreator(_ common.DataTrieCreator) {}
+
+// EnableDataTrieRootValidation -
+func (uam *UserAccountMock) EnableDataTrieRootValidation() {}

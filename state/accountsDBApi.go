@@ -295,6 +295,10 @@ func (accountsDB *accountsDBApi) GetAccountWithBlockInfo(address []byte, _ commo
 		return nil, nil, err
 	}
 
+	if userAccount, ok := account.(UserAccountHandler); ok {
+		userAccount.EnableDataTrieRootValidation()
+	}
+
 	return account, blockInfo, nil
 }
 
