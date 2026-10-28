@@ -16,15 +16,17 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/api"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/guardians"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/validator"
 	disabledSig "github.com/multiversx/mx-chain-crypto-go/signing/disabled/singlesig"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/common/errChan"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/debug"
 	"github.com/multiversx/mx-chain-go/facade"
@@ -41,8 +43,6 @@ import (
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 const (
@@ -69,6 +69,10 @@ type accountInfo struct {
 
 // Node is a structure that holds all managed components
 type Node struct {
+	trieOperationsConfig config.TrieOperationsConfig
+	trieOperationsOnce   syncGo.Once
+	trieOperationsSlots  chan struct{}
+
 	initialNodesPubkeys map[uint32][]string
 	roundDuration       uint64
 	genesisTime         time.Time
@@ -103,6 +107,7 @@ type Node struct {
 
 	closableComponents        []mainFactory.Closer
 	enableSignTxWithHashEpoch uint32
+	maxTxNonceDeltaAllowed    int
 	isInImportMode            bool
 }
 
@@ -120,7 +125,8 @@ func (n *Node) ApplyOptions(opts ...Option) error {
 // NewNode creates a new Node instance
 func NewNode(opts ...Option) (*Node, error) {
 	node := &Node{
-		queryHandlers: make(map[string]debug.QueryHandler),
+		queryHandlers:          make(map[string]debug.QueryHandler),
+		maxTxNonceDeltaAllowed: common.MaxTxNonceDeltaAllowed,
 	}
 
 	node.closableComponents = make([]mainFactory.Closer, 0)
@@ -220,37 +226,27 @@ func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]strin
 		return tokens, nil
 	}
 
-	chLeaves := &common.TrieIteratorChannels{
-		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    errChan.NewErrChanWrapper(),
-	}
-	err = userAccount.GetAllLeaves(chLeaves, ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	for leaf := range chLeaves.LeavesChan {
+	err = n.collectTrieLeaves(ctx, userAccount, func(leaf core.KeyValueHolder, _ *trieCollectionBudget) error {
 		tokenName := string(leaf.Key())
 		if !strings.Contains(tokenName, "-") {
-			continue
+			return nil
 		}
 
 		if tokenType == "" {
 			tokens = append(tokens, tokenName)
-			continue
+			return nil
 		}
 
 		esdtToken, okGet := n.getEsdtDataFromLeaf(leaf)
 		if !okGet {
-			continue
+			return nil
 		}
 
 		if tokenTypeEquals(esdtToken.TokenType, tokenType) {
 			tokens = append(tokens, tokenName)
 		}
-	}
-
-	err = chLeaves.ErrChan.ReadFromChanNonBlocking()
+		return nil
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -353,21 +349,11 @@ func (n *Node) IterateKeys(address string, numKeys uint, iteratorState [][]byte,
 }
 
 func (n *Node) getKeys(userAccount state.UserAccountHandler, ctx context.Context) (map[string]string, error) {
-	chLeaves := &common.TrieIteratorChannels{
-		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    errChan.NewErrChanWrapper(),
-	}
-	err := userAccount.GetAllLeaves(chLeaves, ctx)
-	if err != nil {
-		return nil, err
-	}
-
 	mapToReturn := make(map[string]string)
-	for leaf := range chLeaves.LeavesChan {
+	err := n.collectTrieLeaves(ctx, userAccount, func(leaf core.KeyValueHolder, _ *trieCollectionBudget) error {
 		mapToReturn[hex.EncodeToString(leaf.Key())] = hex.EncodeToString(leaf.Value())
-	}
-
-	err = chLeaves.ErrChan.ReadFromChanNonBlocking()
+		return nil
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -510,32 +496,22 @@ func (n *Node) getTokensIDsWithFilter(
 		return tokens, api.BlockInfo{}, nil
 	}
 
-	chLeaves := &common.TrieIteratorChannels{
-		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    errChan.NewErrChanWrapper(),
-	}
-	err = userAccount.GetAllLeaves(chLeaves, ctx)
-	if err != nil {
-		return nil, api.BlockInfo{}, err
-	}
-
-	for leaf := range chLeaves.LeavesChan {
+	err = n.collectTrieLeaves(ctx, userAccount, func(leaf core.KeyValueHolder, _ *trieCollectionBudget) error {
 		tokenIdentifier := string(leaf.Key())
 		if !strings.Contains(tokenIdentifier, "-") {
-			continue
+			return nil
 		}
 
 		esdtToken, okGet := n.getEsdtDataFromLeaf(leaf)
 		if !okGet {
-			continue
+			return nil
 		}
 
 		if f.filter(tokenIdentifier, esdtToken) {
 			tokens = append(tokens, tokenIdentifier)
 		}
-	}
-
-	err = chLeaves.ErrChan.ReadFromChanNonBlocking()
+		return nil
+	})
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
@@ -647,18 +623,9 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 	esdtPrefix := []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier)
 	lenESDTPrefix := len(esdtPrefix)
 
-	chLeaves := &common.TrieIteratorChannels{
-		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    errChan.NewErrChanWrapper(),
-	}
-	err = userAccount.GetAllLeaves(chLeaves, ctx)
-	if err != nil {
-		return nil, api.BlockInfo{}, err
-	}
-
-	for leaf := range chLeaves.LeavesChan {
+	err = n.collectTrieLeaves(ctx, userAccount, func(leaf core.KeyValueHolder, budget *trieCollectionBudget) error {
 		if !bytes.HasPrefix(leaf.Key(), esdtPrefix) {
-			continue
+			return nil
 		}
 
 		tokenKey := leaf.Key()
@@ -667,7 +634,7 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 
 		userAccountVmCommon, ok := userAccount.(vmcommon.UserAccountHandler)
 		if !ok {
-			return nil, api.BlockInfo{}, ErrCannotCastUserAccountHandlerToVmCommonUserAccountHandler
+			return ErrCannotCastUserAccountHandlerToVmCommonUserAccountHandler
 		}
 
 		tokenID, nonce := common.ExtractTokenIDAndNonceFromTokenStorageKey([]byte(tokenName))
@@ -676,22 +643,29 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 		esdtToken, _, err = n.esdtStorageHandler.GetESDTNFTTokenOnDestinationWithCustomSystemAccount(userAccountVmCommon, esdtTokenKey, nonce, systemAccount)
 		if err != nil {
 			log.Warn("cannot get ESDT token", "token name", tokenName, "error", err)
-			continue
+			return nil
+		}
+
+		if esdtToken.Value.Sign() <= 0 {
+			return nil
+		}
+		// NFT metadata may come from the system account rather than this leaf.
+		if err = budget.chargeBytes(2 * uint64(esdtToken.Size())); err != nil {
+			return err
 		}
 
 		if esdtToken.TokenMetaData != nil {
 			esdtTokenCreatorAddr, errEncode := n.coreComponents.AddressPubKeyConverter().Encode(esdtToken.TokenMetaData.Creator)
 			if errEncode != nil {
-				return nil, api.BlockInfo{}, errEncode
+				return errEncode
 			}
 			esdtToken.TokenMetaData.Creator = []byte(esdtTokenCreatorAddr)
 			tokenName = adjustNftTokenIdentifier(tokenName, esdtToken.TokenMetaData.Nonce)
 		}
 
 		allESDTs[tokenName] = esdtToken
-	}
-
-	err = chLeaves.ErrChan.ReadFromChanNonBlocking()
+		return nil
+	})
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
@@ -803,7 +777,8 @@ func (n *Node) commonTransactionValidation(
 		whiteListRequest,
 		n.coreComponents.AddressPubKeyConverter(),
 		n.coreComponents.TxVersionChecker(),
-		common.MaxTxNonceDeltaAllowed,
+		n.coreComponents.EnableEpochsHandler(),
+		n.maxTxNonceDeltaAllowed,
 	)
 
 	if err != nil {
@@ -1242,7 +1217,7 @@ func (n *Node) GetEpochStartDataAPI(epoch uint32) (*common.EpochStartDataAPI, er
 	if epoch == 0 {
 		// for the first epoch, epoch start identifier isn't committed. Therefore, return the genesis info
 		genesisHeader := n.dataComponents.Blockchain().GetGenesisHeader()
-		return prepareEpochStartDataResponse(genesisHeader), nil
+		return n.prepareEpochStartDataResponse(genesisHeader), nil
 	}
 
 	if n.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
@@ -1269,7 +1244,7 @@ func (n *Node) getShardFirstNonceOfEpoch(epoch uint32) (*common.EpochStartDataAP
 		return nil, err
 	}
 
-	return prepareEpochStartDataResponse(header), nil
+	return n.prepareEpochStartDataResponse(header), nil
 }
 
 func (n *Node) getMetaFirstNonceOfEpoch(epoch uint32) (*common.EpochStartDataAPI, error) {
@@ -1284,24 +1259,46 @@ func (n *Node) getMetaFirstNonceOfEpoch(epoch uint32) (*common.EpochStartDataAPI
 		return nil, fmt.Errorf("cannot load epoch start block for epoch %d (%w)", epoch, err)
 	}
 
-	var metaBlock block.MetaBlock
-	err = n.coreComponents.InternalMarshalizer().Unmarshal(&metaBlock, result)
+	metaBlock, err := process.UnmarshalMetaHeader(n.coreComponents.InternalMarshalizer(), result)
 	if err != nil {
 		return nil, err
 	}
 
-	return prepareEpochStartDataResponse(&metaBlock), nil
+	return n.prepareEpochStartDataResponse(metaBlock), nil
 }
 
-func prepareEpochStartDataResponse(header data.HeaderHandler) *common.EpochStartDataAPI {
+func (n *Node) getLastExecutionRootHashOnHeader(
+	header data.HeaderHandler,
+) []byte {
+	rootHash := header.GetRootHash()
+	if !header.IsHeaderV3() {
+		return rootHash
+	}
+
+	lastExecRes, err := common.ExtractBaseExecutionResultHandler(header.GetLastExecutionResultHandler())
+	if err != nil {
+		// this should not happen, last execution result should be set on header v3
+		log.Error("failed to get last execution result on header", "error", err)
+		return rootHash
+	}
+
+	return lastExecRes.GetRootHash()
+}
+
+func (n *Node) prepareEpochStartDataResponse(header data.HeaderHandler) *common.EpochStartDataAPI {
+	timestampSec, timestampMs, _ := common.GetHeaderTimestamps(header, n.coreComponents.EnableEpochsHandler())
+
+	rootHash := n.getLastExecutionRootHashOnHeader(header)
+
 	response := &common.EpochStartDataAPI{
 		Nonce:         header.GetNonce(),
 		Round:         header.GetRound(),
 		Shard:         header.GetShardID(),
-		Timestamp:     int64(time.Duration(header.GetTimeStamp())),
+		Timestamp:     int64(timestampSec),
+		TimestampMs:   int64(timestampMs),
 		Epoch:         header.GetEpoch(),
 		PrevBlockHash: hex.EncodeToString(header.GetPrevHash()),
-		StateRootHash: hex.EncodeToString(header.GetRootHash()),
+		StateRootHash: hex.EncodeToString(rootHash),
 	}
 
 	if header.GetAdditionalData() != nil {

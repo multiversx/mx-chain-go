@@ -23,5 +23,5 @@ type transactionGetter interface {
 }
 
 type dataFieldParser interface {
-	Parse(dataField []byte, sender, receiver []byte, numOfShards uint32) *datafield.ResponseParseData
+	Parse(dataField []byte, sender, receiver []byte, numOfShards uint32, epoch uint32) *datafield.ResponseParseData
 }

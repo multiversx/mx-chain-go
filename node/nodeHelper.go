@@ -2,9 +2,9 @@ package node
 
 import (
 	"errors"
-	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/factory"
@@ -63,10 +63,11 @@ func CreateNode(
 		return nil, err
 	}
 
-	genesisTime := time.Unix(coreComponents.GenesisNodesSetup().GetStartTime(), 0)
+	genesisTime := common.GetGenesisStartTimeFromUnixTimestamp(coreComponents.GenesisNodesSetup().GetStartTime(), coreComponents.EnableEpochsHandler())
 
 	var nd *Node
 	nd, err = NewNode(
+		WithTrieOperations(config.TrieOperations),
 		WithStatusCoreComponents(statusCoreComponents),
 		WithCoreComponents(coreComponents),
 		WithCryptoComponents(cryptoComponents),
@@ -89,6 +90,7 @@ func CreateNode(
 		WithValidatorSignatureSize(config.ValidatorPubkeyConverter.SignatureLength),
 		WithPublicKeySize(config.ValidatorPubkeyConverter.Length),
 		WithNodeStopChannel(coreComponents.ChanStopNodeProcess()),
+		WithMaxTxNonceDeltaAllowed(config.TxCacheBounds.MaxTxNonceDeltaAllowed),
 		WithImportMode(isInImportMode),
 		WithESDTNFTStorageHandler(processComponents.ESDTDataStorageHandlerForAPI()),
 	)
@@ -109,6 +111,8 @@ func CreateNode(
 		processComponents.ResolversContainer(),
 		processComponents.RequestersFinder(),
 		config.Debug.InterceptorResolver,
+		nd.coreComponents.EpochStartNotifierWithConfirm(),
+		nd.coreComponents.SyncTimer(),
 	)
 	if err != nil {
 		return nil, err

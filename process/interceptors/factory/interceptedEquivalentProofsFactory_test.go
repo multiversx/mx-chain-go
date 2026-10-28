@@ -5,7 +5,9 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
+	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/consensus/mock"
@@ -14,9 +16,11 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 )
 
 func createMockArgInterceptedEquivalentProofsFactory() ArgInterceptedEquivalentProofsFactory {
+	roundExclusions, _ := common.NewRoundExclusionHandler(nil)
 	return ArgInterceptedEquivalentProofsFactory{
 		ArgInterceptedDataFactory: ArgInterceptedDataFactory{
 			CoreComponents: &processMock.CoreComponentsMock{
@@ -24,11 +28,19 @@ func createMockArgInterceptedEquivalentProofsFactory() ArgInterceptedEquivalentP
 				Hash:                   &hashingMocks.HasherMock{},
 				FieldsSizeCheckerField: &testscommon.FieldsSizeCheckerMock{},
 			},
-			ShardCoordinator:  &mock.ShardCoordinatorMock{},
-			HeaderSigVerifier: &consensus.HeaderSigVerifierMock{},
-			NodesCoordinator:  &shardingMocks.NodesCoordinatorStub{},
+			CryptoComponents: &processMock.CryptoComponentsMock{
+				ManagedPeers: &testscommon.ManagedPeersHolderStub{},
+			},
+			ShardCoordinator:                        &mock.ShardCoordinatorMock{},
+			HeaderSigVerifier:                       &consensus.HeaderSigVerifierMock{},
+			NodesCoordinator:                        &shardingMocks.NodesCoordinatorStub{},
+			ValidityAttester:                        &processMock.ValidityAttesterStub{},
+			PeerAuthCacher:                          cache.NewCacherStub(),
+			PeerAuthenticationTimeBetweenSendsInSec: 10,
+			RoundExclusions:                         roundExclusions,
 		},
-		ProofsPool: &dataRetriever.ProofsPoolMock{},
+		ProofsPool:  &dataRetriever.ProofsPoolMock{},
+		HeadersPool: &pool.HeadersPoolStub{},
 	}
 }
 

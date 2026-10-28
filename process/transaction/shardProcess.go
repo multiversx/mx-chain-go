@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
@@ -64,7 +65,7 @@ type ArgsNewTxProcessor struct {
 	BadTxForwarder      process.IntermediateTransactionHandler
 	ArgsParser          process.ArgumentsParser
 	ScrForwarder        process.IntermediateTransactionHandler
-	EnableRoundsHandler process.EnableRoundsHandler
+	EnableRoundsHandler common.EnableRoundsHandler
 	EnableEpochsHandler common.EnableEpochsHandler
 	TxVersionChecker    process.TxVersionCheckerHandler
 	GuardianChecker     process.GuardianChecker
@@ -129,6 +130,7 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 		common.RelayedTransactionsV2Flag,
 		common.RelayedNonceFixFlag,
 		common.FixRelayedBaseCostFlag,
+		common.RelayedTransactionsV1V2DisableFlag,
 	})
 	if err != nil {
 		return nil, err
@@ -180,6 +182,26 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 
 	acntSnd, acntDst, err := txProc.getAccounts(tx.SndAddr, tx.RcvAddr)
 	if err != nil {
+		if errors.Is(err, state.ErrAccountAddressIsReserved) {
+			selfShardID := txProc.shardCoordinator.SelfId()
+			isCrossShardDestination := selfShardID == txProc.shardCoordinator.ComputeId(tx.RcvAddr) &&
+				selfShardID != txProc.shardCoordinator.ComputeId(tx.SndAddr)
+			if isCrossShardDestination {
+				txHash, hashErr := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
+				if hashErr != nil {
+					return 0, hashErr
+				}
+				defer txProc.accounts.SetTxHashForLatestStateAccesses(txHash)
+
+				err = txProc.processIfTxErrorCrossShard(tx, txHash, err.Error())
+				if err != nil {
+					return 0, err
+				}
+
+				return vmcommon.UserError, nil
+			}
+		}
+
 		return 0, err
 	}
 
@@ -195,6 +217,12 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 		txHash,
 		txProc.pubkeyConv,
 	)
+
+	// TODO refactor to set the tx hash for the following state accesses before the processing occurs
+	defer func() {
+		txProc.accounts.SetTxHashForLatestStateAccesses(txHash)
+		log.Trace("SetTxHashForLatestStateAccesses", "txHash", txHash)
+	}()
 
 	txType, dstShardTxType, isRelayedV3 := txProc.txTypeHandler.ComputeTransactionType(tx)
 	err = txProc.checkTxValues(tx, acntSnd, acntDst, false)
@@ -214,7 +242,7 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 		}
 
 		if errors.Is(err, process.ErrUserNameDoesNotMatchInCrossShardTx) {
-			errProcessIfErr := txProc.processIfTxErrorCrossShard(tx, err.Error())
+			errProcessIfErr := txProc.processIfTxErrorCrossShard(tx, txHash, err.Error())
 			if errProcessIfErr != nil {
 				return 0, errProcessIfErr
 			}
@@ -871,7 +899,6 @@ func (txProc *txProcessor) addNonExecutableLog(executionErr error, originalTxHas
 	}
 
 	return txProc.txLogsProcessor.SaveLog(originalTxHash, originalTx, []*vmcommon.LogEntry{logEntry})
-
 }
 
 func (txProc *txProcessor) processMoveBalanceCostRelayedUserTx(

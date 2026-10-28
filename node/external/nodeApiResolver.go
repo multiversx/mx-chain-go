@@ -7,8 +7,10 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	coreData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/genesis"
@@ -155,6 +157,11 @@ func (nar *nodeApiResolver) SimulateTransactionExecution(tx *transaction.Transac
 	return nar.apiTransactionEvaluator.SimulateTransactionExecution(tx)
 }
 
+// SimulateSCRExecutionCost will simulate the provided smart contract results and return the simulation results
+func (nar *nodeApiResolver) SimulateSCRExecutionCost(scr *smartContractResult.SmartContractResult) (*transaction.CostResponse, error) {
+	return nar.apiTransactionEvaluator.SimulateSCRExecutionCost(scr)
+}
+
 // Close closes all underlying components
 func (nar *nodeApiResolver) Close() error {
 	for _, sm := range nar.storageManagers {
@@ -212,6 +219,16 @@ func (nar *nodeApiResolver) GetLastPoolNonceForSender(sender string) (uint64, er
 // GetTransactionsPoolNonceGapsForSender will return the nonce gaps from pool for sender, if exists, that is to be returned on API calls
 func (nar *nodeApiResolver) GetTransactionsPoolNonceGapsForSender(sender string, senderAccountNonce uint64) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
 	return nar.apiTransactionHandler.GetTransactionsPoolNonceGapsForSender(sender, senderAccountNonce)
+}
+
+// GetSelectedTransactions will simulate a SelectTransactions, and it will return the corresponding hash of each selected transaction
+func (nar *nodeApiResolver) GetSelectedTransactions(selectionOptionsAPI common.TxSelectionOptionsAPI, blockchain coreData.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error) {
+	return nar.apiTransactionHandler.GetSelectedTransactions(selectionOptionsAPI, blockchain, accountsAdapter)
+}
+
+// GetVirtualNonce will return the virtual nonce of the account
+func (nar *nodeApiResolver) GetVirtualNonce(address string) (*common.VirtualNonceOfAccountResponse, error) {
+	return nar.apiTransactionHandler.GetVirtualNonce(address)
 }
 
 // GetBlockByHash will return the block with the given hash and optionally with transactions

@@ -156,4 +156,5 @@ func TestInterceptedValidatorInfo_Getters(t *testing.T) {
 	assert.True(t, strings.Contains(str, fmt.Sprintf("list=%s", validatorInfo.List)))
 	assert.True(t, strings.Contains(str, fmt.Sprintf("index=%d", validatorInfo.Index)))
 	assert.True(t, strings.Contains(str, fmt.Sprintf("tempRating=%d", validatorInfo.TempRating)))
+	require.False(t, ivi.ShouldAllowDuplicates())
 }

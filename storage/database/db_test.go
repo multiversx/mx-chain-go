@@ -38,14 +38,14 @@ func TestNewLevelDB(t *testing.T) {
 	t.Run("invalid argument should error", func(t *testing.T) {
 		t.Parallel()
 
-		instance, err := NewLevelDB(t.TempDir(), 0, 0, 0)
+		instance, err := NewLevelDB(t.TempDir(), 0, 0, 0, 0)
 		assert.Nil(t, instance)
 		assert.NotNil(t, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		instance, err := NewLevelDB(t.TempDir(), 1, 1, 1)
+		instance, err := NewLevelDB(t.TempDir(), 1, 1, 1, 0)
 		assert.NotNil(t, instance)
 		assert.Nil(t, err)
 		_ = instance.Close()
@@ -58,14 +58,14 @@ func TestNewSerialDB(t *testing.T) {
 	t.Run("invalid argument should error", func(t *testing.T) {
 		t.Parallel()
 
-		instance, err := NewSerialDB(t.TempDir(), 0, 0, 0)
+		instance, err := NewSerialDB(t.TempDir(), 0, 0, 0, 0)
 		assert.Nil(t, instance)
 		assert.NotNil(t, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		instance, err := NewSerialDB(t.TempDir(), 1, 1, 1)
+		instance, err := NewSerialDB(t.TempDir(), 1, 1, 1, 0)
 		assert.NotNil(t, instance)
 		assert.Nil(t, err)
 		_ = instance.Close()

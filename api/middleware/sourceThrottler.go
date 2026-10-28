@@ -10,7 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/api/shared"
 )
 
-// globalThrottler is a middleware limiter used to limit total number of requests originating from the same source
+// sourceThrottler is a middleware limiter used to limit total number of requests originating from the same source
 type sourceThrottler struct {
 	mutRequests    sync.Mutex
 	sourceRequests map[string]uint32

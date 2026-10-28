@@ -33,6 +33,7 @@ func testRelayedScCallShouldWork(
 		testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 			DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
 			FixRelayedBaseCostEnableEpoch:                   relayedFixActivationEpoch,
+			RelayedTransactionsV1V2DisableEpoch:             integrationTests.UnreachableEpoch,
 		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContext.Close()
@@ -90,7 +91,8 @@ func testRelayedScCallContractNotFoundShouldConsumeGas(
 ) func(t *testing.T) {
 	return func(t *testing.T) {
 		testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
-			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
+			FixRelayedBaseCostEnableEpoch:       relayedFixActivationEpoch,
+			RelayedTransactionsV1V2DisableEpoch: integrationTests.UnreachableEpoch,
 		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContext.Close()
@@ -145,7 +147,8 @@ func testRelayedScCallInvalidMethodShouldConsumeGas(
 ) func(t *testing.T) {
 	return func(t *testing.T) {
 		testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
-			RelayedNonceFixEnableEpoch: relayedFixActivationEpoch,
+			RelayedNonceFixEnableEpoch:          relayedFixActivationEpoch,
+			RelayedTransactionsV1V2DisableEpoch: integrationTests.UnreachableEpoch,
 		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContext.Close()
@@ -200,7 +203,8 @@ func testRelayedScCallInsufficientGasLimitShouldConsumeGas(
 ) func(t *testing.T) {
 	return func(t *testing.T) {
 		testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
-			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
+			FixRelayedBaseCostEnableEpoch:       relayedFixActivationEpoch,
+			RelayedTransactionsV1V2DisableEpoch: integrationTests.UnreachableEpoch,
 		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContext.Close()
@@ -255,7 +259,8 @@ func testRelayedScCallOutOfGasShouldConsumeGas(
 ) func(t *testing.T) {
 	return func(t *testing.T) {
 		testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
-			RelayedNonceFixEnableEpoch: relayedFixActivationEpoch,
+			RelayedNonceFixEnableEpoch:          relayedFixActivationEpoch,
+			RelayedTransactionsV1V2DisableEpoch: integrationTests.UnreachableEpoch,
 		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContext.Close()
@@ -303,7 +308,8 @@ func TestRelayedDeployInvalidContractShouldIncrementNonceOnSender(t *testing.T) 
 
 	t.Run("nonce fix is disabled, should increase the sender's nonce if inner tx has correct nonce", func(t *testing.T) {
 		testContext := testRelayedDeployInvalidContractShouldIncrementNonceOnSender(t, config.EnableEpochs{
-			RelayedNonceFixEnableEpoch: 100000,
+			RelayedNonceFixEnableEpoch:          100000,
+			RelayedTransactionsV1V2DisableEpoch: integrationTests.UnreachableEpoch,
 		},
 			senderAddr,
 			0)
@@ -314,7 +320,8 @@ func TestRelayedDeployInvalidContractShouldIncrementNonceOnSender(t *testing.T) 
 	})
 	t.Run("nonce fix is enabled, should still increase the sender's nonce if inner tx has correct nonce", func(t *testing.T) {
 		testContext := testRelayedDeployInvalidContractShouldIncrementNonceOnSender(t, config.EnableEpochs{
-			RelayedNonceFixEnableEpoch: 0,
+			RelayedNonceFixEnableEpoch:          0,
+			RelayedTransactionsV1V2DisableEpoch: integrationTests.UnreachableEpoch,
 		},
 			senderAddr,
 			0)
@@ -325,7 +332,8 @@ func TestRelayedDeployInvalidContractShouldIncrementNonceOnSender(t *testing.T) 
 	})
 	t.Run("nonce fix is enabled, should not increase the sender's nonce if inner tx has higher nonce", func(t *testing.T) {
 		testContext := testRelayedDeployInvalidContractShouldIncrementNonceOnSender(t, config.EnableEpochs{
-			RelayedNonceFixEnableEpoch: 0,
+			RelayedNonceFixEnableEpoch:          0,
+			RelayedTransactionsV1V2DisableEpoch: integrationTests.UnreachableEpoch,
 		},
 			senderAddr,
 			1) // higher nonce, the current is 0

@@ -3,12 +3,14 @@ package dataRetriever_test
 import (
 	"errors"
 	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/storage"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestHas_ErrorWhenStorerIsMissing(t *testing.T) {
@@ -287,4 +289,55 @@ func TestCloseAll_Ok(t *testing.T) {
 
 	err := b.CloseAll()
 	require.Nil(t, err)
+}
+
+type storerWithPutInEpochStub struct {
+	storage.Storer
+	setEpochForPutOperationCalled func(epoch uint32)
+}
+
+func (s *storerWithPutInEpochStub) SetEpochForPutOperation(epoch uint32) {
+	s.setEpochForPutOperationCalled(epoch)
+}
+
+func TestChainStorer_SetEpochForPutOperationDoesNotBlockConcurrentReads(t *testing.T) {
+	t.Parallel()
+
+	// this runs on every committed block while a storer can hold its own lock for a long time during
+	// an epoch change; taking a write lock here would park every concurrent read behind it
+	epochSetEntered := make(chan struct{})
+	releaseEpochSet := make(chan struct{})
+
+	slowStorer := &storerWithPutInEpochStub{
+		Storer: &storageStubs.StorerStub{
+			GetCalled: func(key []byte) ([]byte, error) {
+				return []byte("value"), nil
+			},
+		},
+		setEpochForPutOperationCalled: func(epoch uint32) {
+			close(epochSetEntered)
+			<-releaseEpochSet
+		},
+	}
+
+	chainStorer := dataRetriever.NewChainStorer()
+	chainStorer.AddStorer(dataRetriever.BlockHeaderUnit, slowStorer)
+
+	go chainStorer.SetEpochForPutOperation(5)
+	<-epochSetEntered
+
+	readDone := make(chan struct{})
+	go func() {
+		_, _ = chainStorer.Get(dataRetriever.BlockHeaderUnit, []byte("key"))
+		close(readDone)
+	}()
+
+	select {
+	case <-readDone:
+	case <-time.After(time.Second):
+		close(releaseEpochSet)
+		require.Fail(t, "a read was blocked while the epoch for put operation was being set")
+	}
+
+	close(releaseEpochSet)
 }

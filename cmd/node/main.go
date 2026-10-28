@@ -6,17 +6,17 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/klauspost/cpuid/v2"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-logger-go/file"
+	"github.com/urfave/cli"
+
 	"github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/config/overridableConfig"
 	"github.com/multiversx/mx-chain-go/node"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	"github.com/multiversx/mx-chain-logger-go/file"
-	"github.com/urfave/cli"
 	// test point 1 for custom profiler
 )
 
@@ -135,7 +135,7 @@ func startNodeRunner(c *cli.Context, log logger.Logger, baseVersion string, vers
 
 	err = checkHardwareRequirements(cfgs.GeneralConfig.HardwareRequirements)
 	if err != nil {
-		return fmt.Errorf("Hardware Requirements checks failed: %s", err.Error())
+		return fmt.Errorf("hardware requirements checks failed: %s", err.Error())
 	}
 
 	nodeRunner, errRunner := node.NewNodeRunner(cfgs)
@@ -261,6 +261,9 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*config.Configs, error) {
 	if ctx.IsSet(identityFlagName.Name) {
 		preferencesConfig.Preferences.Identity = ctx.GlobalString(identityFlagName.Name)
 	}
+	if ctx.IsSet(stateAccessesTypesToCollect.Name) {
+		generalConfig.StateAccessesCollectorConfig.TypesToCollect = ctx.GlobalStringSlice(stateAccessesTypesToCollect.Name)
+	}
 
 	return &config.Configs{
 		GeneralConfig:            generalConfig,
@@ -319,30 +322,4 @@ func attachFileLogger(log logger.Logger, flagsConfig *config.ContextFlagsConfig)
 	log.Trace("logger updated", "level", logLevelFlagValue, "disable ANSI color", flagsConfig.DisableAnsiColor)
 
 	return fileLogging, nil
-}
-
-func checkHardwareRequirements(cfg config.HardwareRequirementsConfig) error {
-	cpuFlags, err := parseFeatures(cfg.CPUFlags)
-	if err != nil {
-		return err
-	}
-
-	if !cpuid.CPU.Supports(cpuFlags...) {
-		return fmt.Errorf("CPU Flags: Streaming SIMD Extensions 4 required")
-	}
-
-	return nil
-}
-
-func parseFeatures(features []string) ([]cpuid.FeatureID, error) {
-	flags := make([]cpuid.FeatureID, 0)
-
-	for _, cpuFlag := range features {
-		featureID := cpuid.ParseFeature(cpuFlag)
-		if featureID == cpuid.UNKNOWN {
-			return nil, fmt.Errorf("CPU Flags: cpu flag %s not found", cpuFlag)
-		}
-	}
-
-	return flags, nil
 }

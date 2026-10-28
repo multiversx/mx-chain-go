@@ -3,6 +3,9 @@ name: Build & push keygenerator docker image
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build-docker-image:
     strategy:

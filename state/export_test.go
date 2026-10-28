@@ -1,9 +1,11 @@
 package state
 
 import (
+	data "github.com/multiversx/mx-chain-core-go/data/stateChange"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/common"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 // LoadCode -
@@ -19,6 +21,24 @@ func (adb *AccountsDB) LoadDataTrieConcurrentSafe(accountHandler baseAccountHand
 // GetAccount -
 func (adb *AccountsDB) GetAccount(address []byte) (vmcommon.AccountHandler, error) {
 	return adb.getAccount(address, adb.getMainTrie())
+}
+
+// CommitWithStateAccessesForHeader -
+func (adb *AccountsDB) CommitWithStateAccessesForHeader(headerHash []byte) ([]byte, error) {
+	adb.stateAccessesCollector.BeginExecution(headerHash)
+	defer adb.stateAccessesCollector.EndExecution(headerHash)
+
+	return adb.Commit()
+}
+
+// TakeStateAccessesForHeader -
+func (adb *AccountsDB) TakeStateAccessesForHeader(headerHash, rootHash []byte) (map[string]*data.StateAccesses, error) {
+	return adb.stateAccessesCollector.TakeStateAccessesForHeader(headerHash, rootHash)
+}
+
+// ResetStateAccessesCollector -
+func (adb *AccountsDB) ResetStateAccessesCollector() {
+	adb.stateAccessesCollector.Reset()
 }
 
 // GetCode -
@@ -90,4 +110,9 @@ func NewNilSnapshotsManager() *snapshotsManager {
 type AccountHandlerWithDataTrieMigrationStatus interface {
 	vmcommon.AccountHandler
 	IsDataTrieMigrated() (bool, error)
+}
+
+// Journalize exposes journalize for tests.
+func (adb *AccountsDB) Journalize(entry JournalEntry) {
+	adb.journalize(entry)
 }

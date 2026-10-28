@@ -55,6 +55,7 @@ func TestCommonMessenger_BroadcastConsensusMessageShouldErrWhenSignMessageFail(t
 		shardCoordinatorMock,
 		peerSigHandler,
 		&testscommon.KeysHandlerStub{},
+		&testscommon.ProcessConfigsHandlerStub{},
 	)
 
 	msg := &consensus.Message{}
@@ -82,6 +83,7 @@ func TestCommonMessenger_BroadcastConsensusMessageShouldWork(t *testing.T) {
 		shardCoordinatorMock,
 		peerSigHandler,
 		&testscommon.KeysHandlerStub{},
+		&testscommon.ProcessConfigsHandlerStub{},
 	)
 
 	msg := &consensus.Message{}
@@ -136,6 +138,7 @@ func TestSubroundEndRound_ExtractMiniBlocksAndTransactionsShouldWork(t *testing.
 		shardCoordinatorMock,
 		peerSigHandler,
 		&testscommon.KeysHandlerStub{},
+		&testscommon.ProcessConfigsHandlerStub{},
 	)
 
 	metaMiniBlocks, metaTransactions := cm.ExtractMetaMiniBlocksAndTransactions(miniBlocks, transactions)
@@ -175,6 +178,7 @@ func TestCommonMessenger_BroadcastBlockData(t *testing.T) {
 		},
 	}
 	peerSigHandler := &mock.PeerSignatureHandler{Signer: singleSignerMock}
+	delay := time.Millisecond * 10
 
 	cm, _ := broadcast.NewCommonMessenger(
 		marshalizerMock,
@@ -186,18 +190,22 @@ func TestCommonMessenger_BroadcastBlockData(t *testing.T) {
 				return bytes.Equal(pkBytes, nodePkBytes)
 			},
 		},
+		&testscommon.ProcessConfigsHandlerStub{
+			GetExtraDelayForBroadcastBlockInfoCalled: func(_ uint64) time.Duration {
+				return delay
+			},
+		},
 	)
 
 	miniBlocks := map[uint32][]byte{0: []byte("mbs data1"), 1: []byte("mbs data2")}
 	transactions := map[string][][]byte{"topic1": {[]byte("txdata1"), []byte("txdata2")}, "topic2": {[]byte("txdata3")}}
-	delay := time.Millisecond * 10
 
 	t.Run("original public key of the node", func(t *testing.T) {
 		mutCounters.Lock()
 		countersBroadcast = make(map[string]int)
 		mutCounters.Unlock()
 
-		cm.BroadcastBlockData(miniBlocks, transactions, nodePkBytes, delay)
+		cm.BroadcastBlockData(miniBlocks, transactions, nodePkBytes, 0)
 		time.Sleep(delay * 2)
 
 		mutCounters.Lock()
@@ -211,12 +219,44 @@ func TestCommonMessenger_BroadcastBlockData(t *testing.T) {
 		numBroadcast += countersBroadcast[broadcastMethodPrefix+"topic2"]
 		assert.Equal(t, len(transactions), numBroadcast)
 	})
+	t.Run("delays are taken for the provided round", func(t *testing.T) {
+		providedRound := uint64(4321)
+		broadcastRounds := make([]uint64, 0, 2)
+		mutRounds := &sync.Mutex{}
+		cmWithRounds, _ := broadcast.NewCommonMessenger(
+			marshalizerMock,
+			messengerMock,
+			shardCoordinatorMock,
+			peerSigHandler,
+			&testscommon.KeysHandlerStub{},
+			&testscommon.ProcessConfigsHandlerStub{
+				GetExtraDelayForBroadcastBlockInfoCalled: func(round uint64) time.Duration {
+					mutRounds.Lock()
+					broadcastRounds = append(broadcastRounds, round)
+					mutRounds.Unlock()
+					return 0
+				},
+				GetExtraDelayBetweenBroadcastMbsAndTxsCalled: func(round uint64) time.Duration {
+					mutRounds.Lock()
+					broadcastRounds = append(broadcastRounds, round)
+					mutRounds.Unlock()
+					return 0
+				},
+			},
+		)
+
+		cmWithRounds.BroadcastBlockData(miniBlocks, transactions, nodePkBytes, providedRound)
+
+		mutRounds.Lock()
+		defer mutRounds.Unlock()
+		assert.Equal(t, []uint64{providedRound, providedRound}, broadcastRounds)
+	})
 	t.Run("managed key", func(t *testing.T) {
 		mutCounters.Lock()
 		countersBroadcast = make(map[string]int)
 		mutCounters.Unlock()
 
-		cm.BroadcastBlockData(miniBlocks, transactions, []byte("managed key"), delay)
+		cm.BroadcastBlockData(miniBlocks, transactions, []byte("managed key"), 0)
 		time.Sleep(delay * 2)
 
 		mutCounters.Lock()
@@ -276,6 +316,7 @@ func TestCommonMessenger_broadcast(t *testing.T) {
 					return bytes.Equal(nodePkBytes, pkBytes)
 				},
 			},
+			&testscommon.ProcessConfigsHandlerStub{},
 		)
 
 		cm.Broadcast(testTopic, []byte("data"), nodePkBytes)
@@ -300,6 +341,7 @@ func TestCommonMessenger_broadcast(t *testing.T) {
 					return false
 				},
 			},
+			&testscommon.ProcessConfigsHandlerStub{},
 		)
 
 		cm.Broadcast(testTopic, []byte("data"), []byte("managed key"))
@@ -327,6 +369,7 @@ func TestCommonMessenger_broadcast(t *testing.T) {
 					return false
 				},
 			},
+			&testscommon.ProcessConfigsHandlerStub{},
 		)
 
 		cm.Broadcast(testTopic, []byte("data"), []byte("managed key"))

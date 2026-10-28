@@ -1,13 +1,20 @@
 package crypto
 
 import (
+	"context"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/storage"
 )
+
+// estimated size of a public key object
+const pubKeySize = 96
 
 // ArgsSigningHandler defines the arguments needed to create a new signing handler component
 type ArgsSigningHandler struct {
@@ -16,6 +23,7 @@ type ArgsSigningHandler struct {
 	SingleSigner         crypto.SingleSigner
 	KeyGenerator         crypto.KeyGenerator
 	KeysHandler          consensus.KeysHandler
+	PubKeysCache         storage.Cacher
 }
 
 type signatureHolderData struct {
@@ -31,6 +39,7 @@ type signingHandler struct {
 	singleSigner         crypto.SingleSigner
 	keyGen               crypto.KeyGenerator
 	keysHandler          consensus.KeysHandler
+	pubKeysCache         storage.Cacher
 }
 
 // NewSigningHandler will create a new signing handler component
@@ -60,6 +69,7 @@ func NewSigningHandler(args ArgsSigningHandler) (*signingHandler, error) {
 		singleSigner:         args.SingleSigner,
 		keyGen:               args.KeyGenerator,
 		keysHandler:          args.KeysHandler,
+		pubKeysCache:         args.PubKeysCache,
 	}, nil
 }
 
@@ -76,6 +86,9 @@ func checkArgs(args ArgsSigningHandler) error {
 	if check.IfNil(args.KeyGenerator) {
 		return ErrNilKeyGenerator
 	}
+	if check.IfNil(args.PubKeysCache) {
+		return ErrNilCacher
+	}
 	if len(args.PubKeys) == 0 {
 		return ErrNoPublicKeySet
 	}
@@ -91,6 +104,7 @@ func (sh *signingHandler) Create(pubKeys []string) (*signingHandler, error) {
 		MultiSignerContainer: sh.multiSignerContainer,
 		SingleSigner:         sh.singleSigner,
 		KeyGenerator:         sh.keyGen,
+		PubKeysCache:         sh.pubKeysCache,
 	}
 	return NewSigningHandler(args)
 }
@@ -123,9 +137,24 @@ func (sh *signingHandler) Reset(pubKeys []string) error {
 
 // CreateSignatureShareForPublicKey returns a signature over a message using the managed private key that was selected based on the provided
 // publicKeyBytes argument
-func (sh *signingHandler) CreateSignatureShareForPublicKey(message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+func (sh *signingHandler) CreateSignatureShareForPublicKey(
+	ctx context.Context,
+	message []byte,
+	index uint16,
+	epoch uint32,
+	publicKeyBytes []byte,
+) ([]byte, error) {
 	if message == nil {
 		return nil, ErrNilMessage
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	select {
+	case <-ctx.Done():
+		return nil, ErrTimeIsOut
+	default:
 	}
 
 	privateKey := sh.keysHandler.GetHandledPrivateKey(publicKeyBytes)
@@ -133,9 +162,6 @@ func (sh *signingHandler) CreateSignatureShareForPublicKey(message []byte, index
 	if err != nil {
 		return nil, err
 	}
-
-	sh.mutSigningData.Lock()
-	defer sh.mutSigningData.Unlock()
 
 	multiSigner, err := sh.multiSignerContainer.GetMultiSigner(epoch)
 	if err != nil {
@@ -147,7 +173,17 @@ func (sh *signingHandler) CreateSignatureShareForPublicKey(message []byte, index
 		return nil, err
 	}
 
-	sh.data.sigShares[index] = sigShareBytes
+	// check again before setting signatures shares data
+	select {
+	case <-ctx.Done():
+		return nil, ErrTimeIsOut
+	default:
+	}
+
+	err = sh.storeSignatureShare(index, sigShareBytes)
+	if err != nil {
+		return nil, err
+	}
 
 	return sigShareBytes, nil
 }
@@ -184,18 +220,26 @@ func (sh *signingHandler) VerifySignatureShare(index uint16, sig []byte, message
 		return ErrIndexOutOfBounds
 	}
 
-	pubKey := sh.data.pubKeys[index]
+	pubKeyBytes := sh.data.pubKeys[index]
+	pubKey, err := sh.getPubKeyFromBytes(pubKeyBytes)
+	if err != nil {
+		return err
+	}
 
 	multiSigner, err := sh.multiSignerContainer.GetMultiSigner(epoch)
 	if err != nil {
 		return err
 	}
 
-	return multiSigner.VerifySignatureShare(pubKey, message, sig)
+	return multiSigner.VerifySignatureShareV2(pubKey, message, sig)
 }
 
 // StoreSignatureShare stores the partial signature of the signer with specified position
 func (sh *signingHandler) StoreSignatureShare(index uint16, sig []byte) error {
+	return sh.storeSignatureShare(index, sig)
+}
+
+func (sh *signingHandler) storeSignatureShare(index uint16, sig []byte) error {
 	if len(sig) == 0 {
 		return ErrInvalidSignature
 	}
@@ -261,7 +305,7 @@ func (sh *signingHandler) AggregateSigs(bitmap []byte, epoch uint32) ([]byte, er
 	}
 
 	signatures := make([][]byte, 0, len(sh.data.sigShares))
-	pubKeysSigners := make([][]byte, 0, len(sh.data.sigShares))
+	pubKeysSigners := make([]crypto.PublicKey, 0, len(sh.data.sigShares))
 
 	for i := range sh.data.sigShares {
 		if !sh.isIndexInBitmap(uint16(i), bitmap) {
@@ -269,10 +313,173 @@ func (sh *signingHandler) AggregateSigs(bitmap []byte, epoch uint32) ([]byte, er
 		}
 
 		signatures = append(signatures, sh.data.sigShares[i])
-		pubKeysSigners = append(pubKeysSigners, sh.data.pubKeys[i])
+
+		pubKey, err := sh.getPubKeyFromBytes(sh.data.pubKeys[i])
+		if err != nil {
+			return nil, err
+		}
+		pubKeysSigners = append(pubKeysSigners, pubKey)
 	}
 
-	return multiSigner.AggregateSigs(pubKeysSigners, signatures)
+	return multiSigner.AggregateSigsV2(pubKeysSigners, signatures)
+}
+
+// AggregateSigsWithKeys aggregates the provided signature shares over the provided group,
+// without touching the per-round state; bitmap indices are aligned with pubKeys and sigShares
+func (sh *signingHandler) AggregateSigsWithKeys(pubKeys []string, bitmap []byte, sigShares [][]byte, epoch uint32) ([]byte, error) {
+	pubKeysSigners, err := sh.selectPubKeysByBitmap(pubKeys, bitmap)
+	if err != nil {
+		return nil, err
+	}
+
+	signatures, err := selectSigSharesByBitmap(pubKeys, bitmap, sigShares)
+	if err != nil {
+		return nil, err
+	}
+
+	multiSigner, err := sh.multiSignerContainer.GetMultiSigner(epoch)
+	if err != nil {
+		return nil, err
+	}
+
+	return multiSigner.AggregateSigsV2(pubKeysSigners, signatures)
+}
+
+// VerifyAggregatedSigWithKeys verifies the aggregated signature over the provided group,
+// without touching the per-round state
+func (sh *signingHandler) VerifyAggregatedSigWithKeys(pubKeys []string, bitmap []byte, message []byte, aggSig []byte, epoch uint32) error {
+	pubKeysSigners, err := sh.selectPubKeysByBitmap(pubKeys, bitmap)
+	if err != nil {
+		return err
+	}
+
+	multiSigner, err := sh.multiSignerContainer.GetMultiSigner(epoch)
+	if err != nil {
+		return err
+	}
+
+	return multiSigner.VerifyAggregatedSigV2(pubKeysSigners, message, aggSig)
+}
+
+// VerifySigShareWithKey verifies a single signature share against the provided public key,
+// without touching the per-round state
+func (sh *signingHandler) VerifySigShareWithKey(pubKey []byte, sigShare []byte, message []byte, epoch uint32) error {
+	if len(sigShare) == 0 {
+		return ErrInvalidSignature
+	}
+
+	pk, err := sh.getPubKeyFromBytes(pubKey)
+	if err != nil {
+		return err
+	}
+
+	multiSigner, err := sh.multiSignerContainer.GetMultiSigner(epoch)
+	if err != nil {
+		return err
+	}
+
+	return multiSigner.VerifySignatureShareV2(pk, message, sigShare)
+}
+
+func validateBitmap(pubKeys []string, bitmap []byte) error {
+	if bitmap == nil {
+		return ErrNilBitmap
+	}
+	if len(bitmap)*8 < len(pubKeys) {
+		return ErrBitmapMismatch
+	}
+
+	return nil
+}
+
+// selectPubKeysByBitmap returns the public keys whose index is set in the bitmap
+func (sh *signingHandler) selectPubKeysByBitmap(pubKeys []string, bitmap []byte) ([]crypto.PublicKey, error) {
+	err := validateBitmap(pubKeys, bitmap)
+	if err != nil {
+		return nil, err
+	}
+
+	pubKeysSigners := make([]crypto.PublicKey, 0, len(pubKeys))
+	for i, pubKeyStr := range pubKeys {
+		if bitmap[i/8]&(1<<(uint16(i)%8)) == 0 {
+			continue
+		}
+
+		pubKey, err := sh.getPubKeyFromBytes([]byte(pubKeyStr))
+		if err != nil {
+			return nil, err
+		}
+		pubKeysSigners = append(pubKeysSigners, pubKey)
+	}
+
+	return pubKeysSigners, nil
+}
+
+// selectSigSharesByBitmap returns the signature shares whose index is set in the bitmap
+func selectSigSharesByBitmap(pubKeys []string, bitmap []byte, sigShares [][]byte) ([][]byte, error) {
+	err := validateBitmap(pubKeys, bitmap)
+	if err != nil {
+		return nil, err
+	}
+	if len(sigShares) != len(pubKeys) {
+		return nil, ErrIndexOutOfBounds
+	}
+
+	signatures := make([][]byte, 0, len(pubKeys))
+	for i := range sigShares {
+		if bitmap[i/8]&(1<<(uint16(i)%8)) == 0 {
+			continue
+		}
+
+		if len(sigShares[i]) == 0 {
+			return nil, ErrNilElement
+		}
+		signatures = append(signatures, sigShares[i])
+	}
+
+	return signatures, nil
+}
+
+func (sh *signingHandler) getPubKeyFromBytes(
+	pubKeyBytes []byte,
+) (crypto.PublicKey, error) {
+	pubKeyCached, ok := sh.pubKeysCache.Get(pubKeyBytes)
+	if !ok {
+		pubKey, err := sh.keyGen.PublicKeyFromByteArray(pubKeyBytes)
+		if err != nil {
+			return nil, err
+		}
+
+		sh.pubKeysCache.Put(pubKeyBytes, pubKey, pubKeySize)
+
+		return pubKey, nil
+	}
+
+	pubKey, ok := pubKeyCached.(crypto.PublicKey)
+	if !ok {
+		return nil, errors.ErrWrongTypeAssertion
+	}
+
+	return pubKey, nil
+
+}
+
+// GetPubKeysFromBytes will return public keys corresponding to the provided public keys bytes
+func (sh *signingHandler) GetPubKeysFromBytes(
+	pubKeysBytes [][]byte,
+) ([]crypto.PublicKey, error) {
+	pubKeys := make([]crypto.PublicKey, 0, len(pubKeysBytes))
+
+	for _, pubKeyBytes := range pubKeysBytes {
+		pk, err := sh.getPubKeyFromBytes(pubKeyBytes)
+		if err != nil {
+			return nil, err
+		}
+
+		pubKeys = append(pubKeys, pk)
+	}
+
+	return pubKeys, nil
 }
 
 // SetAggregatedSig sets the aggregated signature
@@ -306,16 +513,20 @@ func (sh *signingHandler) Verify(message []byte, bitmap []byte, epoch uint32) er
 		return err
 	}
 
-	pubKeys := make([][]byte, 0, len(sh.data.pubKeys))
-	for i, pk := range sh.data.pubKeys {
+	pubKeys := make([]crypto.PublicKey, 0, len(sh.data.pubKeys))
+	for i, pkBytes := range sh.data.pubKeys {
 		if !sh.isIndexInBitmap(uint16(i), bitmap) {
 			continue
 		}
 
+		pk, err := sh.getPubKeyFromBytes(pkBytes)
+		if err != nil {
+			return err
+		}
 		pubKeys = append(pubKeys, pk)
 	}
 
-	return multiSigner.VerifyAggregatedSig(pubKeys, message, sh.data.aggSig)
+	return multiSigner.VerifyAggregatedSigV2(pubKeys, message, sh.data.aggSig)
 }
 
 func convertStringsToPubKeysBytes(pubKeys []string) ([][]byte, error) {

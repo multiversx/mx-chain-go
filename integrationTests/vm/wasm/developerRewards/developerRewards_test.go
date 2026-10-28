@@ -35,7 +35,7 @@ func TestClaimDeveloperRewards(t *testing.T) {
 		ownerBalanceAfter := context.GetAccountBalance(&context.Owner).Uint64()
 		require.Equal(t, ownerBalanceBefore-context.LastConsumedFee+reward, ownerBalanceAfter)
 
-		events := context.LastLogs[0].GetLogEvents()
+		events := context.LastLogs[0].GetLogHandler().GetLogEvents()
 		require.Equal(t, "ClaimDeveloperRewards", string(events[0].GetIdentifier()))
 		require.Equal(t, rewardBig.Bytes(), events[0].GetTopics()[0])
 		require.Equal(t, context.Owner.Address, events[0].GetTopics()[1])
@@ -70,7 +70,7 @@ func TestClaimDeveloperRewards(t *testing.T) {
 		contractBalanceAfter := context.GetAccount(parentContractAddress).GetBalance().Uint64()
 		require.Equal(t, contractBalanceBefore+reward, contractBalanceAfter)
 
-		events := context.LastLogs[0].GetLogEvents()
+		events := context.LastLogs[0].GetLogHandler().GetLogEvents()
 		require.Equal(t, "ClaimDeveloperRewards", string(events[0].GetIdentifier()))
 		require.Equal(t, rewardBig.Bytes(), events[0].GetTopics()[0])
 		require.Equal(t, parentContractAddress, events[0].GetTopics()[1])

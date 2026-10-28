@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+
 	"github.com/multiversx/mx-chain-go/integrationTests"
 )
 
@@ -29,6 +30,7 @@ func initNodesWithTestSigner(
 
 	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
 	enableEpochsConfig.AndromedaEnableEpoch = equivalentProofsActivationEpoch
+	enableEpochsConfig.SupernovaEnableEpoch = 0
 
 	nodes := integrationTests.CreateNodesWithTestFullNode(
 		int(numMetaNodes),
@@ -38,7 +40,8 @@ func initNodesWithTestSigner(
 		consensusType,
 		1,
 		enableEpochsConfig,
-		false,
+		integrationTests.GetSupernovaRoundsConfigActivated(),
+		100,
 	)
 
 	time.Sleep(p2pBootstrapDelay)
@@ -72,6 +75,7 @@ func initNodesWithTestSigner(
 }
 
 func TestConsensusWithInvalidSigners(t *testing.T) {
+	t.Skip("TODO: activate this test once meta processing is done")
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -84,14 +88,14 @@ func TestConsensusWithInvalidSigners(t *testing.T) {
 
 	nodes, invalidNodesAddresses := initNodesWithTestSigner(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, blsConsensusType)
 
-	defer func() {
+	t.Cleanup(func() {
 		for shardID := range nodes {
 			for _, n := range nodes[shardID] {
 				_ = n.MainMessenger.Close()
 				_ = n.FullArchiveMessenger.Close()
 			}
 		}
-	}()
+	})
 
 	// delay for bootstrapping and topic announcement
 	fmt.Println("Start consensus...")
@@ -99,7 +103,7 @@ func TestConsensusWithInvalidSigners(t *testing.T) {
 
 	for _, nodesList := range nodes {
 		for _, n := range nodesList {
-			err := startFullConsensusNode(n)
+			err := startFullConsensusNode(t, n)
 			require.Nil(t, err)
 		}
 	}

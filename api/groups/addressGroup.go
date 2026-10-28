@@ -1,6 +1,7 @@
 package groups
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -42,21 +43,24 @@ const (
 	urlParamWithKeys               = "withKeys"
 )
 
+// maxUint64 is represented on 20 characters as a string
+const maxNumCharsForNonceAsString = 20
+
 // addressFacadeHandler defines the methods to be implemented by a facade for handling address requests
 type addressFacadeHandler interface {
 	GetBalance(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo, error)
 	GetUsername(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
 	GetCodeHash(address string, options api.AccountQueryOptions) ([]byte, api.BlockInfo, error)
 	GetValueForKey(address string, key string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
-	GetAccount(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error)
+	GetAccount(ctx context.Context, address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error)
 	GetAccounts(addresses []string, options api.AccountQueryOptions) (map[string]*api.AccountResponse, api.BlockInfo, error)
 	GetESDTData(address string, key string, nonce uint64, options api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error)
-	GetESDTsRoles(address string, options api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error)
-	GetNFTTokenIDsRegisteredByAddress(address string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error)
-	GetESDTsWithRole(address string, role string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error)
-	GetAllESDTTokens(address string, options api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error)
-	GetKeyValuePairs(address string, options api.AccountQueryOptions) (map[string]string, api.BlockInfo, error)
-	IterateKeys(address string, numKeys uint, iteratorState [][]byte, options api.AccountQueryOptions) (map[string]string, [][]byte, api.BlockInfo, error)
+	GetESDTsRoles(ctx context.Context, address string, options api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error)
+	GetNFTTokenIDsRegisteredByAddress(ctx context.Context, address string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error)
+	GetESDTsWithRole(ctx context.Context, address string, role string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error)
+	GetAllESDTTokens(ctx context.Context, address string, options api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error)
+	GetKeyValuePairs(ctx context.Context, address string, options api.AccountQueryOptions) (map[string]string, api.BlockInfo, error)
+	IterateKeys(ctx context.Context, address string, numKeys uint, iteratorState [][]byte, options api.AccountQueryOptions) (map[string]string, [][]byte, api.BlockInfo, error)
 	GetGuardianData(address string, options api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error)
 	IsDataTrieMigrated(address string, options api.AccountQueryOptions) (bool, error)
 	IsInterfaceNil() bool
@@ -203,7 +207,7 @@ func (ag *addressGroup) getAccount(c *gin.Context) {
 
 	options.WithKeys = withKeys
 
-	accountResponse, blockInfo, err := ag.getFacade().GetAccount(addr, options)
+	accountResponse, blockInfo, err := ag.getFacade().GetAccount(c.Request.Context(), addr, options)
 	if err != nil {
 		shared.RespondWithInternalError(c, errors.ErrCouldNotGetAccount, err)
 		return
@@ -342,7 +346,7 @@ func (ag *addressGroup) getKeyValuePairs(c *gin.Context) {
 		return
 	}
 
-	value, blockInfo, err := ag.getFacade().GetKeyValuePairs(addr, options)
+	value, blockInfo, err := ag.getFacade().GetKeyValuePairs(c.Request.Context(), addr, options)
 	if err != nil {
 		shared.RespondWithInternalError(c, errors.ErrGetKeyValuePairs, err)
 		return
@@ -379,6 +383,7 @@ func (ag *addressGroup) iterateKeys(c *gin.Context) {
 	}
 
 	value, newIteratorState, blockInfo, err := ag.getFacade().IterateKeys(
+		c.Request.Context(),
 		iterateKeysRequest.Address,
 		iterateKeysRequest.NumKeys,
 		iterateKeysRequest.IteratorState,
@@ -423,7 +428,7 @@ func (ag *addressGroup) getESDTsRoles(c *gin.Context) {
 		return
 	}
 
-	tokensRoles, blockInfo, err := ag.getFacade().GetESDTsRoles(addr, options)
+	tokensRoles, blockInfo, err := ag.getFacade().GetESDTsRoles(c.Request.Context(), addr, options)
 	if err != nil {
 		shared.RespondWithInternalError(c, errors.ErrGetRolesForAccount, err)
 		return
@@ -440,7 +445,7 @@ func (ag *addressGroup) getESDTTokensWithRole(c *gin.Context) {
 		return
 	}
 
-	tokens, blockInfo, err := ag.getFacade().GetESDTsWithRole(addr, role, options)
+	tokens, blockInfo, err := ag.getFacade().GetESDTsWithRole(c.Request.Context(), addr, role, options)
 	if err != nil {
 		shared.RespondWithInternalError(c, errors.ErrGetESDTTokensWithRole, err)
 		return
@@ -457,7 +462,7 @@ func (ag *addressGroup) getNFTTokenIDsRegisteredByAddress(c *gin.Context) {
 		return
 	}
 
-	tokens, blockInfo, err := ag.getFacade().GetNFTTokenIDsRegisteredByAddress(addr, options)
+	tokens, blockInfo, err := ag.getFacade().GetNFTTokenIDsRegisteredByAddress(c.Request.Context(), addr, options)
 	if err != nil {
 		shared.RespondWithInternalError(c, errors.ErrRegisteredNFTTokenIDs, err)
 		return
@@ -492,7 +497,7 @@ func (ag *addressGroup) getAllESDTData(c *gin.Context) {
 		return
 	}
 
-	tokens, blockInfo, err := ag.getFacade().GetAllESDTTokens(addr, options)
+	tokens, blockInfo, err := ag.getFacade().GetAllESDTTokens(c.Request.Context(), addr, options)
 	if err != nil {
 		shared.RespondWithInternalError(c, errors.ErrGetESDTNFTData, err)
 		return
@@ -633,6 +638,9 @@ func extractGetESDTNFTDataParams(c *gin.Context) (string, string, *big.Int, api.
 	nonceAsStr := c.Param("nonce")
 	if nonceAsStr == "" {
 		return "", "", nil, api.AccountQueryOptions{}, errors.ErrNonceInvalid
+	}
+	if len(nonceAsStr) > maxNumCharsForNonceAsString {
+		return "", "", nil, api.AccountQueryOptions{}, fmt.Errorf("%w: nonce too long, num chars %v, max num chars %v", errors.ErrNonceInvalid, len(nonceAsStr), maxNumCharsForNonceAsString)
 	}
 
 	nonceAsBigInt, okConvert := big.NewInt(0).SetString(nonceAsStr, 10)

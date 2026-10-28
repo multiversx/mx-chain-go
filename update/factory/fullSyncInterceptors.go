@@ -2,6 +2,7 @@ package factory
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -9,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/dataValidators"
@@ -20,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/update/disabled"
 )
@@ -50,34 +53,39 @@ type fullSyncInterceptorsContainerFactory struct {
 	preferredPeersHolder           update.PreferredPeersHolderHandler
 	nodeOperationMode              common.NodeOperation
 	interceptedDataVerifierFactory process.InterceptedDataVerifierFactory
+	enableEpochsHandler            common.EnableEpochsHandler
+	roundExclusions                common.RoundExclusionHandler
+	config                         config.Config
 }
 
 // ArgsNewFullSyncInterceptorsContainerFactory holds the arguments needed for fullSyncInterceptorsContainerFactory
 type ArgsNewFullSyncInterceptorsContainerFactory struct {
-	CoreComponents                   process.CoreComponentsHolder
-	CryptoComponents                 process.CryptoComponentsHolder
-	Accounts                         state.AccountsAdapter
-	ShardCoordinator                 sharding.Coordinator
-	NodesCoordinator                 nodesCoordinator.NodesCoordinator
-	MainMessenger                    process.TopicHandler
-	FullArchiveMessenger             process.TopicHandler
-	Store                            dataRetriever.StorageService
-	DataPool                         dataRetriever.PoolsHolder
-	MaxTxNonceDeltaAllowed           int
-	TxFeeHandler                     process.FeeHandler
-	BlockBlackList                   process.TimeCacher
-	HeaderSigVerifier                process.InterceptedHeaderSigVerifier
-	HeaderIntegrityVerifier          process.HeaderIntegrityVerifier
-	SizeCheckDelta                   uint32
-	ValidityAttester                 process.ValidityAttester
-	EpochStartTrigger                process.EpochStartTriggerHandler
-	WhiteListHandler                 update.WhiteListHandler
-	WhiteListerVerifiedTxs           update.WhiteListHandler
-	MainInterceptorsContainer        process.InterceptorsContainer
-	FullArchiveInterceptorsContainer process.InterceptorsContainer
-	AntifloodHandler                 process.P2PAntifloodHandler
-	NodeOperationMode                common.NodeOperation
-	InterceptedDataVerifierFactory   process.InterceptedDataVerifierFactory
+	CoreComponents                          process.CoreComponentsHolder
+	CryptoComponents                        process.CryptoComponentsHolder
+	Accounts                                state.AccountsAdapter
+	ShardCoordinator                        sharding.Coordinator
+	NodesCoordinator                        nodesCoordinator.NodesCoordinator
+	MainMessenger                           process.TopicHandler
+	FullArchiveMessenger                    process.TopicHandler
+	Store                                   dataRetriever.StorageService
+	DataPool                                dataRetriever.PoolsHolder
+	MaxTxNonceDeltaAllowed                  int
+	TxFeeHandler                            process.FeeHandler
+	BlockBlackList                          process.TimeCacher
+	HeaderSigVerifier                       process.InterceptedHeaderSigVerifier
+	HeaderIntegrityVerifier                 process.HeaderIntegrityVerifier
+	SizeCheckDelta                          uint32
+	ValidityAttester                        process.ValidityAttester
+	EpochStartTrigger                       process.EpochStartTriggerHandler
+	WhiteListHandler                        update.WhiteListHandler
+	WhiteListerVerifiedTxs                  update.WhiteListHandler
+	MainInterceptorsContainer               process.InterceptorsContainer
+	FullArchiveInterceptorsContainer        process.InterceptorsContainer
+	AntifloodHandler                        process.P2PAntifloodHandler
+	NodeOperationMode                       common.NodeOperation
+	InterceptedDataVerifierFactory          process.InterceptedDataVerifierFactory
+	PeerAuthenticationTimeBetweenSendsInSec int64
+	Config                                  config.Config
 }
 
 // NewFullSyncInterceptorsContainerFactory is responsible for creating a new interceptors factory object
@@ -138,19 +146,26 @@ func NewFullSyncInterceptorsContainerFactory(
 	if check.IfNil(args.InterceptedDataVerifierFactory) {
 		return nil, process.ErrNilInterceptedDataVerifierFactory
 	}
+	roundExclusions, err := common.NewConfiguredRoundExclusionHandler(&args.Config)
+	if err != nil {
+		return nil, err
+	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
-		CoreComponents:          args.CoreComponents,
-		CryptoComponents:        args.CryptoComponents,
-		ShardCoordinator:        args.ShardCoordinator,
-		NodesCoordinator:        args.NodesCoordinator,
-		FeeHandler:              args.TxFeeHandler,
-		HeaderSigVerifier:       args.HeaderSigVerifier,
-		HeaderIntegrityVerifier: args.HeaderIntegrityVerifier,
-		ValidityAttester:        args.ValidityAttester,
-		EpochStartTrigger:       args.EpochStartTrigger,
-		WhiteListerVerifiedTxs:  args.WhiteListerVerifiedTxs,
-		ArgsParser:              smartContract.NewArgumentParser(),
+		CoreComponents:                          args.CoreComponents,
+		CryptoComponents:                        args.CryptoComponents,
+		ShardCoordinator:                        args.ShardCoordinator,
+		NodesCoordinator:                        args.NodesCoordinator,
+		FeeHandler:                              args.TxFeeHandler,
+		HeaderSigVerifier:                       args.HeaderSigVerifier,
+		HeaderIntegrityVerifier:                 args.HeaderIntegrityVerifier,
+		ValidityAttester:                        args.ValidityAttester,
+		EpochStartTrigger:                       args.EpochStartTrigger,
+		WhiteListerVerifiedTxs:                  args.WhiteListerVerifiedTxs,
+		ArgsParser:                              smartContract.NewArgumentParser(),
+		PeerAuthCacher:                          args.DataPool.PeerAuthentications(),
+		PeerAuthenticationTimeBetweenSendsInSec: args.PeerAuthenticationTimeBetweenSendsInSec,
+		RoundExclusions:                         roundExclusions,
 	}
 
 	icf := &fullSyncInterceptorsContainerFactory{
@@ -173,6 +188,8 @@ func NewFullSyncInterceptorsContainerFactory(
 		preferredPeersHolder:           disabled.NewPreferredPeersHolder(),
 		nodeOperationMode:              args.NodeOperationMode,
 		interceptedDataVerifierFactory: args.InterceptedDataVerifierFactory,
+		enableEpochsHandler:            args.CoreComponents.EnableEpochsHandler(),
+		roundExclusions:                roundExclusions,
 	}
 
 	icf.globalThrottler, err = throttler.NewNumGoRoutinesThrottler(numGoRoutines)
@@ -221,6 +238,11 @@ func (ficf *fullSyncInterceptorsContainerFactory) Create() (process.Interceptors
 	}
 
 	return ficf.mainContainer, ficf.fullArchiveContainer, nil
+}
+
+// AddShardTrieNodeInterceptors returns nil
+func (ficf *fullSyncInterceptorsContainerFactory) AddShardTrieNodeInterceptors(_ process.InterceptorsContainer) error {
+	return nil
 }
 
 func checkBaseParams(
@@ -348,9 +370,11 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneShardHeaderIntercepto
 	}
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
-		Headers:        ficf.dataPool.Headers(),
-		BlockBlackList: ficf.blockBlackList,
-		Proofs:         ficf.dataPool.Proofs(),
+		Headers:             ficf.dataPool.Headers(),
+		BlockBlackList:      ficf.blockBlackList,
+		Proofs:              ficf.dataPool.Proofs(),
+		EnableEpochsHandler: ficf.enableEpochsHandler,
+		RoundExclusions:     ficf.roundExclusions,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -372,6 +396,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneShardHeaderIntercepto
 			WhiteListRequest:        ficf.whiteListHandler,
 			CurrentPeerId:           ficf.mainMessenger.ID(),
 			InterceptedDataVerifier: interceptedDataVerifier,
+			ManagedPeersHolder:      ficf.argInterceptorFactory.CryptoComponents.ManagedPeersHolder(),
 		},
 	)
 	if err != nil {
@@ -395,7 +420,8 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateUnsignedTxsInterceptor
 			continue
 		}
 
-		interceptor, err := ficf.createOneUnsignedTxInterceptor(identifierScr)
+		isCrossShard := idx != ficf.shardCoordinator.SelfId()
+		interceptor, err := ficf.createOneUnsignedTxInterceptor(identifierScr, isCrossShard)
 		if err != nil {
 			return err
 		}
@@ -406,7 +432,8 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateUnsignedTxsInterceptor
 
 	identifierScr := factory.UnsignedTransactionTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	if !ficf.checkIfInterceptorExists(identifierScr) {
-		interceptor, err := ficf.createOneUnsignedTxInterceptor(identifierScr)
+		isCrossShard := core.MetachainShardId != ficf.shardCoordinator.SelfId()
+		interceptor, err := ficf.createOneUnsignedTxInterceptor(identifierScr, isCrossShard)
 		if err != nil {
 			return err
 		}
@@ -514,7 +541,8 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateTxInterceptors() error
 			continue
 		}
 
-		interceptor, err := ficf.createOneTxInterceptor(identifierTx)
+		isCrossShard := idx != ficf.shardCoordinator.SelfId()
+		interceptor, err := ficf.createOneTxInterceptor(identifierTx, isCrossShard)
 		if err != nil {
 			return err
 		}
@@ -526,7 +554,8 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateTxInterceptors() error
 	// tx interceptor for metachain topic
 	identifierTx := factory.TransactionTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	if !ficf.checkIfInterceptorExists(identifierTx) {
-		interceptor, err := ficf.createOneTxInterceptor(identifierTx)
+		isCrossShard := core.MetachainShardId != ficf.shardCoordinator.SelfId()
+		interceptor, err := ficf.createOneTxInterceptor(identifierTx, isCrossShard)
 		if err != nil {
 			return err
 		}
@@ -538,13 +567,14 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateTxInterceptors() error
 	return ficf.addInterceptorsToContainers(keys, interceptorSlice)
 }
 
-func (ficf *fullSyncInterceptorsContainerFactory) createOneTxInterceptor(topic string) (process.Interceptor, error) {
+func (ficf *fullSyncInterceptorsContainerFactory) createOneTxInterceptor(topic string, isCrossShard bool) (process.Interceptor, error) {
 	txValidator, err := dataValidators.NewTxValidator(
 		ficf.accounts,
 		ficf.shardCoordinator,
 		ficf.whiteListHandler,
 		ficf.addressPubkeyConv,
 		ficf.argInterceptorFactory.CoreComponents.TxVersionChecker(),
+		ficf.argInterceptorFactory.CoreComponents.EnableEpochsHandler(),
 		ficf.maxTxNonceDeltaAllowed,
 	)
 	if err != nil {
@@ -552,8 +582,9 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneTxInterceptor(topic s
 	}
 
 	argProcessor := &processor.ArgTxInterceptorProcessor{
-		ShardedDataCache: ficf.dataPool.Transactions(),
-		TxValidator:      txValidator,
+		ShardedDataCache:            ficf.dataPool.Transactions(),
+		TxValidator:                 txValidator,
+		DirectSentTransactionsCache: ficf.dataPool.DirectSentTransactions(),
 	}
 	txProcessor, err := processor.NewTxInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -583,19 +614,28 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneTxInterceptor(topic s
 			CurrentPeerId:           ficf.mainMessenger.ID(),
 			PreferredPeersHolder:    ficf.preferredPeersHolder,
 			InterceptedDataVerifier: interceptedDataVerifier,
+			ManagedPeersHolder:      ficf.argInterceptorFactory.CryptoComponents.ManagedPeersHolder(),
 		},
 	)
 	if err != nil {
 		return nil, err
 	}
 
+	if isCrossShard {
+		err = ficf.setUniqueChunksProcessor(interceptor)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return ficf.createTopicAndAssignHandler(topic, interceptor, true)
 }
 
-func (ficf *fullSyncInterceptorsContainerFactory) createOneUnsignedTxInterceptor(topic string) (process.Interceptor, error) {
+func (ficf *fullSyncInterceptorsContainerFactory) createOneUnsignedTxInterceptor(topic string, isCrossShard bool) (process.Interceptor, error) {
 	argProcessor := &processor.ArgTxInterceptorProcessor{
-		ShardedDataCache: ficf.dataPool.UnsignedTransactions(),
-		TxValidator:      dataValidators.NewDisabledTxValidator(),
+		ShardedDataCache:            ficf.dataPool.UnsignedTransactions(),
+		TxValidator:                 dataValidators.NewDisabledTxValidator(),
+		DirectSentTransactionsCache: ficf.dataPool.DirectSentTransactions(),
 	}
 	txProcessor, err := processor.NewTxInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -625,19 +665,28 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneUnsignedTxInterceptor
 			CurrentPeerId:           ficf.mainMessenger.ID(),
 			PreferredPeersHolder:    ficf.preferredPeersHolder,
 			InterceptedDataVerifier: interceptedDataVerifier,
+			ManagedPeersHolder:      ficf.argInterceptorFactory.CryptoComponents.ManagedPeersHolder(),
 		},
 	)
 	if err != nil {
 		return nil, err
 	}
 
+	if isCrossShard {
+		err = ficf.setUniqueChunksProcessor(interceptor)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return ficf.createTopicAndAssignHandler(topic, interceptor, true)
 }
 
-func (ficf *fullSyncInterceptorsContainerFactory) createOneRewardTxInterceptor(topic string) (process.Interceptor, error) {
+func (ficf *fullSyncInterceptorsContainerFactory) createOneRewardTxInterceptor(topic string, isCrossShard bool) (process.Interceptor, error) {
 	argProcessor := &processor.ArgTxInterceptorProcessor{
-		ShardedDataCache: ficf.dataPool.RewardTransactions(),
-		TxValidator:      dataValidators.NewDisabledTxValidator(),
+		ShardedDataCache:            ficf.dataPool.RewardTransactions(),
+		TxValidator:                 dataValidators.NewDisabledTxValidator(),
+		DirectSentTransactionsCache: ficf.dataPool.DirectSentTransactions(),
 	}
 	txProcessor, err := processor.NewTxInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -667,13 +716,39 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneRewardTxInterceptor(t
 			CurrentPeerId:           ficf.mainMessenger.ID(),
 			PreferredPeersHolder:    ficf.preferredPeersHolder,
 			InterceptedDataVerifier: interceptedDataVerifier,
+			ManagedPeersHolder:      ficf.argInterceptorFactory.CryptoComponents.ManagedPeersHolder(),
 		},
 	)
 	if err != nil {
 		return nil, err
 	}
 
+	if isCrossShard {
+		err = ficf.setUniqueChunksProcessor(interceptor)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return ficf.createTopicAndAssignHandler(topic, interceptor, true)
+}
+
+func (ficf *fullSyncInterceptorsContainerFactory) setUniqueChunksProcessor(interceptor *interceptors.MultiDataInterceptor) error {
+	internalMarshaller := ficf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
+	chunksCache, err := cache.NewTimeCacher(cache.ArgTimeCacher{
+		DefaultSpan: time.Duration(ficf.config.InterceptedDataVerifier.CacheSpanInSec) * time.Second,
+		CacheExpiry: time.Duration(ficf.config.InterceptedDataVerifier.CacheExpiryInSec) * time.Second,
+	})
+	if err != nil {
+		return err
+	}
+
+	chunkProcessor, err := processor.NewUniqueChunksProcessor(chunksCache, internalMarshaller, ficf.argInterceptorFactory.CoreComponents.Hasher())
+	if err != nil {
+		return err
+	}
+
+	return interceptor.SetChunkProcessor(chunkProcessor)
 }
 
 func (ficf *fullSyncInterceptorsContainerFactory) generateMiniBlocksInterceptors() error {
@@ -745,6 +820,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneMiniBlocksInterceptor
 			CurrentPeerId:           ficf.mainMessenger.ID(),
 			PreferredPeersHolder:    ficf.preferredPeersHolder,
 			InterceptedDataVerifier: interceptedDataVerifier,
+			ManagedPeersHolder:      ficf.argInterceptorFactory.CryptoComponents.ManagedPeersHolder(),
 		},
 	)
 	if err != nil {
@@ -770,9 +846,11 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateMetachainHeaderInterce
 	}
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
-		Headers:        ficf.dataPool.Headers(),
-		BlockBlackList: ficf.blockBlackList,
-		Proofs:         ficf.dataPool.Proofs(),
+		Headers:             ficf.dataPool.Headers(),
+		BlockBlackList:      ficf.blockBlackList,
+		Proofs:              ficf.dataPool.Proofs(),
+		EnableEpochsHandler: ficf.enableEpochsHandler,
+		RoundExclusions:     ficf.roundExclusions,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -796,6 +874,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateMetachainHeaderInterce
 			CurrentPeerId:           ficf.mainMessenger.ID(),
 			PreferredPeersHolder:    ficf.preferredPeersHolder,
 			InterceptedDataVerifier: interceptedDataVerifier,
+			ManagedPeersHolder:      ficf.argInterceptorFactory.CryptoComponents.ManagedPeersHolder(),
 		},
 	)
 	if err != nil {
@@ -839,6 +918,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneTrieNodesInterceptor(
 			CurrentPeerId:           ficf.mainMessenger.ID(),
 			PreferredPeersHolder:    ficf.preferredPeersHolder,
 			InterceptedDataVerifier: interceptedDataVerifier,
+			ManagedPeersHolder:      ficf.argInterceptorFactory.CryptoComponents.ManagedPeersHolder(),
 		},
 	)
 	if err != nil {
@@ -865,8 +945,10 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateRewardTxInterceptors()
 			return nil
 		}
 
+		isCrossShard := idx != ficf.shardCoordinator.SelfId()
+
 		var interceptor process.Interceptor
-		interceptor, err = ficf.createOneRewardTxInterceptor(identifierScr)
+		interceptor, err = ficf.createOneRewardTxInterceptor(identifierScr, isCrossShard)
 		if err != nil {
 			return err
 		}

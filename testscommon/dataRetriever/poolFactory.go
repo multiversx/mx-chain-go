@@ -2,7 +2,6 @@ package dataRetriever
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -15,13 +14,13 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/shardedData"
 	"github.com/multiversx/mx-chain-go/dataRetriever/txpool"
 	"github.com/multiversx/mx-chain-go/storage/cache"
-	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
-	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks/mempool"
 	"github.com/multiversx/mx-chain-go/trie/factory"
 )
 
-var peerAuthDuration = 10 * time.Second
+var timeCacheDuration = 10 * time.Second
 
 func panicIfError(message string, err error) {
 	if err != nil {
@@ -42,8 +41,12 @@ func CreateTxPool(numShards uint32, selfShard uint32) (dataRetriever.ShardedData
 			},
 			NumberOfShards: numShards,
 			SelfShardID:    selfShard,
-			TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
+			TxGasHandler:   mempool.NewTxGasHandlerMock(),
 			Marshalizer:    &marshal.GogoProtoMarshalizer{},
+			TxCacheBoundsConfig: config.TxCacheBoundsConfig{
+				MaxNumBytesPerSenderUpperBound: 33_554_432,
+				MaxTrackedBlocks:               100,
+			},
 		},
 	)
 }
@@ -84,32 +87,18 @@ func createPoolHolderArgs(numShards uint32, selfShard uint32) dataPool.DataPoolA
 
 	cacherConfig = storageunit.CacheConfig{Capacity: 50000, Type: storageunit.LRUCache}
 	cacher, err := cache.NewCapacityLRU(10, 10000)
-	panicIfError("Create trieSync cacher", err)
+	panicIfError("CreatePoolsHolder", err)
 
-	tempDir, _ := os.MkdirTemp("", "integrationTests")
-
-	dbConfig := config.DBConfig{
-		FilePath:          tempDir,
-		Type:              string(storageunit.LvlDBSerial),
-		BatchDelaySeconds: 4,
-		MaxBatchSize:      10000,
-		MaxOpenFiles:      10,
-	}
-
-	persisterFactory, err := storageFactory.NewPersisterFactory(dbConfig)
-	panicIfError("Create persister factory", err)
-
-	persister, err := persisterFactory.CreateWithRetries(tempDir)
-	panicIfError("Create trieSync DB", err)
+	db := testscommon.NewMemDbMock()
 	tnf := factory.NewTrieNodeFactory()
 
 	adaptedTrieNodesStorage, err := storageunit.NewStorageCacherAdapter(
 		cacher,
-		persister,
+		db,
 		tnf,
 		&marshal.GogoProtoMarshalizer{},
 	)
-	panicIfError("Create AdaptedTrieNodesStorage", err)
+	panicIfError("CreatePoolsHolder", err)
 
 	trieNodesChunks, err := storageunit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolder", err)
@@ -137,6 +126,20 @@ func createPoolHolderArgs(numShards uint32, selfShard uint32) dataPool.DataPoolA
 
 	proofsPool := proofscache.NewProofsPool(3, 100)
 
+	cacherConfig = storageunit.CacheConfig{Capacity: 1000, Type: storageunit.LRUCache}
+	executedMiniBlocks, err := storageunit.NewCache(cacherConfig)
+	panicIfError("CreatePoolsHolder", err)
+
+	cacherConfig = storageunit.CacheConfig{Capacity: 1000, Type: storageunit.LRUCache}
+	postProcessTransactions, err := storageunit.NewCache(cacherConfig)
+	panicIfError("CreatePoolsHolder", err)
+
+	directSentTransactions, err := cache.NewTimeCacher(cache.ArgTimeCacher{
+		DefaultSpan: timeCacheDuration,
+		CacheExpiry: timeCacheDuration,
+	})
+	panicIfError("CreatePoolsHolder", err)
+
 	currentBlockTransactions := dataPool.NewCurrentBlockTransactionsPool()
 	currentEpochValidatorInfo := dataPool.NewCurrentEpochValidatorInfoPool()
 	dataPoolArgs := dataPool.DataPoolArgs{
@@ -155,6 +158,9 @@ func createPoolHolderArgs(numShards uint32, selfShard uint32) dataPool.DataPoolA
 		Heartbeats:                heartbeatPool,
 		ValidatorsInfo:            validatorsInfo,
 		Proofs:                    proofsPool,
+		ExecutedMiniBlocks:        executedMiniBlocks,
+		PostProcessTransactions:   postProcessTransactions,
+		DirectSentTransactions:    directSentTransactions,
 	}
 
 	return dataPoolArgs
@@ -236,8 +242,8 @@ func CreatePoolsHolderWithTxPool(txPool dataRetriever.ShardedDataCacherNotifier)
 	panicIfError("CreatePoolsHolderWithTxPool", err)
 
 	peerAuthPool, err := cache.NewTimeCacher(cache.ArgTimeCacher{
-		DefaultSpan: peerAuthDuration,
-		CacheExpiry: peerAuthDuration,
+		DefaultSpan: timeCacheDuration,
+		CacheExpiry: timeCacheDuration,
 	})
 	panicIfError("CreatePoolsHolderWithTxPool", err)
 
@@ -246,6 +252,20 @@ func CreatePoolsHolderWithTxPool(txPool dataRetriever.ShardedDataCacherNotifier)
 	panicIfError("CreatePoolsHolderWithTxPool", err)
 
 	proofsPool := proofscache.NewProofsPool(3, 100)
+
+	cacherConfig = storageunit.CacheConfig{Capacity: 1000, Type: storageunit.LRUCache}
+	executedMiniBlocks, err := storageunit.NewCache(cacherConfig)
+	panicIfError("CreatePoolsHolderWithTxPool", err)
+
+	cacherConfig = storageunit.CacheConfig{Capacity: 1000, Type: storageunit.LRUCache}
+	postProcessTransactions, err := storageunit.NewCache(cacherConfig)
+	panicIfError("CreatePoolsHolderWithTxPool", err)
+
+	directSentTransactions, err := cache.NewTimeCacher(cache.ArgTimeCacher{
+		DefaultSpan: timeCacheDuration,
+		CacheExpiry: timeCacheDuration,
+	})
+	panicIfError("CreatePoolsHolderWithTxPool", err)
 
 	currentBlockTransactions := dataPool.NewCurrentBlockTransactionsPool()
 	currentEpochValidatorInfo := dataPool.NewCurrentEpochValidatorInfoPool()
@@ -265,6 +285,9 @@ func CreatePoolsHolderWithTxPool(txPool dataRetriever.ShardedDataCacherNotifier)
 		Heartbeats:                heartbeatPool,
 		ValidatorsInfo:            validatorsInfo,
 		Proofs:                    proofsPool,
+		ExecutedMiniBlocks:        executedMiniBlocks,
+		PostProcessTransactions:   postProcessTransactions,
+		DirectSentTransactions:    directSentTransactions,
 	}
 	holder, err := dataPool.NewDataPool(dataPoolArgs)
 	panicIfError("CreatePoolsHolderWithTxPool", err)

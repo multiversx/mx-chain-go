@@ -27,6 +27,7 @@ type SubroundsHandlerArgs struct {
 	OutportHandler       outport.OutportHandler
 	SentSignatureTracker spos.SentSignaturesTracker
 	EnableEpochsHandler  core.EnableEpochsHandler
+	RoundExclusions      common.RoundExclusionHandler
 	ChainID              []byte
 	CurrentPid           core.PeerID
 }
@@ -51,6 +52,7 @@ type SubroundsHandler struct {
 	outportHandler       outport.OutportHandler
 	sentSignatureTracker spos.SentSignaturesTracker
 	enableEpochsHandler  core.EnableEpochsHandler
+	roundExclusions      common.RoundExclusionHandler
 	chainID              []byte
 	currentPid           core.PeerID
 	currentConsensusType consensusStateMachineType
@@ -76,6 +78,10 @@ func NewSubroundsHandler(args *SubroundsHandlerArgs) (*SubroundsHandler, error) 
 	if err != nil {
 		return nil, err
 	}
+	roundExclusions := args.RoundExclusions
+	if check.IfNil(roundExclusions) {
+		roundExclusions, _ = common.NewRoundExclusionHandler(nil)
+	}
 
 	subroundHandler := &SubroundsHandler{
 		chronology:           args.Chronology,
@@ -87,6 +93,7 @@ func NewSubroundsHandler(args *SubroundsHandlerArgs) (*SubroundsHandler, error) 
 		outportHandler:       args.OutportHandler,
 		sentSignatureTracker: args.SentSignatureTracker,
 		enableEpochsHandler:  args.EnableEpochsHandler,
+		roundExclusions:      roundExclusions,
 		chainID:              args.ChainID,
 		currentPid:           args.CurrentPid,
 		currentConsensusType: consensusNone,
@@ -141,15 +148,37 @@ func (s *SubroundsHandler) Start(epoch uint32) error {
 	return s.initSubroundsForEpoch(epoch)
 }
 
+// initSubroundsForEpoch generates the subrounds for the target consensus type of the given epoch, if it
+// differs from the currently active consensus type
 func (s *SubroundsHandler) initSubroundsForEpoch(epoch uint32) error {
-	var err error
-	var fct subroundsFactory
-	if s.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch) {
-		if s.currentConsensusType == consensusV2 {
-			return nil
-		}
+	targetConsensusType := s.getTargetConsensusType(epoch)
 
-		s.currentConsensusType = consensusV2
+	if s.currentConsensusType == targetConsensusType {
+		return nil
+	}
+
+	s.currentConsensusType = targetConsensusType
+	return s.generateSubroundsForCurrentType(epoch)
+}
+
+func (s *SubroundsHandler) getTargetConsensusType(epoch uint32) consensusStateMachineType {
+	if s.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch) {
+		return consensusV2
+	}
+
+	return consensusV1
+}
+
+// generateSubroundsForCurrentType generates the subrounds matching the currently set consensus type
+func (s *SubroundsHandler) generateSubroundsForCurrentType(epoch uint32) error {
+	if s.currentConsensusType == consensusNone {
+		return nil
+	}
+
+	var fct subroundsFactory
+	var err error
+
+	if s.currentConsensusType == consensusV2 {
 		fct, err = v2.NewSubroundsFactory(
 			s.consensusCoreHandler,
 			s.consensusState,
@@ -160,13 +189,9 @@ func (s *SubroundsHandler) initSubroundsForEpoch(epoch uint32) error {
 			s.sentSignatureTracker,
 			s.signatureThrottler,
 			s.outportHandler,
+			s.roundExclusions,
 		)
 	} else {
-		if s.currentConsensusType == consensusV1 {
-			return nil
-		}
-
-		s.currentConsensusType = consensusV1
 		fct, err = v1.NewSubroundsFactory(
 			s.consensusCoreHandler,
 			s.consensusState,
@@ -176,6 +201,7 @@ func (s *SubroundsHandler) initSubroundsForEpoch(epoch uint32) error {
 			s.appStatusHandler,
 			s.sentSignatureTracker,
 			s.outportHandler,
+			s.roundExclusions,
 		)
 	}
 	if err != nil {
@@ -184,7 +210,7 @@ func (s *SubroundsHandler) initSubroundsForEpoch(epoch uint32) error {
 
 	err = s.chronology.Close()
 	if err != nil {
-		log.Warn("SubroundsHandler.initSubroundsForEpoch: cannot close the chronology", "error", err)
+		log.Warn("SubroundsHandler.generateSubroundsForCurrentType: cannot close the chronology", "error", err)
 	}
 
 	err = fct.GenerateSubrounds(epoch)
@@ -192,9 +218,10 @@ func (s *SubroundsHandler) initSubroundsForEpoch(epoch uint32) error {
 		return err
 	}
 
-	log.Debug("SubroundsHandler.initSubroundsForEpoch: reset consensus round state")
+	log.Debug("SubroundsHandler.generateSubroundsForCurrentType: reset consensus round state")
 	s.worker.ResetConsensusRoundState()
 	s.chronology.StartRounds()
+
 	return nil
 }
 

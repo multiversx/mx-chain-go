@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -22,8 +23,8 @@ func (tlp *printTxLogProcessor) GetLog(_ []byte) (data.LogHandler, error) {
 }
 
 // GetLogFromCache -
-func (tlp *printTxLogProcessor) GetLogFromCache(_ []byte) (*data.LogData, bool) {
-	return &data.LogData{}, false
+func (tlp *printTxLogProcessor) GetLogFromCache(_ []byte) (data.LogDataHandler, bool) {
+	return &transaction.LogData{}, false
 }
 
 // EnableLogToBeSavedInCache -
@@ -35,8 +36,8 @@ func (tlp *printTxLogProcessor) Clean() {
 }
 
 // GetAllCurrentLogs -
-func (tlp *printTxLogProcessor) GetAllCurrentLogs() []*data.LogData {
-	return []*data.LogData{}
+func (tlp *printTxLogProcessor) GetAllCurrentLogs() []data.LogDataHandler {
+	return make([]data.LogDataHandler, 0)
 }
 
 // SaveLog -

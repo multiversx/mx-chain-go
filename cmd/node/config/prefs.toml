@@ -12,8 +12,8 @@
    # In multikey mode, all bls keys not mentioned in NamedIdentity section will use this one as default
    Identity = ""
 
-   # RedundancyLevel represents the level of redundancy used by the node (-1 = disabled, 0 = main instance (default),
-   # 1 = first backup, 2 = second backup, etc.)
+   # RedundancyLevel represents the level of redundancy used by the node
+   # (0 = main instance (default), 1 = first backup, 2 = second backup, etc.)
    RedundancyLevel = 0
 
    # FullArchive, if enabled, will make the node able to respond to requests from past, old epochs.

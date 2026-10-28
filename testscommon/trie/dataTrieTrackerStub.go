@@ -3,8 +3,10 @@ package trie
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-core-go/data/stateChange"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 // DataTrieTrackerStub -
@@ -15,7 +17,7 @@ type DataTrieTrackerStub struct {
 	SaveKeyValueCalled          func(key []byte, value []byte) error
 	SetDataTrieCalled           func(tr common.Trie)
 	DataTrieCalled              func() common.Trie
-	SaveDirtyDataCalled         func(trie common.Trie) ([]core.TrieData, error)
+	SaveDirtyDataCalled         func(trie common.Trie) ([]*stateChange.DataTrieChange, []core.TrieData, error)
 	SaveTrieDataCalled          func(trieData core.TrieData) error
 	MigrateDataTrieLeavesCalled func(args vmcommon.ArgsMigrateDataTrieLeaves) error
 }
@@ -61,12 +63,12 @@ func (dtts *DataTrieTrackerStub) DataTrie() common.DataTrieHandler {
 }
 
 // SaveDirtyData -
-func (dtts *DataTrieTrackerStub) SaveDirtyData(mainTrie common.Trie) ([]core.TrieData, error) {
+func (dtts *DataTrieTrackerStub) SaveDirtyData(mainTrie common.Trie) ([]*stateChange.DataTrieChange, []core.TrieData, error) {
 	if dtts.SaveDirtyDataCalled != nil {
 		return dtts.SaveDirtyDataCalled(mainTrie)
 	}
 
-	return make([]core.TrieData, 0), nil
+	return make([]*stateChange.DataTrieChange, 0), make([]core.TrieData, 0), nil
 }
 
 // MigrateDataTrieLeaves -

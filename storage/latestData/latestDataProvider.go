@@ -11,16 +11,15 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/epochStart/metachain"
-	"github.com/multiversx/mx-chain-go/epochStart/shardchain"
+	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/factory"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("storage/latestData")
@@ -38,6 +37,7 @@ type ArgsLatestDataProvider struct {
 
 type iteratedShardData struct {
 	bootstrapData   *bootstrapStorage.BootstrapData
+	selectionRound  int64
 	epochStartRound uint64
 	shardIDStr      string
 	successful      bool
@@ -73,7 +73,11 @@ func NewLatestDataProvider(args ArgsLatestDataProvider) (*latestDataProvider, er
 
 // Get will return a struct containing the latest usable data in storage
 func (ldp *latestDataProvider) Get() (storage.LatestDataFromStorage, error) {
-	lastData, _, _, err := ldp.getLastData()
+	lastData, _, storageEpoch, err := ldp.getLastData()
+	if err == nil && ldp.generalConfig.HardforkRecoveryCheckpoint.Enabled {
+		// A snapshot's anchor header may belong to the previous epoch.
+		lastData.Epoch = storageEpoch
+	}
 	return lastData, err
 }
 
@@ -161,7 +165,7 @@ func (ldp *latestDataProvider) getLastEpochAndRoundFromStorage(parentDir string,
 		shardData := ldp.loadDataForShard(highestRoundInStoredShards, shardIdStr, persisterFactory, persisterPath)
 		if shardData.successful {
 			epochStartRound = shardData.epochStartRound
-			highestRoundInStoredShards = shardData.bootstrapData.LastRound
+			highestRoundInStoredShards = shardData.selectionRound
 			mostRecentBootstrapData = shardData.bootstrapData
 			mostRecentShard = shardIdStr
 		}
@@ -199,7 +203,11 @@ func (ldp *latestDataProvider) loadDataForShard(currentHighestRound int64, shard
 		return &iteratedShardData{}
 	}
 
-	if bootstrapData.LastRound > currentHighestRound {
+	round, err := factory.GetBootstrapSelectionRound(ldp.bootstrapDataProvider, bootstrapData, storer, ldp.generalConfig.HardforkRecoveryCheckpoint.Enabled)
+	if err != nil {
+		return &iteratedShardData{}
+	}
+	if round > currentHighestRound {
 		shardID := uint32(0)
 		var err error
 		shardID, err = core.ConvertShardIDToUint32(shardIdStr)
@@ -213,6 +221,7 @@ func (ldp *latestDataProvider) loadDataForShard(currentHighestRound int64, shard
 
 		return &iteratedShardData{
 			bootstrapData:   bootstrapData,
+			selectionRound:  round,
 			shardIDStr:      shardIdStr,
 			epochStartRound: epochStartRound,
 			successful:      true,
@@ -234,19 +243,19 @@ func (ldp *latestDataProvider) loadEpochStartRound(
 		return 0, err
 	}
 
-	var state *block.MetaTriggerRegistry
+	var state data.MetaTriggerRegistryHandler
 	marshaller := &marshal.GogoProtoMarshalizer{}
 	if shardID == core.MetachainShardId {
-		state, err = metachain.UnmarshalTrigger(marshaller, trigData)
+		state, err = epochStart.UnmarshalMetaTrigger(marshaller, trigData)
 		if err != nil {
 			return 0, err
 		}
 
-		return state.CurrEpochStartRound, nil
+		return state.GetCurrEpochStartRound(), nil
 	}
 
 	var trigHandler data.TriggerRegistryHandler
-	trigHandler, err = shardchain.UnmarshalTrigger(marshaller, trigData)
+	trigHandler, err = epochStart.UnmarshalShardTrigger(marshaller, trigData)
 	if err != nil {
 		return 0, err
 	}
@@ -265,7 +274,7 @@ func (ldp *latestDataProvider) GetLastEpochFromDirNames(epochDirs []string, inde
 
 	for _, dirname := range epochDirs {
 		epochStr := re.FindString(dirname)
-		epoch, err := strconv.ParseInt(epochStr, 10, 64)
+		epoch, err := strconv.ParseUint(epochStr, 10, 32)
 		if err != nil {
 			return 0, err
 		}

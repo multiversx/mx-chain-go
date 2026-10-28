@@ -83,7 +83,7 @@ func TestAsyncESDTTransferWithSCCallShouldWork(t *testing.T) {
 	require.Nil(t, err)
 
 	logs := testContextSender.TxsLogsProcessor.GetAllCurrentLogs()
-	require.Len(t, logs[0].GetLogEvents(), 1)
+	require.Len(t, logs[0].GetLogHandler().GetLogEvents(), 1)
 
 	_, err = testContextSender.Accounts.Commit()
 	require.Nil(t, err)

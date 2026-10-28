@@ -1,6 +1,7 @@
 package initial
 
 import (
+	"context"
 	"errors"
 	"math/big"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
@@ -122,17 +124,17 @@ func (inf *initialNodeFacade) GetESDTBalance(_ string, _ string, _ api.AccountQu
 }
 
 // GetAllESDTTokens returns nil and error
-func (inf *initialNodeFacade) GetAllESDTTokens(_ string, _ api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error) {
+func (inf *initialNodeFacade) GetAllESDTTokens(_ context.Context, _ string, _ api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error) {
 	return nil, api.BlockInfo{}, errNodeStarting
 }
 
 // GetNFTTokenIDsRegisteredByAddress returns nil and error
-func (inf *initialNodeFacade) GetNFTTokenIDsRegisteredByAddress(_ string, _ api.AccountQueryOptions) ([]string, api.BlockInfo, error) {
+func (inf *initialNodeFacade) GetNFTTokenIDsRegisteredByAddress(_ context.Context, _ string, _ api.AccountQueryOptions) ([]string, api.BlockInfo, error) {
 	return nil, api.BlockInfo{}, errNodeStarting
 }
 
 // GetESDTsWithRole returns nil and error
-func (inf *initialNodeFacade) GetESDTsWithRole(_ string, _ string, _ api.AccountQueryOptions) ([]string, api.BlockInfo, error) {
+func (inf *initialNodeFacade) GetESDTsWithRole(_ context.Context, _ string, _ string, _ api.AccountQueryOptions) ([]string, api.BlockInfo, error) {
 	return nil, api.BlockInfo{}, errNodeStarting
 }
 
@@ -171,6 +173,11 @@ func (inf *initialNodeFacade) SimulateTransactionExecution(_ *transaction.Transa
 	return nil, errNodeStarting
 }
 
+// SimulateSCRExecutionCost returns nil and error
+func (inf *initialNodeFacade) SimulateSCRExecutionCost(_ *smartContractResult.SmartContractResult) (*transaction.CostResponse, error) {
+	return nil, errNodeStarting
+}
+
 // GetTransaction returns nil and error
 func (inf *initialNodeFacade) GetTransaction(_ string, _ bool) (*transaction.ApiTransactionResult, error) {
 	return nil, errNodeStarting
@@ -182,7 +189,7 @@ func (inf *initialNodeFacade) ComputeTransactionGasLimit(_ *transaction.Transact
 }
 
 // GetAccount returns nil and error
-func (inf *initialNodeFacade) GetAccount(_ string, _ api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
+func (inf *initialNodeFacade) GetAccount(_ context.Context, _ string, _ api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
 	return api.AccountResponse{}, api.BlockInfo{}, errNodeStarting
 }
 
@@ -342,12 +349,12 @@ func (inf *initialNodeFacade) Close() error {
 }
 
 // GetKeyValuePairs nil map
-func (inf *initialNodeFacade) GetKeyValuePairs(_ string, _ api.AccountQueryOptions) (map[string]string, api.BlockInfo, error) {
+func (inf *initialNodeFacade) GetKeyValuePairs(_ context.Context, _ string, _ api.AccountQueryOptions) (map[string]string, api.BlockInfo, error) {
 	return nil, api.BlockInfo{}, errNodeStarting
 }
 
 // IterateKeys returns error
-func (inf *initialNodeFacade) IterateKeys(_ string, _ uint, _ [][]byte, _ api.AccountQueryOptions) (map[string]string, [][]byte, api.BlockInfo, error) {
+func (inf *initialNodeFacade) IterateKeys(_ context.Context, _ string, _ uint, _ [][]byte, _ api.AccountQueryOptions) (map[string]string, [][]byte, api.BlockInfo, error) {
 	return nil, nil, api.BlockInfo{}, errNodeStarting
 }
 
@@ -372,12 +379,12 @@ func (inf *initialNodeFacade) GetESDTData(_ string, _ string, _ uint64, _ api.Ac
 }
 
 // GetESDTsRoles return nil and error
-func (inf *initialNodeFacade) GetESDTsRoles(_ string, _ api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error) {
+func (inf *initialNodeFacade) GetESDTsRoles(_ context.Context, _ string, _ api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error) {
 	return nil, api.BlockInfo{}, errNodeStarting
 }
 
 // GetAllIssuedESDTs returns nil and error
-func (inf *initialNodeFacade) GetAllIssuedESDTs(_ string) ([]string, error) {
+func (inf *initialNodeFacade) GetAllIssuedESDTs(_ context.Context, _ string) ([]string, error) {
 	return nil, errNodeStarting
 }
 
@@ -408,6 +415,16 @@ func (inf *initialNodeFacade) GetLastPoolNonceForSender(_ string) (uint64, error
 
 // GetTransactionsPoolNonceGapsForSender returns a nil structure and error
 func (inf *initialNodeFacade) GetTransactionsPoolNonceGapsForSender(_ string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
+	return nil, errNodeStarting
+}
+
+// GetSelectedTransactions returns a nil structure and error
+func (inf *initialNodeFacade) GetSelectedTransactions(_ string) (*common.TransactionsSelectionSimulationResult, error) {
+	return nil, errNodeStarting
+}
+
+// GetVirtualNonce returns a nil structure and error
+func (inf *initialNodeFacade) GetVirtualNonce(_ string) (*common.VirtualNonceOfAccountResponse, error) {
 	return nil, errNodeStarting
 }
 

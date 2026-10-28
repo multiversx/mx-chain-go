@@ -18,11 +18,23 @@ func TestRelayedSCDeployShouldWork(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testContextRelayer, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{}, 1)
+	testContextRelayer, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(
+		2,
+		config.EnableEpochs{
+			RelayedTransactionsV1V2DisableEpoch: integrationTests.UnreachableEpoch,
+		},
+		1,
+	)
 	require.Nil(t, err)
 	defer testContextRelayer.Close()
 
-	testContextInner, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{}, 1)
+	testContextInner, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(
+		1,
+		config.EnableEpochs{
+			RelayedTransactionsV1V2DisableEpoch: integrationTests.UnreachableEpoch,
+		},
+		1,
+	)
 	require.Nil(t, err)
 	defer testContextInner.Close()
 

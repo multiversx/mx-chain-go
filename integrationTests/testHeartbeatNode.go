@@ -236,9 +236,8 @@ func NewTestHeartbeatNode(
 	thn.MainPeerShardMapper.UpdatePeerIDInfo(localId, pkBytes, shardCoordinator.SelfId())
 
 	argsKeysManagement := keysManagement.ArgsManagedPeersHolder{
-		KeyGenerator:          TestBLSKeyGenerator,
-		P2PKeyGenerator:       TestP2PKeyGenerator,
-		MaxRoundsOfInactivity: 0,
+		KeyGenerator:    TestBLSKeyGenerator,
+		P2PKeyGenerator: TestP2PKeyGenerator,
 		PrefsConfig: config.Preferences{
 			Preferences: config.PreferencesConfig{
 				NodeDisplayName: DefaultNodeName,
@@ -246,7 +245,8 @@ func NewTestHeartbeatNode(
 				RedundancyLevel: 0,
 			},
 		},
-		P2PKeyConverter: factory.NewP2PKeyConverter(),
+		P2PKeyConverter:       factory.NewP2PKeyConverter(),
+		ProcessConfigsHandler: &testscommon.ProcessConfigsHandlerStub{},
 	}
 	thn.ManagedPeersHolder, _ = keysManagement.NewManagedPeersHolder(argsKeysManagement)
 
@@ -478,7 +478,7 @@ func (thn *TestHeartbeatNode) initDataPools() {
 
 	cacherCfg := storageunit.CacheConfig{Capacity: 10000, Type: storageunit.LRUCache, Shards: 1}
 	suCache, _ := storageunit.NewCache(cacherCfg)
-	thn.WhiteListHandler, _ = interceptors.NewWhiteListDataVerifier(suCache)
+	thn.WhiteListHandler, _ = interceptors.NewWhiteListDataVerifier(suCache, whiteListRequestTTL)
 }
 
 func (thn *TestHeartbeatNode) initStorage() {
@@ -542,14 +542,20 @@ func (thn *TestHeartbeatNode) initResolversAndRequesters() {
 				return &trieMock.TrieStub{}
 			},
 		},
-		SizeCheckDelta:                      100,
-		InputAntifloodHandler:               &mock.NilAntifloodHandler{},
-		OutputAntifloodHandler:              &mock.NilAntifloodHandler{},
-		NumConcurrentResolvingJobs:          10,
-		NumConcurrentResolvingTrieNodesJobs: 3,
-		MainPreferredPeersHolder:            &p2pmocks.PeersHolderStub{},
-		FullArchivePreferredPeersHolder:     &p2pmocks.PeersHolderStub{},
-		PayloadValidator:                    payloadValidator,
+		SizeCheckDelta:                  100,
+		InputAntifloodHandler:           &mock.NilAntifloodHandler{},
+		OutputAntifloodHandler:          &mock.NilAntifloodHandler{},
+		MainPreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
+		FullArchivePreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+		PayloadValidator:                payloadValidator,
+		AntifloodConfigsHandler: &testscommon.AntifloodConfigsHandlerStub{
+			GetCurrentConfigCalled: func() config.AntifloodConfigByRound {
+				return config.AntifloodConfigByRound{
+					NumConcurrentResolverJobs:           10,
+					NumConcurrentResolvingTrieNodesJobs: 3,
+				}
+			},
+		},
 	}
 
 	requestersContainerFactoryArgs := requesterscontainer.FactoryArgs{
@@ -626,6 +632,7 @@ func (thn *TestHeartbeatNode) createRequestHandler() {
 		100,
 		thn.ShardCoordinator.SelfId(),
 		time.Second,
+		time.Millisecond,
 	)
 }
 
@@ -639,12 +646,16 @@ func (thn *TestHeartbeatNode) initInterceptors() {
 			IntMarsh:                   TestMarshaller,
 			HardforkTriggerPubKeyField: []byte(providedHardforkPubKey),
 		},
-		ShardCoordinator:             thn.ShardCoordinator,
-		NodesCoordinator:             thn.NodesCoordinator,
-		PeerSignatureHandler:         thn.PeerSigHandler,
-		SignaturesHandler:            &processMock.SignaturesHandlerStub{},
-		HeartbeatExpiryTimespanInSec: thn.heartbeatExpiryTimespanInSec,
-		PeerID:                       thn.MainMessenger.ID(),
+		ShardCoordinator:                        thn.ShardCoordinator,
+		NodesCoordinator:                        thn.NodesCoordinator,
+		PeerSignatureHandler:                    thn.PeerSigHandler,
+		SignaturesHandler:                       &processMock.SignaturesHandlerStub{},
+		HeartbeatExpiryTimespanInSec:            thn.heartbeatExpiryTimespanInSec,
+		PeerID:                                  thn.MainMessenger.ID(),
+		PeerShardMapper:                         thn.MainPeerShardMapper,
+		PeerAuthCacher:                          thn.DataPool.PeerAuthentications(),
+		PeerAuthenticationTimeBetweenSendsInSec: thn.heartbeatExpiryTimespanInSec,
+		CryptoComponents:                        GetDefaultCryptoComponents(),
 	}
 
 	thn.createPeerAuthInterceptor(argsFactory)
@@ -726,6 +737,7 @@ func (thn *TestHeartbeatNode) initMultiDataInterceptor(topic string, dataFactory
 			PreferredPeersHolder:    &p2pmocks.PeersHolderStub{},
 			CurrentPeerId:           thn.MainMessenger.ID(),
 			InterceptedDataVerifier: &processMock.InterceptedDataVerifierMock{},
+			ManagedPeersHolder:      thn.ManagedPeersHolder,
 		},
 	)
 
@@ -750,6 +762,7 @@ func (thn *TestHeartbeatNode) initSingleDataInterceptor(topic string, dataFactor
 			PreferredPeersHolder:    &p2pmocks.PeersHolderStub{},
 			CurrentPeerId:           thn.MainMessenger.ID(),
 			InterceptedDataVerifier: &processMock.InterceptedDataVerifierMock{},
+			ManagedPeersHolder:      thn.ManagedPeersHolder,
 		},
 	)
 

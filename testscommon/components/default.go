@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
@@ -45,18 +46,19 @@ func GetDefaultCoreComponents() *mock.CoreComponentsMock {
 		MinTransactionVersionCalled: func() uint32 {
 			return 1
 		},
-		WatchdogTimer:            &testscommon.WatchdogMock{},
-		AlarmSch:                 &testscommon.AlarmSchedulerStub{},
-		NtpSyncTimer:             &testscommon.SyncTimerStub{},
-		RoundHandlerField:        &testscommon.RoundHandlerMock{},
-		EconomicsHandler:         &economicsmocks.EconomicsHandlerMock{},
-		RatingsConfig:            &testscommon.RatingsInfoMock{},
-		RatingHandler:            &testscommon.RaterMock{},
-		NodesConfig:              &genesisMocks.NodesSetupStub{},
-		StartTime:                time.Time{},
-		NodeTypeProviderField:    &nodeTypeProviderMock.NodeTypeProviderStub{},
-		EpochChangeNotifier:      &epochNotifierMock.EpochNotifierStub{},
-		EnableEpochsHandlerField: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		WatchdogTimer:                &testscommon.WatchdogMock{},
+		AlarmSch:                     &testscommon.AlarmSchedulerStub{},
+		NtpSyncTimer:                 &testscommon.SyncTimerStub{},
+		RoundHandlerField:            &testscommon.RoundHandlerMock{},
+		EconomicsHandler:             &economicsmocks.EconomicsHandlerMock{},
+		RatingsConfig:                &testscommon.RatingsInfoMock{},
+		RatingHandler:                &testscommon.RaterMock{},
+		NodesConfig:                  &genesisMocks.NodesSetupStub{},
+		StartTime:                    time.Time{},
+		NodeTypeProviderField:        &nodeTypeProviderMock.NodeTypeProviderStub{},
+		EpochChangeNotifier:          &epochNotifierMock.EpochNotifierStub{},
+		EnableEpochsHandlerField:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		AntifloodConfigsHandlerField: &testscommon.AntifloodConfigsHandlerStub{},
 	}
 }
 
@@ -105,6 +107,7 @@ func GetDefaultStateComponents() *factory.StateComponentsMock {
 			dataRetriever.PeerAccountsUnit.String(): &storageManager.StorageManagerStub{},
 		},
 		MissingNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
+		ChangesCollector:     &stateMock.StateAccessesCollectorStub{},
 	}
 }
 
@@ -130,7 +133,7 @@ func GetDefaultProcessComponents(shardCoordinator sharding.Coordinator) *mock.Pr
 		EpochTrigger:             &testscommon.EpochStartTriggerStub{},
 		EpochNotifier:            &mock.EpochStartNotifierStub{},
 		ForkDetect:               &mock.ForkDetectorMock{},
-		BlockProcess:             &testscommon.BlockProcessorStub{},
+		ExecManager:              &processMocks.ExecutionManagerMock{},
 		BlackListHdl:             &testscommon.TimeCacheStub{},
 		BootSore:                 &mock.BootstrapStorerMock{},
 		HeaderSigVerif:           &consensus.HeaderSigVerifierMock{},

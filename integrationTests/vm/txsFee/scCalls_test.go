@@ -132,6 +132,21 @@ func TestScCallShouldWork(t *testing.T) {
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
 	require.Equal(t, big.NewInt(157339), developerFees)
+
+	tx := vm.CreateTransaction(10, big.NewInt(0), sndAddr, scAddress, gasPrice, gasLimit, []byte(""))
+
+	_, errProcess := testContext.TxProcessor.ProcessTransaction(tx)
+	require.Nil(t, errProcess)
+
+	_, errCommit := testContext.Accounts.Commit()
+	require.Nil(t, errCommit)
+
+	// check accumulated fees
+	accumulatedFees = testContext.TxFeeHandler.GetAccumulatedFees()
+	require.Equal(t, big.NewInt(1582310), accumulatedFees)
+
+	developerFees = testContext.TxFeeHandler.GetDeveloperFees()
+	require.Equal(t, big.NewInt(157339), developerFees)
 }
 
 func TestScCallContractNotFoundShouldConsumeGas(t *testing.T) {
@@ -402,7 +417,6 @@ func prepareTestContextForEpoch460(tb testing.TB) (*vm.VMTestContext, []byte) {
 		IsPayableBySCEnableEpoch:                          unreachableEpoch,
 		CleanUpInformativeSCRsEnableEpoch:                 unreachableEpoch,
 		StorageAPICostOptimizationEnableEpoch:             unreachableEpoch,
-		TransformToMultiShardCreateEnableEpoch:            unreachableEpoch,
 		ESDTRegisterAndSetAllRolesEnableEpoch:             unreachableEpoch,
 		DoNotReturnOldBlockInBlockchainHookEnableEpoch:    unreachableEpoch,
 		AddFailedRelayedTxToInvalidMBsDisableEpoch:        unreachableEpoch,
@@ -480,7 +494,7 @@ func TestScCallBuyNFT_OneFailedTxAndOneOkTx(t *testing.T) {
 		logs := testContext.TxsLogsProcessor.GetAllCurrentLogs()
 		assert.Equal(t, 2, len(logs))
 
-		logEvents := logs[1].GetLogEvents()
+		logEvents := logs[1].GetLogHandler().GetLogEvents()
 		assert.Equal(t, 2, len(logEvents))
 
 		topics := logEvents[0].GetTopics()
@@ -508,7 +522,7 @@ func TestScCallBuyNFT_OneFailedTxAndOneOkTx(t *testing.T) {
 		logs := testContext.TxsLogsProcessor.GetAllCurrentLogs()
 		assert.Equal(t, 3, len(logs))
 
-		logEvents := logs[1].GetLogEvents()
+		logEvents := logs[1].GetLogHandler().GetLogEvents()
 		assert.Equal(t, 2, len(logEvents))
 
 		topics := logEvents[0].GetTopics()
@@ -554,7 +568,7 @@ func TestScCallBuyNFT_TwoOkTxs(t *testing.T) {
 
 		logs := testContext.TxsLogsProcessor.GetAllCurrentLogs()
 
-		logEvents := logs[1].GetLogEvents()
+		logEvents := logs[1].GetLogHandler().GetLogEvents()
 		assert.Equal(t, 2, len(logEvents))
 
 		topics := logEvents[0].GetTopics()
@@ -582,7 +596,7 @@ func TestScCallBuyNFT_TwoOkTxs(t *testing.T) {
 
 		logs := testContext.TxsLogsProcessor.GetAllCurrentLogs()
 
-		logEvents := logs[1].GetLogEvents()
+		logEvents := logs[1].GetLogHandler().GetLogEvents()
 		assert.Equal(t, 2, len(logEvents))
 
 		topics := logEvents[0].GetTopics()

@@ -31,6 +31,7 @@ type commonMessenger struct {
 	peerSignatureHandler    crypto.PeerSignatureHandler
 	delayedBlockBroadcaster DelayedBroadcaster
 	keysHandler             consensus.KeysHandler
+	processConfigsHandler   common.ProcessConfigsHandler
 }
 
 // CommonMessengerArgs holds the arguments for creating commonMessenger instance
@@ -47,6 +48,7 @@ type CommonMessengerArgs struct {
 	AlarmScheduler             core.TimersScheduler
 	KeysHandler                consensus.KeysHandler
 	DelayedBroadcaster         DelayedBroadcaster
+	ProcessConfigsHandler      common.ProcessConfigsHandler
 }
 
 func checkCommonMessengerNilParameters(
@@ -84,6 +86,9 @@ func checkCommonMessengerNilParameters(
 	}
 	if check.IfNil(args.DelayedBroadcaster) {
 		return ErrNilDelayedBroadcaster
+	}
+	if check.IfNil(args.ProcessConfigsHandler) {
+		return process.ErrNilProcessConfigsHandler
 	}
 
 	return nil
@@ -161,14 +166,15 @@ func (cm *commonMessenger) BroadcastTransactions(transactions map[string][][]byt
 	return nil
 }
 
-// BroadcastBlockData broadcasts the miniblocks and transactions
+// BroadcastBlockData broadcasts the miniblocks and transactions, spacing them out with the propagation delays
+// configured for the given round
 func (cm *commonMessenger) BroadcastBlockData(
 	miniBlocks map[uint32][]byte,
 	transactions map[string][][]byte,
 	pkBytes []byte,
-	extraDelayForBroadcast time.Duration,
+	round uint64,
 ) {
-	time.Sleep(extraDelayForBroadcast)
+	time.Sleep(cm.processConfigsHandler.GetExtraDelayForBroadcastBlockInfo(round))
 
 	if len(miniBlocks) > 0 {
 		err := cm.BroadcastMiniBlocks(miniBlocks, pkBytes)
@@ -177,7 +183,7 @@ func (cm *commonMessenger) BroadcastBlockData(
 		}
 	}
 
-	time.Sleep(common.ExtraDelayBetweenBroadcastMbsAndTxs)
+	time.Sleep(cm.processConfigsHandler.GetExtraDelayBetweenBroadcastMbsAndTxs(round))
 
 	if len(transactions) > 0 {
 		err := cm.BroadcastTransactions(transactions, pkBytes)

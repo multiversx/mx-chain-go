@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-go/common"
@@ -116,6 +117,7 @@ type NodeHandler interface {
 
 // TransactionSimulatorProcessor defines the actions which a transaction simulator processor has to implement
 type TransactionSimulatorProcessor interface {
+	ProcessSCR(scr *smartContractResult.SmartContractResult, currentHeader coreData.HeaderHandler) (*txSimData.SimulationResultsWithVMOutput, error)
 	ProcessTx(tx *transaction.Transaction, currentHeader coreData.HeaderHandler) (*txSimData.SimulationResultsWithVMOutput, error)
 	IsInterfaceNil() bool
 }
@@ -125,6 +127,7 @@ type ApiResolver interface {
 	ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error)
+	SimulateSCRExecutionCost(scr *smartContractResult.SmartContractResult) (*transaction.CostResponse, error)
 	StatusMetrics() external.StatusMetricsHandler
 	GetTotalStakedValue(ctx context.Context) (*api.StakeValues, error)
 	GetDirectStakedList(ctx context.Context) ([]*api.DirectStakedValue, error)
@@ -135,6 +138,8 @@ type ApiResolver interface {
 	GetTransactionsPoolForSender(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSender(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSender(sender string, senderAccountNonce uint64) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
+	GetSelectedTransactions(selectionOptions common.TxSelectionOptionsAPI, blockchain coreData.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error)
+	GetVirtualNonce(address string) (*common.VirtualNonceOfAccountResponse, error)
 	GetBlockByHash(hash string, options api.BlockQueryOptions) (*api.Block, error)
 	GetBlockByNonce(nonce uint64, options api.BlockQueryOptions) (*api.Block, error)
 	GetBlockByRound(round uint64, options api.BlockQueryOptions) (*api.Block, error)

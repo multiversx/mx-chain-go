@@ -18,6 +18,7 @@ type StakingSystemSCConfig struct {
 	UnJailValue                          string
 	MinStepValue                         string
 	UnBondPeriod                         uint64
+	UnBondPeriodSupernova                uint64
 	UnBondPeriodInEpochs                 uint32
 	NumRoundsWithoutBleed                uint64
 	MaximumPercentageToBleed             float64
@@ -56,9 +57,10 @@ type GovernanceSystemSCConfigActive struct {
 
 // GovernanceSystemSCConfig defines the set of constants to initialize the governance system smart contract
 type GovernanceSystemSCConfig struct {
-	V1           GovernanceSystemSCConfigV1
-	Active       GovernanceSystemSCConfigActive
-	OwnerAddress string
+	V1                           GovernanceSystemSCConfigV1
+	Active                       GovernanceSystemSCConfigActive
+	OwnerAddress                 string
+	MaxVotingDelayPeriodInEpochs uint32
 }
 
 // DelegationManagerSystemSCConfig defines a set of constants to initialize the delegation manager system smart contract

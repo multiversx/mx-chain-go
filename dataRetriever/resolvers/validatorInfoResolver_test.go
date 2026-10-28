@@ -133,6 +133,20 @@ func TestNewValidatorInfoResolver(t *testing.T) {
 	})
 }
 
+func TestValidatorInfoResolver_ProcessReceivedMessageOversizedHashShouldErr(t *testing.T) {
+	t.Parallel()
+
+	res, _ := resolvers.NewValidatorInfoResolver(createMockArgValidatorInfoResolver())
+	msgID, err := res.ProcessReceivedMessage(
+		createRequestMsg(dataRetriever.HashType, make([]byte, common.HashSize+1)),
+		fromConnectedPeer,
+		&p2pmocks.MessengerStub{},
+	)
+
+	require.ErrorIs(t, err, dataRetriever.ErrBadRequest)
+	require.Nil(t, msgID)
+}
+
 func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 	t.Parallel()
 
@@ -588,4 +602,39 @@ func TestValidatorInfoResolver_SetDebugHandler(t *testing.T) {
 	require.False(t, check.IfNil(res))
 
 	_ = res.SetDebugHandler(nil)
+}
+
+func TestValidatorInfoResolver_ResolveMultipleHashesRequest_ErrorReporting(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgValidatorInfoResolver()
+	args.ValidatorInfoPool = &testscommon.ShardedDataStub{
+		SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+			return nil, false
+		},
+	}
+	args.ValidatorInfoStorage = &storage.StorerStub{
+		SearchFirstCalled: func(key []byte) ([]byte, error) {
+			return nil, errors.New("not found")
+		},
+	}
+	res, _ := resolvers.NewValidatorInfoResolver(args)
+	require.False(t, check.IfNil(res))
+
+	hashes := make([][]byte, 50)
+	for i := 0; i < 50; i++ {
+		hashes[i] = []byte(fmt.Sprintf("missing_hash_%02d", i))
+	}
+
+	b := &batch.Batch{
+		Data: hashes,
+	}
+	buff, _ := args.Marshaller.Marshal(b)
+	msgID, err := res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashArrayType, buff), fromConnectedPeer, &p2pmocks.MessengerStub{})
+	require.NotNil(t, err)
+	assert.Nil(t, msgID)
+
+	errStr := err.Error()
+	assert.True(t, strings.Contains(errStr, dataRetriever.ErrValidatorInfoNotFound.Error()))
+	assert.True(t, strings.Contains(errStr, "for 50 hashes"))
 }

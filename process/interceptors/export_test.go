@@ -35,3 +35,11 @@ func (mdi *MultiDataInterceptor) ChunksProcessor() process.InterceptedChunksProc
 
 	return mdi.chunksProcessor
 }
+
+// PutInCache -
+func (idv *interceptedDataVerifier) PutInCache(interceptedData process.InterceptedData, status interceptedDataStatus) {
+	idv.km.Lock(string(interceptedData.Hash()))
+	defer idv.km.Unlock(string(interceptedData.Hash()))
+
+	idv.cache.Put(interceptedData.Hash(), status, interceptedDataStatusBytesSize)
+}

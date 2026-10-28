@@ -87,24 +87,22 @@ func TestLeafNode_tryGet(t *testing.T) {
 	ln := getLn()
 	key := []byte("dog")
 
-	val, maxDepth, err := ln.tryGet(newKeyData(key), 0, getTrieContextWithCustomStorage(nil))
+	val, maxDepth, _, err := ln.tryGetWithVersion(newKeyData(key), 0, getTrieContextWithCustomStorage(nil))
 	assert.Equal(t, []byte("dog"), val)
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(0), maxDepth)
 }
-
 func TestLeafNode_tryGetWrongKey(t *testing.T) {
 	t.Parallel()
 
 	ln := getLn()
 	wrongKey := []byte{1, 2, 3}
 
-	val, maxDepth, err := ln.tryGet(newKeyData(wrongKey), 0, getTrieContextWithCustomStorage(nil))
+	val, maxDepth, _, err := ln.tryGetWithVersion(newKeyData(wrongKey), 0, getTrieContextWithCustomStorage(nil))
 	assert.Nil(t, val)
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(0), maxDepth)
 }
-
 func TestLeafNode_getNext(t *testing.T) {
 	t.Parallel()
 
@@ -140,10 +138,9 @@ func TestLeafNode_insertAtSameKey(t *testing.T) {
 	assert.NotNil(t, newNode)
 	assert.Nil(t, goRoutinesManager.GetError())
 
-	val, _, _ := newNode.tryGet(newKeyData([]byte(key)), 0, getTrieContextWithCustomStorage(nil))
+	val, _, _, _ := newNode.tryGetWithVersion(newKeyData([]byte(key)), 0, getTrieContextWithCustomStorage(nil))
 	assert.Equal(t, []byte(expectedVal), val)
 }
-
 func TestLeafNode_insertAtDifferentKey(t *testing.T) {
 	t.Parallel()
 
@@ -159,11 +156,10 @@ func TestLeafNode_insertAtDifferentKey(t *testing.T) {
 	assert.NotNil(t, newNode)
 	assert.Nil(t, goRoutinesManager.GetError())
 
-	val, _, _ := newNode.tryGet(newKeyData(nodeKey), 0, getTrieContextWithCustomStorage(nil))
+	val, _, _, _ := newNode.tryGetWithVersion(newKeyData(nodeKey), 0, getTrieContextWithCustomStorage(nil))
 	assert.Equal(t, nodeVal, val)
 	assert.IsType(t, &branchNode{}, newNode)
 }
-
 func TestLeafNode_insertInStoredLnAtSameKey(t *testing.T) {
 	t.Parallel()
 
@@ -495,7 +491,7 @@ func TestLeafNode_commitSnapshotContextDone(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	err := ln.commitSnapshot(trieCtx, nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, []byte("nodeBytes"), 0)
+	err := ln.commitSnapshot(snapshotTrieContextForTest(trieCtx), 0, nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, []byte("nodeBytes"), 0)
 	assert.Equal(t, core.ErrContextClosing, err)
 }
 
@@ -745,7 +741,7 @@ func TestLeafNode_concurrency(t *testing.T) {
 			for !startExecution.IsSet() {
 				time.Sleep(time.Millisecond)
 			}
-			_, depth, err := ln.tryGet(newKeyData(leafKey), 0, trieCtx)
+			_, depth, _, err := ln.tryGetWithVersion(newKeyData(leafKey), 0, trieCtx)
 			assert.Nil(t, err)
 			assert.Equal(t, uint32(0), depth)
 
@@ -790,7 +786,7 @@ func TestLeafNode_concurrency(t *testing.T) {
 			for !startExecution.IsSet() {
 				time.Sleep(time.Millisecond)
 			}
-			val, depth, err := ln.tryGet(newKeyData(leafKey), 0, trieCtx)
+			val, depth, _, err := ln.tryGetWithVersion(newKeyData(leafKey), 0, trieCtx)
 			assert.Nil(t, err)
 			assert.Equal(t, uint32(0), depth)
 			assert.Equal(t, []byte("dog"), val)
@@ -835,7 +831,7 @@ func TestLeafNode_concurrency(t *testing.T) {
 			for !startExecution.IsSet() {
 				time.Sleep(time.Millisecond)
 			}
-			_, depth, err := ln.tryGet(newKeyData(leafKey), 0, trieCtx)
+			_, depth, _, err := ln.tryGetWithVersion(newKeyData(leafKey), 0, trieCtx)
 			assert.Nil(t, err)
 			assert.Equal(t, uint32(0), depth)
 
@@ -872,7 +868,7 @@ func TestLeafNode_concurrency(t *testing.T) {
 			for !startExecution.IsSet() {
 				time.Sleep(time.Millisecond)
 			}
-			val, depth, err := ln.tryGet(newKeyData(leafKey), 0, trieCtx)
+			val, depth, _, err := ln.tryGetWithVersion(newKeyData(leafKey), 0, trieCtx)
 			assert.Nil(t, err)
 			assert.Equal(t, uint32(0), depth)
 			assert.Equal(t, []byte("dog"), val)

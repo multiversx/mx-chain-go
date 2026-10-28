@@ -13,13 +13,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
-	"github.com/multiversx/mx-chain-vm-common-go/parsers"
-	"github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/forking"
@@ -33,8 +26,8 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
-	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
@@ -42,6 +35,13 @@ import (
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/testscommon/vmcommonMocks"
+	"github.com/multiversx/mx-chain-go/txcache"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const setGuardianCost = 250000
@@ -2970,8 +2970,73 @@ func TestScProcessor_ProcessSmartContractResultErrGetAccount(t *testing.T) {
 	require.Nil(t, err)
 
 	scr := smartContractResult.SmartContractResult{RcvAddr: []byte("recv address")}
-	_, _ = sc.ProcessSmartContractResult(&scr)
+	_, err = sc.ProcessSmartContractResult(&scr)
+	require.ErrorIs(t, err, accError)
 	require.True(t, called)
+}
+
+func TestScProcessor_ProcessSmartContractResultCrossShardReservedAddressShouldUseFailurePath(t *testing.T) {
+	t.Parallel()
+
+	senderAddress := []byte("sender")
+	receiverAddress := []byte("receiver")
+	var stateAccessTxHash []byte
+	accountsDB := &stateMock.AccountsStub{
+		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
+			require.Equal(t, receiverAddress, address)
+			return nil, state.ErrAccountAddressIsReserved
+		},
+		RevertToSnapshotCalled: func(snapshot int) error {
+			require.Zero(t, snapshot)
+			return nil
+		},
+		SetTxHashForLatestStateAccessesCalled: func(txHash []byte) {
+			stateAccessTxHash = txHash
+		},
+	}
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	shardCoordinator.CurrentShard = 1
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
+		if bytes.Equal(address, receiverAddress) {
+			return 1
+		}
+
+		return 0
+	}
+	var refund *smartContractResult.SmartContractResult
+	var forwardedTxHash []byte
+	scrForwarder := &mock.IntermediateTransactionHandlerMock{
+		AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler, txHash []byte) error {
+			forwardedTxHash = txHash
+			require.Len(t, txs, 1)
+			var ok bool
+			refund, ok = txs[0].(*smartContractResult.SmartContractResult)
+			require.True(t, ok)
+			return nil
+		},
+	}
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.AccountsDB = accountsDB
+	arguments.ShardCoordinator = shardCoordinator
+	arguments.ScrForwarder = scrForwarder
+	sc, err := NewSmartContractProcessor(arguments)
+	require.NoError(t, err)
+
+	value := big.NewInt(7)
+	scr := &smartContractResult.SmartContractResult{
+		SndAddr: senderAddress,
+		RcvAddr: receiverAddress,
+		Value:   value,
+	}
+	returnCode, err := sc.ProcessSmartContractResult(scr)
+	require.NoError(t, err)
+	require.Equal(t, vmcommon.UserError, returnCode)
+	require.NotNil(t, refund)
+	require.Equal(t, senderAddress, refund.RcvAddr)
+	require.Equal(t, receiverAddress, refund.SndAddr)
+	require.Equal(t, value, refund.Value)
+	require.NotEmpty(t, forwardedTxHash)
+	require.Equal(t, forwardedTxHash, stateAccessTxHash)
 }
 
 func TestScProcessor_ProcessSmartContractResultAccNotInShard(t *testing.T) {
@@ -4200,7 +4265,9 @@ func TestProcess_createCompletedTxEvent(t *testing.T) {
 }
 
 func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
+
 	return &economics.ArgsNewEconomicsData{
+		ChainParamsHandler: &chainParameters.ChainParametersHolderMock{},
 		Economics: &config.EconomicsConfig{
 			GlobalSettings: config.GlobalSettings{
 				GenesisTotalSupply: "20000000000000000000000000",
@@ -4219,6 +4286,10 @@ func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
 						ProtocolSustainabilityAddress:    "erd1j25xk97yf820rgdp3mj5scavhjkn6tjyn0t63pmv5qyjj7wxlcfqqe2rw5",
 						TopUpGradientPoint:               "300000000000000000000",
 						TopUpFactor:                      0.25,
+						EcosystemGrowthPercentage:        0.0,
+						EcosystemGrowthAddress:           "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+						GrowthDividendPercentage:         0.0,
+						GrowthDividendAddress:            "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
 					},
 				},
 			},
@@ -4542,8 +4613,8 @@ func TestScProcessor_DisableAsyncCalls(t *testing.T) {
 	arguments.ShardCoordinator = shardCoordinator
 	arguments.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
 	arguments.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
-		IsDisableAsyncCallV1EnabledCalled: func() bool {
-			return false
+		IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
+			return flag != common.DisableAsyncCallV1Flag
 		},
 	}
 	sc, _ := NewSmartContractProcessor(arguments)
@@ -4573,8 +4644,8 @@ func TestScProcessor_DisableAsyncCalls(t *testing.T) {
 	require.NotNil(t, scResults)
 
 	arguments.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
-		IsDisableAsyncCallV1EnabledCalled: func() bool {
-			return true
+		IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
+			return flag == common.DisableAsyncCallV1Flag
 		},
 	}
 	sc, _ = NewSmartContractProcessor(arguments)

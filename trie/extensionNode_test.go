@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
+	"github.com/multiversx/mx-chain-go/trie/mock"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 	"github.com/stretchr/testify/assert"
 )
@@ -180,36 +181,33 @@ func TestExtensionNode_tryGet(t *testing.T) {
 	key := append(enKey, bnKey...)
 	key = append(key, lnKey...)
 
-	val, maxDepth, err := en.tryGet(newKeyData(key), 0, getTrieContextWithCustomStorage(nil))
+	val, maxDepth, _, err := en.tryGetWithVersion(newKeyData(key), 0, getTrieContextWithCustomStorage(nil))
 	assert.Equal(t, dogBytes, val)
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(2), maxDepth)
 }
-
 func TestExtensionNode_tryGetEmptyKey(t *testing.T) {
 	t.Parallel()
 
 	en, _ := getEnAndCollapsedEn()
 	var key []byte
 
-	val, maxDepth, err := en.tryGet(newKeyData(key), 0, getTrieContextWithCustomStorage(nil))
+	val, maxDepth, _, err := en.tryGetWithVersion(newKeyData(key), 0, getTrieContextWithCustomStorage(nil))
 	assert.Nil(t, err)
 	assert.Nil(t, val)
 	assert.Equal(t, uint32(0), maxDepth)
 }
-
 func TestExtensionNode_tryGetWrongKey(t *testing.T) {
 	t.Parallel()
 
 	en, _ := getEnAndCollapsedEn()
 	key := []byte("gdo")
 
-	val, maxDepth, err := en.tryGet(newKeyData(key), 0, getTrieContextWithCustomStorage(nil))
+	val, maxDepth, _, err := en.tryGetWithVersion(newKeyData(key), 0, getTrieContextWithCustomStorage(nil))
 	assert.Nil(t, err)
 	assert.Nil(t, val)
 	assert.Equal(t, uint32(0), maxDepth)
 }
-
 func TestExtensionNode_tryGetCollapsedNode(t *testing.T) {
 	t.Parallel()
 
@@ -223,12 +221,11 @@ func TestExtensionNode_tryGetCollapsedNode(t *testing.T) {
 	key := append(enKey, bnKey...)
 	key = append(key, lnKey...)
 
-	val, maxDepth, err := collapsedEn.tryGet(newKeyData(key), 0, trieCtx)
+	val, maxDepth, _, err := collapsedEn.tryGetWithVersion(newKeyData(key), 0, trieCtx)
 	assert.Equal(t, []byte("dog"), val)
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(2), maxDepth)
 }
-
 func TestExtensionNode_getNext(t *testing.T) {
 	t.Parallel()
 
@@ -277,10 +274,9 @@ func TestExtensionNode_insert(t *testing.T) {
 	assert.NotNil(t, newNode)
 	assert.Nil(t, goRoutinesManager.GetError())
 
-	val, _, _ := newNode.tryGet(newKeyData(key), 0, getTrieContextWithCustomStorage(nil))
+	val, _, _, _ := newNode.tryGetWithVersion(newKeyData(key), 0, getTrieContextWithCustomStorage(nil))
 	assert.Equal(t, []byte("dogs"), val)
 }
-
 func TestExtensionNode_insertCollapsedNode(t *testing.T) {
 	t.Parallel()
 
@@ -296,10 +292,9 @@ func TestExtensionNode_insertCollapsedNode(t *testing.T) {
 	assert.NotNil(t, newNode)
 	assert.Nil(t, goRoutinesManager.GetError())
 
-	val, _, _ := newNode.tryGet(newKeyData(key), 0, trieCtx)
+	val, _, _, _ := newNode.tryGetWithVersion(newKeyData(key), 0, trieCtx)
 	assert.Equal(t, []byte("dogs"), val)
 }
-
 func TestExtensionNode_insertInStoredEnSameKey(t *testing.T) {
 	t.Parallel()
 
@@ -394,7 +389,7 @@ func TestExtensionNode_delete(t *testing.T) {
 	key = append(key, lnKey...)
 	trieCtx := getTrieContextWithCustomStorage(nil)
 
-	val, _, _ := en.tryGet(newKeyData(key), 0, trieCtx)
+	val, _, _, _ := en.tryGetWithVersion(newKeyData(key), 0, trieCtx)
 	assert.Equal(t, dogBytes, val)
 	data := []core.TrieData{{Key: key}}
 
@@ -402,10 +397,9 @@ func TestExtensionNode_delete(t *testing.T) {
 	dirty, _ := en.delete(keyBuilder.NewKeyBuilder(), data, goRoutinesManager, common.NewModifiedHashesSlice(initialModifiedHashesCapacity), trieCtx)
 	assert.True(t, dirty)
 	assert.Nil(t, goRoutinesManager.GetError())
-	val, _, _ = en.tryGet(newKeyData(key), 0, trieCtx)
+	val, _, _, _ = en.tryGetWithVersion(newKeyData(key), 0, trieCtx)
 	assert.Nil(t, val)
 }
-
 func TestExtensionNode_deleteFromStoredEn(t *testing.T) {
 	t.Parallel()
 
@@ -460,7 +454,7 @@ func TestExtensionNode_deleteCollapsedNode(t *testing.T) {
 	key := append(enKey, bnKey...)
 	key = append(key, lnKey...)
 
-	val, _, _ := en.tryGet(newKeyData(key), 0, trieCtx)
+	val, _, _, _ := en.tryGetWithVersion(newKeyData(key), 0, trieCtx)
 	assert.Equal(t, []byte("dog"), val)
 	data := []core.TrieData{{Key: key}}
 
@@ -468,10 +462,9 @@ func TestExtensionNode_deleteCollapsedNode(t *testing.T) {
 	dirty, newNode := collapsedEn.delete(keyBuilder.NewKeyBuilder(), data, goRoutinesManager, common.NewModifiedHashesSlice(initialModifiedHashesCapacity), trieCtx)
 	assert.True(t, dirty)
 	assert.Nil(t, goRoutinesManager.GetError())
-	val, _, _ = newNode.tryGet(newKeyData(key), 0, trieCtx)
+	val, _, _, _ = newNode.tryGetWithVersion(newKeyData(key), 0, trieCtx)
 	assert.Nil(t, val)
 }
-
 func TestExtensionNode_reduceNode(t *testing.T) {
 	t.Parallel()
 
@@ -663,6 +656,26 @@ func TestExtensionNode_getNextHashAndKeyNilNode(t *testing.T) {
 	assert.Nil(t, nextKey)
 }
 
+func TestExtensionNode_getNextHashAndKeyInvalidKeyShouldNotAdvance(t *testing.T) {
+	t.Parallel()
+
+	_, collapsedEn := getEnAndCollapsedEn()
+
+	collapsedEn.Key = []byte("dog")
+	proofVerified, nextHash, nextKey := collapsedEn.getNextHashAndKey([]byte("do"))
+
+	assert.False(t, proofVerified)
+	assert.Nil(t, nextHash)
+	assert.Nil(t, nextKey)
+
+	collapsedEn.Key = []byte("dog")
+	proofVerified, nextHash, nextKey = collapsedEn.getNextHashAndKey([]byte("cat"))
+
+	assert.False(t, proofVerified)
+	assert.Nil(t, nextHash)
+	assert.Nil(t, nextKey)
+}
+
 func TestExtensionNode_SizeInBytes(t *testing.T) {
 	t.Parallel()
 
@@ -691,7 +704,7 @@ func TestExtensionNode_commitSnapshotContextDone(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	err := en.commitSnapshot(trieCtx, nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, []byte("nodeBytes"), 0)
+	err := en.commitSnapshot(snapshotTrieContextForTest(trieCtx), 0, nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, []byte("nodeBytes"), 0)
 	assert.Equal(t, core.ErrContextClosing, err)
 }
 
@@ -705,7 +718,7 @@ func TestExtensionNode_getValueReturnsEmptyByteSlice(t *testing.T) {
 func TestExtensionNode_commitSnapshotDbIsClosing(t *testing.T) {
 	t.Parallel()
 
-	db := testscommon.NewMemDbMock()
+	db := mock.NewSnapshotDbMock()
 	db.GetCalled = func(key []byte) ([]byte, error) {
 		return nil, core.ErrContextClosing
 	}
@@ -717,7 +730,7 @@ func TestExtensionNode_commitSnapshotDbIsClosing(t *testing.T) {
 	_, collapsedEn := getEnAndCollapsedEn()
 	missingNodesChan := make(chan []byte, 10)
 	nodeBytes, _ := collapsedEn.getEncodedNode(trieCtx)
-	err := collapsedEn.commitSnapshot(trieCtx, nil, missingNodesChan, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, nodeBytes, 0)
+	err := collapsedEn.commitSnapshot(snapshotTrieContextForTest(trieCtx), 0, nil, missingNodesChan, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, nodeBytes, 0)
 	assert.True(t, core.IsClosingError(err))
 	assert.Equal(t, 0, len(missingNodesChan))
 }
@@ -1276,7 +1289,7 @@ func TestExtensionNode_concurrency(t *testing.T) {
 			for !startExecution.IsSet() {
 				time.Sleep(time.Millisecond)
 			}
-			val, depth, err := en.tryGet(newKeyData(existingChildKey), 0, trieCtx)
+			val, depth, _, err := en.tryGetWithVersion(newKeyData(existingChildKey), 0, trieCtx)
 			assert.Nil(t, err)
 			assert.Equal(t, uint32(2), depth)
 			assert.Equal(t, []byte("dog"), val)
@@ -1321,7 +1334,7 @@ func TestExtensionNode_concurrency(t *testing.T) {
 			for !startExecution.IsSet() {
 				time.Sleep(time.Millisecond)
 			}
-			val, depth, err := en.tryGet(newKeyData(existingChildKey), 0, trieCtx)
+			val, depth, _, err := en.tryGetWithVersion(newKeyData(existingChildKey), 0, trieCtx)
 			assert.Nil(t, err)
 			assert.Equal(t, uint32(2), depth)
 			assert.Equal(t, []byte("dog"), val)
@@ -1366,7 +1379,7 @@ func TestExtensionNode_concurrency(t *testing.T) {
 			for !startExecution.IsSet() {
 				time.Sleep(time.Millisecond)
 			}
-			_, depth, err := en.tryGet(newKeyData(existingChildKey), 0, trieCtx)
+			_, depth, _, err := en.tryGetWithVersion(newKeyData(existingChildKey), 0, trieCtx)
 			assert.Nil(t, err)
 			assert.Equal(t, uint32(2), depth)
 
@@ -1411,7 +1424,7 @@ func TestExtensionNode_concurrency(t *testing.T) {
 			for !startExecution.IsSet() {
 				time.Sleep(time.Millisecond)
 			}
-			_, _, err := en.tryGet(newKeyData(existingChildKey), 0, trieCtx)
+			_, _, _, err := en.tryGetWithVersion(newKeyData(existingChildKey), 0, trieCtx)
 			assert.Nil(t, err)
 
 			wg.Done()
@@ -1449,7 +1462,7 @@ func TestExtensionNode_concurrency(t *testing.T) {
 			for !startExecution.IsSet() {
 				time.Sleep(time.Millisecond)
 			}
-			val, depth, err := en.tryGet(newKeyData(existingChildKey), 0, trieCtx)
+			val, depth, _, err := en.tryGetWithVersion(newKeyData(existingChildKey), 0, trieCtx)
 			assert.Nil(t, err)
 			assert.Equal(t, uint32(2), depth)
 			assert.Equal(t, []byte("dog"), val)
@@ -1482,7 +1495,7 @@ func TestExtensionNode_concurrency(t *testing.T) {
 		trieCtx := getDefaultTrieContext()
 		go func() {
 			for i := 0; i < numGet; i++ {
-				_, _, err := en.tryGet(newKeyData(existingChildKey), 0, trieCtx)
+				_, _, _, err := en.tryGetWithVersion(newKeyData(existingChildKey), 0, trieCtx)
 				assert.Nil(t, err)
 			}
 			wg.Done()

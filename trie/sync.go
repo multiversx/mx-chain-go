@@ -46,6 +46,7 @@ const maxNewMissingAddedPerTurn = 10
 
 // ArgTrieSyncer is the argument for the trie syncer
 type ArgTrieSyncer struct {
+	RecoveryEpoch             core.OptionalUint32
 	Marshalizer               marshal.Marshalizer
 	Hasher                    hashing.Hasher
 	DB                        common.StorageManager
@@ -67,7 +68,7 @@ func NewTrieSyncer(arg ArgTrieSyncer) (*trieSyncer, error) {
 		return nil, err
 	}
 
-	stsm, err := NewSyncTrieStorageManager(arg.DB)
+	stsm, err := newStorageForTrieSync(arg)
 	if err != nil {
 		return nil, err
 	}
@@ -237,18 +238,13 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 				continue
 			}
 
-			nextNodes, err = currentNode.getChildren(ts.trieContext)
-			if err != nil {
-				return false, err
-			}
-
 			tmpNewElement := ts.addNew(nextNodes)
 			newElement = newElement || tmpNewElement
 
 			delete(ts.nodesForTrie, nodeHash)
 
 			var numBytes int
-			numBytes, err = encodeNodeAndCommitToDB(currentNode, ts.trieContext)
+			numBytes, err = commitSyncedNode(currentNode, ts.trieContext)
 			if err != nil {
 				return false, err
 			}
@@ -309,21 +305,30 @@ func (ts *trieSyncer) getNode(hash []byte) (node, error) {
 	)
 }
 
-func getNodeFromCacheOrStorage(
-	hash []byte,
-	interceptedNodesCacher storage.Cacher,
-	trieCtx common.TrieContext,
-) (node, error) {
+func getNodeFromCacheOrStorage(hash []byte, interceptedNodesCacher storage.Cacher, trieCtx common.TrieContext) (node, error) {
+	if _, recovery := trieCtx.GetStorage().(*recoveryTrieStorageManager); recovery {
+		n, err := getVerifiedNodeFromStorage(hash, trieCtx)
+		if err == nil {
+			return n, nil
+		}
+		return getNodeFromCache(hash, interceptedNodesCacher, trieCtx)
+	}
 	n, err := getNodeFromCache(hash, interceptedNodesCacher, trieCtx)
 	if err == nil {
 		return n, nil
 	}
+	return getVerifiedNodeFromStorage(hash, trieCtx)
+}
 
+func getVerifiedNodeFromStorage(hash []byte, trieCtx common.TrieContext) (node, error) {
 	existingNode, _, err := getNodeFromDBAndDecode(hash, trieCtx)
 	if err != nil {
 		return nil, ErrNodeNotFound
 	}
-
+	computedHash, err := encodeNodeAndGetHash(existingNode, trieCtx)
+	if err != nil || !bytes.Equal(computedHash, hash) {
+		return nil, ErrNodeNotFound
+	}
 	return existingNode, nil
 }
 

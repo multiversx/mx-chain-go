@@ -8,6 +8,8 @@ type StatusMetricsStub struct {
 	NetworkMetricsCalled                          func() (map[string]interface{}, error)
 	EconomicsMetricsCalled                        func() (map[string]interface{}, error)
 	EnableEpochsMetricsCalled                     func() (map[string]interface{}, error)
+	EnableEpochsMetricsV2Called                   func() map[string]uint32
+	EnableRoundsMetricsCalled                     func() map[string]uint64
 	RatingsMetricsCalled                          func() (map[string]interface{}, error)
 	StatusMetricsWithoutP2PPrometheusStringCalled func() (string, error)
 	BootstrapMetricsCalled                        func() (map[string]interface{}, error)
@@ -68,6 +70,22 @@ func (sms *StatusMetricsStub) EnableEpochsMetrics() (map[string]interface{}, err
 		return sms.EnableEpochsMetricsCalled()
 	}
 	return baseReturnValues()
+}
+
+// EnableEpochsMetricsV2 -
+func (sms *StatusMetricsStub) EnableEpochsMetricsV2() map[string]uint32 {
+	if sms.EnableEpochsMetricsV2Called != nil {
+		return sms.EnableEpochsMetricsV2Called()
+	}
+	return make(map[string]uint32)
+}
+
+// EnableRoundsMetrics -
+func (sms *StatusMetricsStub) EnableRoundsMetrics() map[string]uint64 {
+	if sms.EnableRoundsMetricsCalled != nil {
+		return sms.EnableRoundsMetricsCalled()
+	}
+	return make(map[string]uint64)
 }
 
 // RatingsMetrics -

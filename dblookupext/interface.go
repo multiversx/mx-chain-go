@@ -20,9 +20,10 @@ type HistoryRepository interface {
 		scrResultsFromPool map[string]data.TransactionHandler,
 		receiptsFromPool map[string]data.TransactionHandler,
 		createdIntraShardMiniBlocks []*block.MiniBlock,
-		logs []*data.LogData) error
+		logs []data.LogDataHandler) error
 	OnNotarizedBlocks(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)
 	GetMiniblockMetadataByTxHash(hash []byte) (*MiniblockMetadata, error)
+	GetMiniblockMetadataByMiniblockHash(hash []byte) (*MiniblockMetadata, error)
 	GetEpochByHash(hash []byte) (uint32, error)
 	GetResultsHashesByTxHash(txHash []byte, epoch uint32) (*ResultsHashesByTxHash, error)
 	RevertBlock(blockHeader data.HeaderHandler, blockBody data.BodyHandler) error
@@ -42,7 +43,7 @@ type BlockTracker interface {
 
 // SuppliesHandler defines the interface of a supplies processor
 type SuppliesHandler interface {
-	ProcessLogs(blockNonce uint64, logs []*data.LogData) error
+	ProcessLogs(blockNonce uint64, logs []data.LogDataHandler) error
 	RevertChanges(header data.HeaderHandler, body data.BodyHandler) error
 	GetESDTSupply(token string) (*esdtSupply.SupplyESDT, error)
 	IsInterfaceNil() bool

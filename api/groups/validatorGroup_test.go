@@ -34,7 +34,7 @@ func TestNewValidatorGroup(t *testing.T) {
 	})
 }
 
-// ValidatorStatisticsResponse is the response for the validator statistics endpoint.
+// validatorStatisticsResponse is the response for the validator statistics endpoint.
 type validatorStatisticsResponse struct {
 	Result map[string]*validator.ValidatorStatistics `json:"statistics"`
 	Error  string                                    `json:"error"`

@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/state"
+	stateAccounts "github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -29,6 +30,53 @@ func TestNewReadOnlyAccountsDB(t *testing.T) {
 	simAccountsDB, err := NewSimulationAccountsDB(&stateMock.AccountsStub{})
 	require.False(t, check.IfNil(simAccountsDB))
 	require.NoError(t, err)
+}
+
+type forbiddenUnderlyingAccounts struct {
+	state.AccountsAdapter
+}
+
+func (f *forbiddenUnderlyingAccounts) IsInterfaceNil() bool {
+	return f == nil
+}
+
+func TestSimulationAccountsDB_MutatorsNeverReachUnderlyingDatabase(t *testing.T) {
+	t.Parallel()
+
+	// Any delegated operation panics on the nil embedded adapter.
+	accounts, err := NewSimulationAccountsDB(&forbiddenUnderlyingAccounts{})
+	require.NoError(t, err)
+	account, err := stateAccounts.NewPeerAccount([]byte("validator"))
+	require.NoError(t, err)
+
+	require.NoError(t, accounts.SaveAccount(account))
+	cached, err := accounts.GetExistingAccount(account.AddressBytes())
+	require.NoError(t, err)
+	require.Same(t, account, cached)
+	require.NoError(t, accounts.RemoveAccount(account.AddressBytes()))
+	_, err = accounts.Commit()
+	require.NoError(t, err)
+	_, err = accounts.CommitInEpoch(1, 1)
+	require.NoError(t, err)
+	require.NoError(t, accounts.RevertToSnapshot(0))
+	require.NoError(t, accounts.RecreateTrie(nil))
+	require.NoError(t, accounts.RecreateTrieIfNeeded(nil))
+	require.NoError(t, accounts.SetSyncer(nil))
+	require.NoError(t, accounts.StartSnapshotIfNeeded())
+	accounts.PruneTrie(nil, state.NewRoot, nil)
+	accounts.CancelPrune(nil, state.NewRoot)
+	accounts.ResetPruning()
+	accounts.SnapshotState(nil, 1)
+	accounts.SetTxHashForLatestStateAccesses([]byte("tx"))
+	tries, err := accounts.RecreateAllTries(nil)
+	require.NoError(t, err)
+	require.Nil(t, tries)
+	tr, err := accounts.GetTrie(nil)
+	require.NoError(t, err)
+	require.Nil(t, tr)
+	require.NoError(t, accounts.Close())
+	accounts.CleanCache()
+	require.Empty(t, accounts.cachedAccounts)
 }
 
 func TestReadOnlyAccountsDB_WriteOperationsShouldNotCalled(t *testing.T) {

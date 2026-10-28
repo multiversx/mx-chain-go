@@ -6,10 +6,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 )
 
 func TestLoadP2PConfig(t *testing.T) {
@@ -87,6 +88,73 @@ func TestLoadMainConfig(t *testing.T) {
 		assert.Equal(t, "1", conf.GeneralSettings.ChainID)
 		assert.Equal(t, "default", conf.Versions.DefaultVersion)
 		assert.Equal(t, "MiniBlocksStorage", conf.MiniBlocksStorage.Cache.Name)
+	})
+	t.Run("round exclusions should be loaded and validated", func(t *testing.T) {
+		t.Parallel()
+
+		testString := `
+[[HardforkRoundExclusions]]
+    StartRound = 20
+    EndRound = 30
+[[HardforkRoundExclusions]]
+    StartRound = 10
+    EndRound = 15
+`
+		filePath := path.Join(t.TempDir(), "config.toml")
+		require.NoError(t, os.WriteFile(filePath, []byte(testString), 0o600))
+
+		conf, err := common.LoadMainConfig(filePath)
+
+		require.NoError(t, err)
+		require.Len(t, conf.HardforkRoundExclusions, 2)
+	})
+	t.Run("overlapping round exclusions should error", func(t *testing.T) {
+		t.Parallel()
+
+		testString := `
+[[HardforkRoundExclusions]]
+    StartRound = 10
+    EndRound = 20
+[[HardforkRoundExclusions]]
+    StartRound = 20
+    EndRound = 30
+`
+		filePath := path.Join(t.TempDir(), "config.toml")
+		require.NoError(t, os.WriteFile(filePath, []byte(testString), 0o600))
+
+		conf, err := common.LoadMainConfig(filePath)
+
+		require.Nil(t, conf)
+		require.ErrorIs(t, err, common.ErrOverlappingHardforkRoundExclusions)
+	})
+	t.Run("checkpoint round in another exclusion should error", func(t *testing.T) {
+		t.Parallel()
+
+		testString := `
+[[HardforkRoundExclusions]]
+    StartRound = 100
+    EndRound = 100
+[[HardforkRoundExclusions]]
+    StartRound = 101
+    EndRound = 199
+[HardforkRecoveryCheckpoint]
+    Enabled = true
+    Round = 100
+[[HardforkRecoveryCheckpoint.Headers]]
+    ShardID = 0
+    Hash = "{hash}"
+[[HardforkRecoveryCheckpoint.Headers]]
+    ShardID = 4294967295
+    Hash = "{hash}"
+`
+		testString = strings.ReplaceAll(testString, "{hash}", strings.Repeat("0", 64))
+		filePath := path.Join(t.TempDir(), "config.toml")
+		require.NoError(t, os.WriteFile(filePath, []byte(testString), 0o600))
+
+		conf, err := common.LoadMainConfig(filePath)
+
+		require.Nil(t, conf)
+		require.ErrorIs(t, err, common.ErrInvalidRecoveryCheckpoint)
 	})
 }
 
@@ -515,4 +583,38 @@ func TestGetNodeProcessingMode(t *testing.T) {
 
 	mode = common.GetNodeProcessingMode(&config.ImportDbConfig{})
 	assert.Equal(t, common.Normal, mode)
+}
+
+func TestReleasedSupernovaDrainConfiguration(t *testing.T) {
+	mainConfig, err := common.LoadMainConfig("../cmd/node/config/config.toml")
+	require.NoError(t, err)
+	require.Equal(t, []config.ProcessConfigByEpoch{
+		{
+			EnableEpoch:                       0,
+			MaxMetaNoncesBehind:               15,
+			MaxMetaNoncesBehindForGlobalStuck: 30,
+			MaxShardNoncesBehind:              15,
+		},
+		{
+			EnableEpoch:                       1,
+			MaxMetaNoncesBehind:               5,
+			MaxMetaNoncesBehindForGlobalStuck: 8,
+			MaxShardNoncesBehind:              5,
+		},
+		{
+			EnableEpoch:                       2,
+			MaxMetaNoncesBehind:               15,
+			MaxMetaNoncesBehindForGlobalStuck: 30,
+			MaxShardNoncesBehind:              15,
+		},
+	}, mainConfig.GeneralSettings.ProcessConfigsByEpoch)
+
+	economicsConfig, err := common.LoadEconomicsConfig("../cmd/node/config/economics.toml")
+	require.NoError(t, err)
+	require.Equal(t, uint64(200), economicsConfig.FeeSettings.BlockCapacityOverestimationFactor)
+	require.Len(t, economicsConfig.FeeSettings.GasLimitSettings, 3)
+	require.Equal(t, uint32(1), economicsConfig.FeeSettings.GasLimitSettings[1].EnableEpoch)
+	require.Equal(t, "1500000000", economicsConfig.FeeSettings.GasLimitSettings[1].MaxGasLimitPerBlock)
+	require.Equal(t, uint32(2), economicsConfig.FeeSettings.GasLimitSettings[2].EnableEpoch)
+	require.Equal(t, "600000000", economicsConfig.FeeSettings.GasLimitSettings[2].MaxGasLimitPerBlock)
 }

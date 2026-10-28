@@ -133,8 +133,10 @@ func (bn *branchNode) commitDirty(
 	}
 }
 
+// TODO refactor long parameter list
 func (bn *branchNode) commitSnapshot(
-	trieCtx common.TrieContext,
+	trieCtx *snapshotTrieContext,
+	maxEpochToSearchFrom uint32,
 	leavesChan chan core.KeyValueHolder,
 	missingNodesChan chan []byte,
 	ctx context.Context,
@@ -152,21 +154,17 @@ func (bn *branchNode) commitSnapshot(
 			continue
 		}
 
-		child, childBytes, err := getNodeFromDBAndDecode(bn.ChildrenHashes[i], trieCtx)
-		childIsMissing, err := treatCommitSnapshotError(err, bn.ChildrenHashes[i], missingNodesChan)
-		if err != nil {
-			return err
-		}
-		if childIsMissing {
-			continue
-		}
-
-		err = child.commitSnapshot(trieCtx, leavesChan, missingNodesChan, ctx, stats, idleProvider, childBytes, depthLevel+1)
-		if err != nil {
-			return err
-		}
-
-		err = trieCtx.Put(bn.ChildrenHashes[i], childBytes)
+		err := commitSnapshot(
+			maxEpochToSearchFrom,
+			trieCtx,
+			leavesChan,
+			missingNodesChan,
+			ctx,
+			stats,
+			idleProvider,
+			depthLevel,
+			bn.ChildrenHashes[i],
+		)
 		if err != nil {
 			return err
 		}
@@ -210,13 +208,13 @@ func (bn *branchNode) resolveIfCollapsed(pos byte, trieCtx common.TrieContext) (
 	return bn.children[pos], bn.ChildrenHashes[pos], nil
 }
 
-func (bn *branchNode) tryGet(keyData *keyData, currentDepth uint32, trieCtx common.TrieContext) (value []byte, maxDepth uint32, err error) {
+func (bn *branchNode) tryGetWithVersion(keyData *keyData, currentDepth uint32, trieCtx common.TrieContext) (value []byte, maxDepth uint32, version uint32, err error) {
 	if len(keyData.keyRemainder) == 0 {
-		return nil, currentDepth, nil
+		return nil, currentDepth, 0, nil
 	}
 	childPos := keyData.keyRemainder[firstByte]
 	if childPosOutOfRange(childPos) {
-		return nil, currentDepth, ErrChildPosOutOfRange
+		return nil, currentDepth, 0, ErrChildPosOutOfRange
 	}
 	keyData.keyRemainder = keyData.keyRemainder[1:]
 
@@ -225,14 +223,14 @@ func (bn *branchNode) tryGet(keyData *keyData, currentDepth uint32, trieCtx comm
 	child, _, err := bn.resolveIfCollapsed(childPos, trieCtx)
 	trieCtx.Unlock(mutexKey)
 	if err != nil {
-		return nil, currentDepth, err
+		return nil, currentDepth, 0, err
 	}
 	if check.IfNil(child) {
-		return nil, currentDepth, nil
+		return nil, currentDepth, 0, nil
 	}
 
 	keyData.pathKey = append(keyData.pathKey, childPos)
-	return child.tryGet(keyData, currentDepth+1, trieCtx)
+	return child.tryGetWithVersion(keyData, currentDepth+1, trieCtx)
 }
 
 func (bn *branchNode) getNext(key []byte, trieCtx common.TrieContext) (*nodeData, error) {

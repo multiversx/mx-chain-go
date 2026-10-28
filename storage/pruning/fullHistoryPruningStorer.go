@@ -2,6 +2,7 @@ package pruning
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math"
 
@@ -75,13 +76,37 @@ func (fhps *FullHistoryPruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]
 		return value, nil
 	}
 
-	return fhps.searchInEpoch(key, epoch+1)
+	fallbackValue, fallbackErr := fhps.searchInEpoch(key, epoch+1)
+	if fallbackErr == nil && fallbackValue != nil {
+		return fallbackValue, nil
+	}
+	if err != nil && !storage.IsNotFoundInStorageErr(err) {
+		return nil, err
+	}
+
+	return fallbackValue, fallbackErr
 }
 
 // GetBulkFromEpoch will search a bulk of keys in the persister for the given epoch
 // doesn't return an error if a key or any isn't found
 func (fhps *FullHistoryPruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]data.KeyValuePair, error) {
-	persister, err := fhps.getOrOpenPersister(epoch)
+	res, err := fhps.searchBulkInEpoch(keys, epoch)
+	if err == nil && len(res) > 0 {
+		return res, nil
+	}
+	fallbackRes, fallbackErr := fhps.searchBulkInEpoch(keys, epoch+1)
+	if fallbackErr == nil && len(fallbackRes) > 0 {
+		return fallbackRes, nil
+	}
+	if err != nil && !storage.IsNotFoundInStorageErr(err) {
+		return nil, err
+	}
+
+	return fallbackRes, fallbackErr
+}
+
+func (fhps *FullHistoryPruningStorer) searchBulkInEpoch(keys [][]byte, epoch uint32) ([]data.KeyValuePair, error) {
+	persister, err := fhps.getPersisterForRead(epoch)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +164,7 @@ func (fhps *FullHistoryPruningStorer) isEpochActive(epoch uint32) bool {
 }
 
 func (fhps *FullHistoryPruningStorer) getFromOldEpoch(key []byte, epoch uint32) ([]byte, error) {
-	persister, err := fhps.getOrOpenPersister(epoch)
+	persister, err := fhps.getPersisterForRead(epoch)
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +184,23 @@ func (fhps *FullHistoryPruningStorer) getFromOldEpoch(key []byte, epoch uint32) 
 		hex.EncodeToString(key), fhps.identifier)
 }
 
+// getOrOpenPersister returns the persister for the provided epoch, creating it if it does not exist.
+// It must only be called on write paths (PutInEpoch), where the epoch is decided by the node itself.
 func (fhps *FullHistoryPruningStorer) getOrOpenPersister(epoch uint32) (storage.Persister, error) {
+	return fhps.getPersister(epoch, true)
+}
+
+// getPersisterForRead opens existing databases only; reads must not create missing databases.
+func (fhps *FullHistoryPruningStorer) getPersisterForRead(epoch uint32) (storage.Persister, error) {
+	persister, err := fhps.getPersister(epoch, false)
+	if err != nil && !errors.Is(err, storage.ErrPersisterNotFoundForEpoch) {
+		return nil, fmt.Errorf("%w: epoch %d, id %s: %w", storage.ErrPersisterAccess, epoch, fhps.identifier, err)
+	}
+
+	return persister, err
+}
+
+func (fhps *FullHistoryPruningStorer) getPersister(epoch uint32, createIfMissing bool) (storage.Persister, error) {
 	epochString := fmt.Sprintf("%d", epoch)
 
 	fhps.lock.RLock()
@@ -173,12 +214,31 @@ func (fhps *FullHistoryPruningStorer) getOrOpenPersister(epoch uint32) (storage.
 		}
 	}
 
+	if !exists && !createIfMissing {
+		// check before acquiring the exclusive lock, so that unknown epochs can not be used
+		// to create contention on the lock the block processing path needs
+		fhps.lock.RLock()
+		err := fhps.checkPersisterExistsForEpochUnprotected(epoch)
+		fhps.lock.RUnlock()
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	fhps.lock.Lock()
 	defer fhps.lock.Unlock()
 
 	pdata, exists = fhps.getPersisterData(epochString, epoch)
 	if !exists {
-		newPdata, errPersisterData := createPersisterDataForEpoch(fhps.args, epoch, fhps.shardId)
+		if !createIfMissing {
+			err := fhps.checkPersisterExistsForEpochUnprotected(epoch)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		filePath := createPersisterPathForEpoch(fhps.args, epoch, fhps.shardId)
+		newPdata, errPersisterData := createPersisterDataForEpoch(fhps.args.PersisterFactory, filePath, epoch)
 		if errPersisterData != nil {
 			return nil, errPersisterData
 		}
@@ -200,6 +260,32 @@ func (fhps *FullHistoryPruningStorer) getOrOpenPersister(epoch uint32) (storage.
 		fhps.oldEpochsActivePersistersCache.Put([]byte(epochString), pdata, 0)
 	}
 	return persister, nil
+}
+
+// checkPersisterExistsForEpochUnprotected returns nil only if the node can hold data for the provided
+// epoch: the epoch is not in the future and a database was already created for it on the persister's path.
+// It must be called while holding fhps.lock (either for read or for write).
+func (fhps *FullHistoryPruningStorer) checkPersisterExistsForEpochUnprotected(epoch uint32) error {
+	if len(fhps.activePersisters) > 0 {
+		newestEpoch := fhps.activePersisters[0].epoch
+		// the persister of the next epoch is created in advance, so it is a valid target as well
+		isFutureEpoch := epoch > newestEpoch && epoch-newestEpoch > 1
+		if isFutureEpoch {
+			return fmt.Errorf("%w: epoch %d is newer than the last known epoch %d, id %s",
+				storage.ErrPersisterNotFoundForEpoch, epoch, newestEpoch, fhps.identifier)
+		}
+	}
+
+	filePath := createPersisterPathForEpoch(fhps.args, epoch, fhps.shardId)
+	exists, err := fhps.args.PersisterFactory.PersisterExists(filePath)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return fmt.Errorf("%w: epoch %d, id %s", storage.ErrPersisterNotFoundForEpoch, epoch, fhps.identifier)
+	}
+
+	return nil
 }
 
 func (fhps *FullHistoryPruningStorer) getPersisterData(epochString string, epoch uint32) (*persisterData, bool) {

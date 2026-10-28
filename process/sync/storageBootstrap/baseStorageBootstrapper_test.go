@@ -7,17 +7,20 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	dataRetrieverMocks "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	dataRetrieverMocks "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -49,6 +52,7 @@ func createMockShardStorageBootstrapperArgs() ArgsBaseStorageBootstrapper {
 		AppStatusHandler:             &statusHandler.AppStatusHandlerMock{},
 		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		ProofsPool:                   &dataRetrieverMocks.ProofsPoolMock{},
+		ExecutionManager:             &processMocks.ExecutionManagerMock{},
 	}
 
 	return argsBaseBootstrapper
@@ -200,6 +204,15 @@ func TestBaseStorageBootstrapper_CheckBaseStorageBootstrapperArguments(t *testin
 
 		err := checkBaseStorageBootstrapperArguments(args)
 		assert.Equal(t, process.ErrNilAppStatusHandler, err)
+	})
+	t.Run("nil execution manager - should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockShardStorageBootstrapperArgs()
+		args.ExecutionManager = nil
+
+		err := checkBaseStorageBootstrapperArguments(args)
+		assert.Equal(t, process.ErrNilExecutionManager, err)
 	})
 }
 
@@ -389,4 +402,201 @@ func TestBaseStorageBootstrapper_GetBlockBodyShouldWork(t *testing.T) {
 	body, err := ssb.getBlockBody(header)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBody, body)
+}
+
+func TestBaseStorageBootstrapper_GetRootHashForBlock(t *testing.T) {
+	t.Parallel()
+
+	headerHash := []byte("header hash")
+	scheduledRootHash := []byte("scheduled root hash")
+
+	t.Run("unsupported legacy headers do not query scheduled storage", func(t *testing.T) {
+		t.Parallel()
+
+		st := &storageBootstrapper{
+			scheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{
+				GetScheduledRootHashForHeaderCalled: func([]byte) ([]byte, error) {
+					t.Fatal("scheduled storage should not be queried")
+					return nil, nil
+				},
+			},
+		}
+
+		for _, header := range []data.HeaderHandler{
+			&block.MetaBlock{RootHash: []byte("meta root hash")},
+			&block.Header{RootHash: []byte("v1 root hash")},
+		} {
+			rootHash, err := st.getRootHashForBlock(header, headerHash)
+			require.NoError(t, err)
+			require.Equal(t, header.GetRootHash(), rootHash)
+		}
+	})
+
+	t.Run("v2 uses persisted scheduled root", func(t *testing.T) {
+		t.Parallel()
+
+		st := &storageBootstrapper{
+			scheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{
+				GetScheduledRootHashForHeaderCalled: func(receivedHash []byte) ([]byte, error) {
+					require.Equal(t, headerHash, receivedHash)
+					return scheduledRootHash, nil
+				},
+			},
+		}
+		header := &block.HeaderV2{Header: &block.Header{RootHash: []byte("v2 root hash")}}
+
+		rootHash, err := st.getRootHashForBlock(header, headerHash)
+
+		require.NoError(t, err)
+		require.Equal(t, scheduledRootHash, rootHash)
+	})
+
+	t.Run("v2 without persisted scheduled state uses header root", func(t *testing.T) {
+		t.Parallel()
+
+		headerRootHash := []byte("v2 root hash")
+		st := &storageBootstrapper{
+			scheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{
+				GetScheduledRootHashForHeaderCalled: func([]byte) ([]byte, error) {
+					return nil, errors.New("scheduled state not found")
+				},
+			},
+		}
+		header := &block.HeaderV2{Header: &block.Header{RootHash: headerRootHash}}
+
+		rootHash, err := st.getRootHashForBlock(header, headerHash)
+
+		require.NoError(t, err)
+		require.Equal(t, headerRootHash, rootHash)
+	})
+
+	t.Run("v3 uses last execution result", func(t *testing.T) {
+		t.Parallel()
+
+		executionRootHash := []byte("execution root hash")
+		st := &storageBootstrapper{
+			scheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{
+				GetScheduledRootHashForHeaderCalled: func([]byte) ([]byte, error) {
+					t.Fatal("scheduled storage should not be queried")
+					return nil, nil
+				},
+			},
+		}
+		header := &block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{RootHash: executionRootHash},
+			},
+		}
+
+		rootHash, err := st.getRootHashForBlock(header, headerHash)
+
+		require.NoError(t, err)
+		require.Equal(t, executionRootHash, rootHash)
+	})
+}
+
+func TestBaseStorageBootstrapper_setCurrentBlockInfoV3(t *testing.T) {
+	t.Parallel()
+
+	t.Run("in case of nil LastExecutionResult should fail", func(t *testing.T) {
+		t.Parallel()
+
+		baseArgs := createMockShardStorageBootstrapperArgs()
+		args := ArgsShardStorageBootstrapper{
+			ArgsBaseStorageBootstrapper: baseArgs,
+		}
+
+		ssb, _ := NewShardStorageBootstrapper(args)
+		err := ssb.setCurrentBlockInfoV3(&block.HeaderV3{
+			LastExecutionResult: nil,
+		}, nil)
+
+		require.Equal(t, process.ErrNilLastExecutionResultHandler, err)
+	})
+
+	t.Run("if getting the header fails, the error should be propagated", func(t *testing.T) {
+		t.Parallel()
+
+		errExpected := errors.New("expected error")
+		baseArgs := createMockShardStorageBootstrapperArgs()
+		baseArgs.Marshalizer = &testscommon.MarshallerStub{
+			UnmarshalCalled: func(obj interface{}, buff []byte) error {
+				return errExpected
+			},
+		}
+		args := ArgsShardStorageBootstrapper{
+			ArgsBaseStorageBootstrapper: baseArgs,
+		}
+
+		ssb, _ := NewShardStorageBootstrapper(args)
+		err := ssb.setCurrentBlockInfoV3(&block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderHash: []byte("hashExecResult"),
+				},
+			},
+		}, []byte("hash"))
+
+		require.Equal(t, process.ErrUnmarshalWithoutSuccess, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		baseArgs := createMockShardStorageBootstrapperArgs()
+
+		args := ArgsShardStorageBootstrapper{
+			ArgsBaseStorageBootstrapper: baseArgs,
+		}
+
+		args.Store = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{
+					GetCalled: func(key []byte) ([]byte, error) {
+						header := &block.HeaderV3{
+							LastExecutionResult: &block.ExecutionResultInfo{
+								ExecutionResult: &block.BaseExecutionResult{
+									HeaderHash: []byte("hashExecResult"),
+								},
+							},
+							ExecutionResults: []*block.ExecutionResult{
+								{
+									BaseExecutionResult: &block.BaseExecutionResult{
+										HeaderNonce: 10,
+										HeaderHash:  []byte("hashExecResult"),
+									},
+								},
+							},
+						}
+						headerBytes, _ := baseArgs.Marshalizer.Marshal(header)
+
+						return headerBytes, nil
+					},
+				}, nil
+			},
+		}
+
+		counter := 0
+		ssb, _ := NewShardStorageBootstrapper(args)
+		ssb.blkc = &testscommon.ChainHandlerStub{
+			SetLastExecutionInfoCalled: func(header data.HeaderHandler, result data.BaseExecutionResultHandler) {
+				counter += 1
+			},
+			SetCurrentBlockHeaderAndHashCalled: func(headerHash []byte, header data.HeaderHandler) error {
+				counter += 1
+				return nil
+			},
+		}
+		err := ssb.setCurrentBlockInfoV3(&block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("hashExecResult"),
+					HeaderNonce: 10,
+				},
+			},
+		}, []byte("hash"))
+
+		require.Nil(t, err)
+		require.Equal(t, 2, counter)
+	})
 }

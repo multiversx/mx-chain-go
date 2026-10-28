@@ -1,15 +1,17 @@
 package storagerequesters
 
 import (
+	"time"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/storage"
-	"time"
 )
 
 // ArgEquivalentProofsRequester is the argument structure used to create a new equivalent proofs requester instance
@@ -83,9 +85,11 @@ func checkArgs(args ArgEquivalentProofsRequester) error {
 
 // RequestDataFromHash requests equivalent proofs data from storage for the specified hash-shard key
 func (requester *equivalentProofsRequester) RequestDataFromHash(hashShardKey []byte, epoch uint32) error {
-	if !requester.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch) {
+	if !requester.isAndromedaFlagEnabledForEpochOrNext(epoch) {
 		return nil
 	}
+
+	requester.manualEpochStartNotifier.NewEpoch(epoch + 1)
 
 	headerHash, _, err := common.GetHashAndShardFromKey(hashShardKey)
 	if err != nil {
@@ -107,9 +111,11 @@ func (requester *equivalentProofsRequester) RequestDataFromHash(hashShardKey []b
 
 // RequestDataFromNonce requests equivalent proofs data from storage for the specified nonce-shard key
 func (requester *equivalentProofsRequester) RequestDataFromNonce(nonceShardKey []byte, epoch uint32) error {
-	if !requester.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch) {
+	if !requester.isAndromedaFlagEnabledForEpochOrNext(epoch) {
 		return nil
 	}
+
+	requester.manualEpochStartNotifier.NewEpoch(epoch + 1)
 
 	headerNonce, shardID, err := common.GetNonceAndShardFromKey(nonceShardKey)
 	if err != nil {
@@ -128,6 +134,12 @@ func (requester *equivalentProofsRequester) RequestDataFromNonce(nonceShardKey [
 
 	hashShardKey := common.GetEquivalentProofHashShardKey(hash, shardID)
 	return requester.RequestDataFromHash([]byte(hashShardKey), epoch)
+}
+
+// isAndromedaFlagEnabledForEpochOrNext also checks epoch+1 to handle epoch boundary transitions
+func (requester *equivalentProofsRequester) isAndromedaFlagEnabledForEpochOrNext(epoch uint32) bool {
+	return requester.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch) ||
+		requester.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch+1)
 }
 
 func (requester *equivalentProofsRequester) getStorerForShard(shardID uint32) (storage.Storer, error) {

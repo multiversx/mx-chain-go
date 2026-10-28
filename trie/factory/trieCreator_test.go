@@ -6,6 +6,9 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -18,8 +21,6 @@ import (
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/trie/factory"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func getArgs() factory.TrieFactoryArgs {
@@ -27,7 +28,7 @@ func getArgs() factory.TrieFactoryArgs {
 		Marshalizer:              &marshallerMock.MarshalizerMock{},
 		Hasher:                   &hashingMocks.HasherMock{},
 		PathManager:              &testscommon.PathManagerStub{},
-		TrieStorageManagerConfig: config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
+		TrieStorageManagerConfig: config.TrieStorageManagerConfig{SnapshotsGoroutinesPerCore: 1},
 	}
 }
 

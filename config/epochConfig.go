@@ -32,6 +32,8 @@ type EnableEpochs struct {
 	DoubleKeyProtectionEnableEpoch                           uint32
 	ESDTEnableEpoch                                          uint32
 	GovernanceEnableEpoch                                    uint32
+	GovernanceDisableProposeEnableEpoch                      uint32
+	GovernanceFixesEnableEpoch                               uint32
 	DelegationManagerEnableEpoch                             uint32
 	DelegationSmartContractEnableEpoch                       uint32
 	CorrectLastUnjailedEnableEpoch                           uint32
@@ -68,7 +70,6 @@ type EnableEpochs struct {
 	IsPayableBySCEnableEpoch                                 uint32
 	CleanUpInformativeSCRsEnableEpoch                        uint32
 	StorageAPICostOptimizationEnableEpoch                    uint32
-	TransformToMultiShardCreateEnableEpoch                   uint32
 	ESDTRegisterAndSetAllRolesEnableEpoch                    uint32
 	DoNotReturnOldBlockInBlockchainHookEnableEpoch           uint32
 	AddFailedRelayedTxToInvalidMBsDisableEpoch               uint32
@@ -125,12 +126,23 @@ type EnableEpochs struct {
 	RelayedTransactionsV3EnableEpoch                         uint32
 	RelayedTransactionsV3FixESDTTransferEnableEpoch          uint32
 	AndromedaEnableEpoch                                     uint32
+	SupernovaEnableEpoch                                     uint32
+	FixEpochChangeProposedCurrentEpochEnableEpoch            uint32
+	FixDataTrieLeafValidationEnableEpoch                     uint32
 	CheckBuiltInCallOnTransferValueAndFailEnableRound        uint32
 	MaskVMInternalDependenciesErrorsEnableEpoch              uint32
 	FixBackTransferOPCODEEnableEpoch                         uint32
 	ValidationOnGobDecodeEnableEpoch                         uint32
 	BarnardOpcodesEnableEpoch                                uint32
+	FixGetBalanceEnableEpoch                                 uint32
 	AutomaticActivationOfNodesDisableEpoch                   uint32
+	RelayedTransactionsV1V2DisableEpoch                      uint32
+	FullShardDataValidationEnableEpoch                       uint32
+	ConsumedGasInEconomicsFixEnableEpoch                     uint32
+	AttributeExtraGasUsageEnableEpoch                        uint32
+	FixCorrectSmallIntAndGasLimitsEnableEpoch                uint32
+	OutputRollbackOnDestContextEnableEpoch                   uint32
+	KeepReturnDataOnAsyncTransferCallbackEnableEpoch         uint32
 	BLSMultiSignerEnableEpoch                                []MultiSignerConfig
 }
 

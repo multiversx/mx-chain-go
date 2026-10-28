@@ -144,7 +144,7 @@ func testRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(
 		receiverAddress2 := []byte("12345678901234567890123456789011")
 
 		integrationTests.MintAllPlayers(nodes, players, big.NewInt(1))
-
+		integrationTests.SetRootHashOfGenesisBlocks(nodes)
 		ownerNode := nodes[0]
 		initialSupply := "00" + hex.EncodeToString(big.NewInt(100000000000).Bytes())
 		scCode := wasm.GetSCCode("../../vm/wasm/testdata/erc20-c-03/wrc20_wasm.wasm")

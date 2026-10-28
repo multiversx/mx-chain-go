@@ -4,9 +4,14 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	coreData "github.com/multiversx/mx-chain-core-go/data"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
+	testsMocks "github.com/multiversx/mx-chain-go/integrationTests/mock"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -58,6 +63,7 @@ func TestManagedProcessComponents_Create(t *testing.T) {
 		require.True(t, check.IfNil(managedProcessComponents.RequestersFinder()))
 		require.True(t, check.IfNil(managedProcessComponents.RoundHandler()))
 		require.True(t, check.IfNil(managedProcessComponents.ForkDetector()))
+		require.True(t, check.IfNil(managedProcessComponents.ExecutionManager()))
 		require.True(t, check.IfNil(managedProcessComponents.BlockProcessor()))
 		require.True(t, check.IfNil(managedProcessComponents.BlockchainHook()))
 		require.True(t, check.IfNil(managedProcessComponents.EpochStartTrigger()))
@@ -105,6 +111,7 @@ func TestManagedProcessComponents_Create(t *testing.T) {
 		require.False(t, check.IfNil(managedProcessComponents.RoundHandler()))
 		require.False(t, check.IfNil(managedProcessComponents.ForkDetector()))
 		require.False(t, check.IfNil(managedProcessComponents.BlockProcessor()))
+		require.False(t, check.IfNil(managedProcessComponents.ExecutionManager()))
 		require.False(t, check.IfNil(managedProcessComponents.EpochStartTrigger()))
 		require.False(t, check.IfNil(managedProcessComponents.BlockchainHook()))
 		require.False(t, check.IfNil(managedProcessComponents.EpochStartNotifier()))
@@ -163,7 +170,29 @@ func TestManagedProcessComponents_CheckSubcomponents(t *testing.T) {
 func TestManagedProcessComponents_Close(t *testing.T) {
 	t.Parallel()
 
-	processComponentsFactory, _ := processComp.NewProcessComponentsFactory(createMockProcessComponentsFactoryArgs())
+	mockedArgs := createMockProcessComponentsFactoryArgs()
+	mockedArgs.Data = &testsMocks.DataComponentsStub{
+		DataPool: dataRetriever.NewPoolsHolderMock(),
+		BlockChain: &testscommon.ChainHandlerStub{
+			GetGenesisHeaderHashCalled: func() []byte {
+				return []byte("genesis hash")
+			},
+			GetGenesisHeaderCalled: func() coreData.HeaderHandler {
+				return &testscommon.HeaderHandlerStub{
+					GetRootHashCalled: func() []byte {
+						return []byte("root hash")
+					},
+					GetPrevHashCalled: func() []byte {
+						return []byte("prev hash")
+					},
+				}
+			},
+		},
+		MbProvider: &testsMocks.MiniBlocksProviderStub{},
+		Store:      genericMocks.NewChainStorerMock(0),
+	}
+
+	processComponentsFactory, _ := processComp.NewProcessComponentsFactory(mockedArgs)
 	managedProcessComponents, _ := processComp.NewManagedProcessComponents(processComponentsFactory)
 	err := managedProcessComponents.Create()
 	require.NoError(t, err)

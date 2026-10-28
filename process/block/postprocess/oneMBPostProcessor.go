@@ -75,7 +75,7 @@ func (opp *oneMBPostProcessor) GetNumOfCrossInterMbsAndTxs() (int, int) {
 	return 0, 0
 }
 
-// CreateAllInterMiniBlocks returns the miniblock for the current round created from the receipts/bad transactions
+// CreateAllInterMiniBlocks returns the miniBlock for the current round created from the receipts/bad transactions
 func (opp *oneMBPostProcessor) CreateAllInterMiniBlocks() []*block.MiniBlock {
 	selfId := opp.shardCoordinator.SelfId()
 

@@ -25,10 +25,18 @@ func NewMetaForkDetector(
 	blackListHandler process.TimeCacher,
 	blockTracker process.BlockTracker,
 	genesisTime int64,
+	supernovaGenesisTime int64,
 	enableEpochsHandler common.EnableEpochsHandler,
+	enableRoundsHandler common.EnableRoundsHandler,
 	proofsPool process.ProofsPool,
+	chainParametersHandler common.ChainParametersHandler,
+	processConfigsHandler common.ProcessConfigsHandler,
+	roundExclusionHandlers ...common.RoundExclusionHandler,
 ) (*metaForkDetector, error) {
-
+	roundExclusions, err := common.ResolveRoundExclusionHandler(roundExclusionHandlers...)
+	if err != nil {
+		return nil, err
+	}
 	if check.IfNil(roundHandler) {
 		return nil, process.ErrNilRoundHandler
 	}
@@ -41,8 +49,17 @@ func NewMetaForkDetector(
 	if check.IfNil(enableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(enableRoundsHandler) {
+		return nil, process.ErrNilEnableRoundsHandler
+	}
 	if check.IfNil(proofsPool) {
 		return nil, process.ErrNilProofsPool
+	}
+	if check.IfNil(chainParametersHandler) {
+		return nil, process.ErrNilChainParametersHandler
+	}
+	if check.IfNil(processConfigsHandler) {
+		return nil, process.ErrNilProcessConfigsHandler
 	}
 
 	genesisHdr, _, err := blockTracker.GetSelfNotarizedHeader(core.MetachainShardId, 0)
@@ -51,15 +68,21 @@ func NewMetaForkDetector(
 	}
 
 	bfd := &baseForkDetector{
-		roundHandler:        roundHandler,
-		blackListHandler:    blackListHandler,
-		genesisTime:         genesisTime,
-		blockTracker:        blockTracker,
-		genesisNonce:        genesisHdr.GetNonce(),
-		genesisRound:        genesisHdr.GetRound(),
-		genesisEpoch:        genesisHdr.GetEpoch(),
-		enableEpochsHandler: enableEpochsHandler,
-		proofsPool:          proofsPool,
+		roundHandler:           roundHandler,
+		blackListHandler:       blackListHandler,
+		genesisTime:            genesisTime,
+		supernovaGenesisTime:   supernovaGenesisTime,
+		blockTracker:           blockTracker,
+		genesisNonce:           genesisHdr.GetNonce(),
+		genesisRound:           genesisHdr.GetRound(),
+		genesisEpoch:           genesisHdr.GetEpoch(),
+		enableEpochsHandler:    enableEpochsHandler,
+		enableRoundsHandler:    enableRoundsHandler,
+		proofsPool:             proofsPool,
+		chainParametersHandler: chainParametersHandler,
+		processConfigsHandler:  processConfigsHandler,
+		shardID:                core.MetachainShardId,
+		roundExclusions:        roundExclusions,
 	}
 
 	bfd.headers = make(map[uint64][]*headerInfo)
@@ -68,7 +91,7 @@ func NewMetaForkDetector(
 		nonce: bfd.genesisNonce,
 		round: bfd.genesisRound,
 	}
-	bfd.setFinalCheckpoint(checkpoint)
+	bfd.setFinalAndSettledCheckpoint(checkpoint)
 	bfd.addCheckpoint(checkpoint)
 	bfd.fork.rollBackNonce = math.MaxUint64
 	bfd.fork.probableHighestNonce = bfd.genesisNonce
@@ -107,16 +130,61 @@ func (mfd *metaForkDetector) doJobOnBHProcessed(
 	_ []data.HeaderHandler,
 	_ [][]byte,
 ) {
-	mfd.setFinalCheckpoint(mfd.lastCheckpoint())
+	mfd.mutFinalityUpdate.Lock()
+	defer mfd.mutFinalityUpdate.Unlock()
+
+	lastCheckpoint := mfd.lastCheckpoint()
+	// under Supernova the committed header settles only the block it extends (settle-on-child)
+	canSettleLastCheckpoint := !mfd.isSupernovaForHeader(header) || isParentCheckpoint(lastCheckpoint, header)
+	if canSettleLastCheckpoint {
+		mfd.advanceFinalAndSettledCheckpoint(lastCheckpoint)
+	}
 	newCheckpoint := &checkpointInfo{nonce: header.GetNonce(), round: header.GetRound(), hash: headerHash}
 	mfd.addCheckpoint(newCheckpoint)
 	if common.IsProofsFlagEnabledForHeader(mfd.enableEpochsHandler, header) {
-		mfd.setFinalCheckpoint(newCheckpoint)
+		mfd.setInstantFinalCheckpoint(header, headerHash, newCheckpoint)
 	}
 	mfd.removePastOrInvalidRecords()
+	mfd.logFinalityLag()
 }
 
 func (mfd *metaForkDetector) computeFinalCheckpoint() {
+}
+
+// ReconcileFinalCheckpoint serializes reconciliation with metachain finality updates.
+func (mfd *metaForkDetector) ReconcileFinalCheckpoint(nonce uint64) bool {
+	mfd.mutFinalityUpdate.Lock()
+	defer mfd.mutFinalityUpdate.Unlock()
+
+	return mfd.baseForkDetector.ReconcileFinalCheckpoint(nonce)
+}
+
+// ReconcileFinalCheckpointBelow serializes suffix reconciliation with metachain finality updates.
+func (mfd *metaForkDetector) ReconcileFinalCheckpointBelow(nonce uint64) bool {
+	mfd.mutFinalityUpdate.Lock()
+	reconciled, loweredFinal := mfd.reconcileFinalCheckpointRecordsBelow(nonce)
+	mfd.mutFinalityUpdate.Unlock()
+	if reconciled {
+		mfd.finishFinalCheckpointReconciliation(nonce, loweredFinal)
+	}
+
+	return reconciled
+}
+
+// ReconcileFinalCheckpointFromAuthority serializes authority reconciliation with metachain finality updates.
+func (mfd *metaForkDetector) ReconcileFinalCheckpointFromAuthority(nonce uint64, selectedHash []byte) bool {
+	if len(selectedHash) == 0 {
+		return false
+	}
+
+	mfd.mutFinalityUpdate.Lock()
+	reconciled, loweredFinal := mfd.reconcileFinalCheckpointFromAuthorityRecords(nonce, selectedHash)
+	mfd.mutFinalityUpdate.Unlock()
+	if reconciled {
+		mfd.finishFinalCheckpointReconciliation(nonce, loweredFinal)
+	}
+
+	return reconciled
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

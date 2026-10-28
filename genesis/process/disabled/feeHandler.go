@@ -57,8 +57,18 @@ func (fh *FeeHandler) MaxGasPriceSetGuardian() uint64 {
 	return math.MaxUint64
 }
 
+// BlockCapacityOverestimationFactor returns max uint64
+func (fh *FeeHandler) BlockCapacityOverestimationFactor() uint64 {
+	return math.MaxUint64
+}
+
 // MaxGasLimitPerBlock returns max uint64
 func (fh *FeeHandler) MaxGasLimitPerBlock(uint32) uint64 {
+	return math.MaxUint64
+}
+
+// MaxGasLimitPerBlockInEpoch returns max uint64
+func (fh *FeeHandler) MaxGasLimitPerBlockInEpoch(_ uint32, _ uint32) uint64 {
 	return math.MaxUint64
 }
 
@@ -69,6 +79,11 @@ func (fh *FeeHandler) MaxGasLimitPerMiniBlock(uint32) uint64 {
 
 // MaxGasLimitPerBlockForSafeCrossShard returns max uint64
 func (fh *FeeHandler) MaxGasLimitPerBlockForSafeCrossShard() uint64 {
+	return math.MaxUint64
+}
+
+// MaxGasLimitPerBlockForSafeCrossShardInEpoch returns max uint64
+func (fh *FeeHandler) MaxGasLimitPerBlockForSafeCrossShardInEpoch(_ uint32) uint64 {
 	return math.MaxUint64
 }
 
@@ -84,6 +99,11 @@ func (fh *FeeHandler) MaxGasHigherFactorAccepted() uint64 {
 
 // MaxGasLimitPerTx returns max uint64
 func (fh *FeeHandler) MaxGasLimitPerTx() uint64 {
+	return math.MaxUint64
+}
+
+// MaxGasLimitPerTxInEpoch returns max uint64
+func (fh *FeeHandler) MaxGasLimitPerTxInEpoch(_ uint32) uint64 {
 	return math.MaxUint64
 }
 

@@ -13,10 +13,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 type transactionCounter struct {
@@ -110,7 +111,12 @@ func (txc *transactionCounter) headerExecuted(hdr data.HeaderHandler) {
 
 func (txc *transactionCounter) getProcessedTxCount(hdr data.HeaderHandler) int32 {
 	currentBlockTxs := int32(0)
-	for _, miniBlockHeaderHandler := range hdr.GetMiniBlockHeaderHandlers() {
+	processedMiniBlocks, err := common.GetMiniBlockHeadersFromExecResult(hdr)
+	if err != nil {
+		return 0
+	}
+
+	for _, miniBlockHeaderHandler := range processedMiniBlocks {
 		if miniBlockHeaderHandler.GetTypeInt32() == int32(block.PeerBlock) {
 			continue
 		}

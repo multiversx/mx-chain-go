@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -15,6 +14,7 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -22,18 +22,25 @@ import (
 
 const leaderIndex = 0
 
+// maxRoundsInfoPerBatch caps how many RoundInfo entries are sent in a single
+// SaveRoundsInfo call. Without batching, a long pause (e.g. one day offline)
+// would accumulate tens/hundreds of thousands of missed rounds into a single
+// huge payload, which can OOM the node or fail in the drivers / indexers.
+const maxRoundsInfoPerBatch = 2000
+
 func getMetricsFromMetaHeader(
-	header *block.MetaBlock,
+	header data.MetaHeaderHandler,
 	marshalizer marshal.Marshalizer,
 	appStatusHandler core.AppStatusHandler,
 	numShardHeadersFromPool int,
 	numShardHeadersProcessed uint64,
+	numTxs uint64,
 ) {
 	numMiniBlocksMetaBlock := uint64(0)
 	headerSize := uint64(0)
 
-	for _, shardInfo := range header.ShardInfo {
-		numMiniBlocksMetaBlock += uint64(len(shardInfo.ShardMiniBlockHeaders))
+	for _, shardInfo := range header.GetShardInfoHandlers() {
+		numMiniBlocksMetaBlock += uint64(len(shardInfo.GetShardMiniBlockHeaderHandlers()))
 	}
 
 	marshalizedHeader, err := marshalizer.Marshal(header)
@@ -41,11 +48,26 @@ func getMetricsFromMetaHeader(
 		headerSize = uint64(len(marshalizedHeader))
 	}
 
+	appStatusHandler.SetUInt64Value(common.MetricTxPoolLoad, numTxs)
 	appStatusHandler.SetUInt64Value(common.MetricHeaderSize, headerSize)
-	appStatusHandler.SetUInt64Value(common.MetricNumTxInBlock, uint64(header.TxCount))
+	appStatusHandler.SetUInt64Value(common.MetricNumTxInBlock, uint64(getMetaHeaderTxCount(header)))
 	appStatusHandler.SetUInt64Value(common.MetricNumMiniBlocks, numMiniBlocksMetaBlock)
 	appStatusHandler.SetUInt64Value(common.MetricNumShardHeadersProcessed, numShardHeadersProcessed)
 	appStatusHandler.SetUInt64Value(common.MetricNumShardHeadersFromPool, uint64(numShardHeadersFromPool))
+}
+
+func getMetaHeaderTxCount(header data.MetaHeaderHandler) uint32 {
+	if !header.IsHeaderV3() {
+		return header.GetTxCount()
+	}
+
+	txsInExecutionResults, err := getTxCountExecutionResults(header)
+	if err != nil {
+		log.Debug("getMetaHeaderTxCount: failed to compute tx count from execution results", "error", err)
+		return 0
+	}
+
+	return getTxCount(header.GetShardInfoHandlers()) + txsInExecutionResults
 }
 
 func getMetricsFromBlockBody(
@@ -104,14 +126,14 @@ func saveMetricsForCommittedShardBlock(
 
 func saveMetricsForCommitMetachainBlock(
 	appStatusHandler core.AppStatusHandler,
-	header *block.MetaBlock,
+	header data.MetaHeaderHandler,
 	headerHash []byte,
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	highestFinalBlockNonce uint64,
 	managedPeersHolder common.ManagedPeersHolder,
 ) {
 	appStatusHandler.SetStringValue(common.MetricCurrentBlockHash, logger.DisplayByteSlice(headerHash))
-	appStatusHandler.SetUInt64Value(common.MetricEpochNumber, uint64(header.Epoch))
+	appStatusHandler.SetUInt64Value(common.MetricEpochNumber, uint64(header.GetEpoch()))
 	appStatusHandler.SetUInt64Value(common.MetricHighestFinalBlock, highestFinalBlockNonce)
 
 	// TODO: remove if epoch start block needs to be validated by the new epoch nodes
@@ -164,14 +186,22 @@ func indexRoundInfo(
 	lastHeader data.HeaderHandler,
 	signersIndexes []uint64,
 	enableEpochsHandler common.EnableEpochsHandler,
+	roundHandler consensus.RoundHandler,
 ) {
+	timestampSec, timestampMs, err := common.GetHeaderTimestamps(header, enableEpochsHandler)
+	if err != nil {
+		log.Warn("failed to get header timestamps", "error", err)
+		return
+	}
+
 	roundInfo := &outportcore.RoundInfo{
 		Round:            header.GetRound(),
 		SignersIndexes:   signersIndexes,
 		BlockWasProposed: true,
 		ShardId:          shardId,
 		Epoch:            header.GetEpoch(),
-		Timestamp:        uint64(time.Duration(header.GetTimeStamp())),
+		Timestamp:        timestampSec,
+		TimestampMs:      timestampMs,
 	}
 
 	if check.IfNil(lastHeader) {
@@ -181,10 +211,11 @@ func indexRoundInfo(
 
 	lastBlockRound := lastHeader.GetRound()
 	currentBlockRound := header.GetRound()
-	roundDuration := calculateRoundDuration(lastHeader.GetTimeStamp(), header.GetTimeStamp(), lastBlockRound, currentBlockRound)
 
-	roundsInfo := make([]*outportcore.RoundInfo, 0)
-	roundsInfo = append(roundsInfo, roundInfo)
+	epoch := header.GetEpoch()
+	batch := make([]*outportcore.RoundInfo, 0, maxRoundsInfoPerBatch)
+	batch = append(batch, roundInfo)
+
 	for i := lastBlockRound + 1; i < currentBlockRound; i++ {
 		var ok bool
 		signersIndexes, ok = getSignersIndices(header, enableEpochsHandler, lastHeader, i, nodesCoordinator)
@@ -192,19 +223,29 @@ func indexRoundInfo(
 			continue
 		}
 
+		roundTimestampMs := roundHandler.GetTimeStampForRound(i)
+		roundTimestampSec := roundTimestampMs / 1000
+
 		roundInfo = &outportcore.RoundInfo{
 			Round:            i,
 			SignersIndexes:   signersIndexes,
 			BlockWasProposed: false,
 			ShardId:          shardId,
-			Epoch:            header.GetEpoch(),
-			Timestamp:        uint64(time.Duration(header.GetTimeStamp() - ((currentBlockRound - i) * roundDuration))),
+			Epoch:            epoch,
+			Timestamp:        roundTimestampSec,
+			TimestampMs:      roundTimestampMs,
 		}
 
-		roundsInfo = append(roundsInfo, roundInfo)
+		batch = append(batch, roundInfo)
+		if len(batch) >= maxRoundsInfoPerBatch {
+			outportHandler.SaveRoundsInfo(&outportcore.RoundsInfo{ShardID: shardId, RoundsInfo: batch})
+			batch = make([]*outportcore.RoundInfo, 0, maxRoundsInfoPerBatch)
+		}
 	}
 
-	outportHandler.SaveRoundsInfo(&outportcore.RoundsInfo{ShardID: shardId, RoundsInfo: roundsInfo})
+	if len(batch) > 0 {
+		outportHandler.SaveRoundsInfo(&outportcore.RoundsInfo{ShardID: shardId, RoundsInfo: batch})
+	}
 }
 
 func getSignersIndices(
@@ -286,14 +327,4 @@ func calculateRoundDuration(
 	diffRounds := currentBlockRound - lastBlockRound
 
 	return diffTimeStamp / diffRounds
-}
-
-func saveEpochStartEconomicsMetrics(statusHandler core.AppStatusHandler, epochStartMetaBlock *block.MetaBlock) {
-	economics := epochStartMetaBlock.EpochStart.Economics
-
-	statusHandler.SetStringValue(common.MetricTotalSupply, economics.TotalSupply.String())
-	statusHandler.SetStringValue(common.MetricInflation, economics.TotalNewlyMinted.String())
-	statusHandler.SetStringValue(common.MetricTotalFees, epochStartMetaBlock.AccumulatedFeesInEpoch.String())
-	statusHandler.SetStringValue(common.MetricDevRewardsInEpoch, epochStartMetaBlock.DevFeesInEpoch.String())
-	statusHandler.SetUInt64Value(common.MetricEpochForEconomicsData, uint64(epochStartMetaBlock.Epoch))
 }

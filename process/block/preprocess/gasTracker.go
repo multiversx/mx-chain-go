@@ -3,14 +3,47 @@ package preprocess
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 )
+
+const noOverestimationFactor = uint64(100)
 
 type gasTracker struct {
 	shardCoordinator sharding.Coordinator
 	economicsFee     process.FeeHandler
 	gasHandler       process.GasHandler
+	gasEpochState    GasEpochStateHandler
+}
+
+func newGasTracker(
+	shardCoordinator sharding.Coordinator,
+	gasHandler process.GasHandler,
+	economicsFee process.FeeHandler,
+	gasEpochState GasEpochStateHandler,
+) gasTracker {
+	return gasTracker{
+		shardCoordinator: shardCoordinator,
+		economicsFee:     economicsFee,
+		gasHandler:       gasHandler,
+		gasEpochState:    gasEpochState,
+	}
+}
+
+// EpochConfirmed is called whenever a new epoch is confirmed
+func (gt *gasTracker) EpochConfirmed(epoch uint32, _ uint64) {
+	gt.gasEpochState.EpochConfirmed(epoch)
+}
+
+// RoundConfirmed is called whenever a new round is confirmed
+func (gt *gasTracker) RoundConfirmed(round uint64, _ uint64) {
+	gt.gasEpochState.RoundConfirmed(round)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (gt *gasTracker) IsInterfaceNil() bool {
+	return gt == nil
 }
 
 func (gt *gasTracker) computeGasProvided(
@@ -19,6 +52,27 @@ func (gt *gasTracker) computeGasProvided(
 	tx data.TransactionHandler,
 	txHash []byte,
 	gasInfo *gasConsumedInfo,
+	skipBlockLimitCheck bool,
+) (uint64, error) {
+	return gt.computeGasProvidedWithPolicy(
+		senderShardId,
+		receiverShardId,
+		tx,
+		txHash,
+		gasInfo,
+		skipBlockLimitCheck,
+		process.GasProcessingPolicy{},
+	)
+}
+
+func (gt *gasTracker) computeGasProvidedWithPolicy(
+	senderShardId uint32,
+	receiverShardId uint32,
+	tx data.TransactionHandler,
+	txHash []byte,
+	gasInfo *gasConsumedInfo,
+	skipBlockLimitCheck bool,
+	gasProcessingPolicy process.GasProcessingPolicy,
 ) (uint64, error) {
 	gasProvidedByTxInSenderShard, gasProvidedByTxInReceiverShard, err := gt.computeGasProvidedByTx(
 		senderShardId,
@@ -29,22 +83,32 @@ func (gt *gasTracker) computeGasProvided(
 		return 0, err
 	}
 
+	epoch, overEstimationFactor := gt.gasEpochState.GetEpochForLimitsAndOverEstimationFactor()
 	gasProvidedByTxInSelfShard := uint64(0)
 	if gt.shardCoordinator.SelfId() == senderShardId {
 		gasProvidedByTxInSelfShard = gasProvidedByTxInSenderShard
 
-		if gasProvidedByTxInReceiverShard > gt.economicsFee.MaxGasLimitPerTx() {
+		if gasProvidedByTxInReceiverShard > gt.getMaxGasLimitPerTx(epoch) {
 			return 0, process.ErrMaxGasLimitPerOneTxInReceiverShardIsReached
 		}
 
-		if gasInfo.gasConsumedByMiniBlockInReceiverShard+gasProvidedByTxInReceiverShard > gt.economicsFee.MaxGasLimitPerBlockForSafeCrossShard() {
+		if !skipBlockLimitCheck && gasInfo.gasConsumedByMiniBlockInReceiverShard+gasProvidedByTxInReceiverShard > gt.getMaxGasLimitPerBlockForSafeCrossShard(epoch, overEstimationFactor) {
 			return 0, process.ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached
 		}
 	} else {
 		gasProvidedByTxInSelfShard = gasProvidedByTxInReceiverShard
 	}
 
-	if gasInfo.totalGasConsumedInSelfShard+gasProvidedByTxInSelfShard > gt.economicsFee.MaxGasLimitPerBlock(gt.shardCoordinator.SelfId()) {
+	var maxGasLimitPerBlock uint64
+	shouldCheckBlockGasLimit := true
+	if gasProcessingPolicy.HasMaxGasLimitPerBlock() {
+		maxGasLimitPerBlock = gasProcessingPolicy.MaxGasLimitPerBlock()
+	} else {
+		maxGasLimitPerBlock = gt.getMaxGasLimitPerBlock(epoch, overEstimationFactor)
+		shouldCheckBlockGasLimit = !skipBlockLimitCheck
+	}
+
+	if shouldCheckBlockGasLimit && gasInfo.totalGasConsumedInSelfShard+gasProvidedByTxInSelfShard > maxGasLimitPerBlock {
 		return 0, process.ErrMaxGasLimitPerBlockInSelfShardIsReached
 	}
 
@@ -53,6 +117,18 @@ func (gt *gasTracker) computeGasProvided(
 	gasInfo.totalGasConsumedInSelfShard += gasProvidedByTxInSelfShard
 
 	return gasProvidedByTxInSelfShard, nil
+}
+
+func (gt *gasTracker) getMaxGasLimitPerTx(epoch uint32) uint64 {
+	return gt.economicsFee.MaxGasLimitPerTxInEpoch(epoch)
+}
+
+func (gt *gasTracker) getMaxGasLimitPerBlockForSafeCrossShard(epoch uint32, overEstimationFactor uint64) uint64 {
+	return gt.economicsFee.MaxGasLimitPerBlockForSafeCrossShardInEpoch(epoch) * overEstimationFactor / 100
+}
+
+func (gt *gasTracker) getMaxGasLimitPerBlock(epoch uint32, overEstimationFactor uint64) uint64 {
+	return gt.economicsFee.MaxGasLimitPerBlockInEpoch(gt.shardCoordinator.SelfId(), epoch) * overEstimationFactor / 100
 }
 
 func (gt *gasTracker) computeGasProvidedByTx(

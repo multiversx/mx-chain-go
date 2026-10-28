@@ -13,6 +13,7 @@ import (
 type journalEntryCode struct {
 	oldCodeEntry *CodeEntry
 	oldCodeHash  []byte
+	newCodeEntry *CodeEntry
 	newCodeHash  []byte
 	trie         Updater
 	marshalizer  marshal.Marshalizer
@@ -22,6 +23,7 @@ type journalEntryCode struct {
 func NewJournalEntryCode(
 	oldCodeEntry *CodeEntry,
 	oldCodeHash []byte,
+	newCodeEntry *CodeEntry,
 	newCodeHash []byte,
 	trie Updater,
 	marshalizer marshal.Marshalizer,
@@ -36,6 +38,7 @@ func NewJournalEntryCode(
 	return &journalEntryCode{
 		oldCodeEntry: oldCodeEntry,
 		oldCodeHash:  oldCodeHash,
+		newCodeEntry: newCodeEntry,
 		newCodeHash:  newCodeHash,
 		trie:         trie,
 		marshalizer:  marshalizer,
@@ -48,12 +51,12 @@ func (jea *journalEntryCode) Revert() (vmcommon.AccountHandler, error) {
 		return nil, nil
 	}
 
-	err := jea.revertOldCodeEntry()
+	err := jea.revertCodeEntry(jea.oldCodeHash, jea.oldCodeEntry)
 	if err != nil {
 		return nil, err
 	}
 
-	err = jea.revertNewCodeEntry()
+	err = jea.revertCodeEntry(jea.newCodeHash, jea.newCodeEntry)
 	if err != nil {
 		return nil, err
 	}
@@ -61,36 +64,27 @@ func (jea *journalEntryCode) Revert() (vmcommon.AccountHandler, error) {
 	return nil, nil
 }
 
-func (jea *journalEntryCode) revertOldCodeEntry() error {
-	if len(jea.oldCodeHash) == 0 {
+func (jea *journalEntryCode) revertCodeEntry(
+	codeHash []byte,
+	codeEntry *CodeEntry,
+) error {
+	if len(codeHash) == 0 {
 		return nil
 	}
 
-	err := saveCodeEntry(jea.oldCodeHash, jea.oldCodeEntry, jea.trie, jea.marshalizer)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (jea *journalEntryCode) revertNewCodeEntry() error {
-	newCodeEntry, err := getCodeEntry(jea.newCodeHash, jea.trie, jea.marshalizer)
-	if err != nil {
-		return err
-	}
-
-	if newCodeEntry == nil {
+	if codeEntry == nil {
+		jea.trie.Update(codeHash, nil)
 		return nil
 	}
 
-	if newCodeEntry.NumReferences <= 1 {
-		jea.trie.Update(jea.newCodeHash, nil)
-		return nil
-	}
+	_, err := saveCodeEntry(
+		codeHash,
+		codeEntry,
+		jea.trie,
+		jea.marshalizer,
+	)
 
-	newCodeEntry.NumReferences--
-	return saveCodeEntry(jea.newCodeHash, newCodeEntry, jea.trie, jea.marshalizer)
+	return err
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
@@ -98,7 +92,7 @@ func (jea *journalEntryCode) IsInterfaceNil() bool {
 	return jea == nil
 }
 
-// JournalEntryAccount represents a journal entry for account fields change
+// journalEntryAccount represents a journal entry for account fields change
 type journalEntryAccount struct {
 	account vmcommon.AccountHandler
 }
@@ -124,7 +118,7 @@ func (jea *journalEntryAccount) IsInterfaceNil() bool {
 	return jea == nil
 }
 
-// JournalEntryAccountCreation represents a journal entry for account creation
+// journalEntryAccountCreation represents a journal entry for account creation
 type journalEntryAccountCreation struct {
 	address []byte
 	updater Updater
@@ -185,10 +179,12 @@ func (jedtu *journalEntryDataTrieUpdates) Revert() (vmcommon.AccountHandler, err
 		return nil, fmt.Errorf("invalid trie, type is %T", jedtu.account.DataTrie())
 	}
 
-	for _, trieUpdate := range jedtu.trieUpdates {
+	for i := len(jedtu.trieUpdates) - 1; i >= 0; i-- {
+		trieUpdate := jedtu.trieUpdates[i]
 		trie.UpdateWithVersion(trieUpdate.Key, trieUpdate.Value, trieUpdate.Version)
 
 		log.Trace("revert data trie update",
+			"address", jedtu.account.AddressBytes(),
 			"key", trieUpdate.Key,
 			"val", trieUpdate.Value,
 			"version", trieUpdate.Version,

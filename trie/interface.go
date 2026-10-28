@@ -39,7 +39,7 @@ type node interface {
 	setDirty(bool)
 	isDirty() bool
 	getEncodedNode(trieCtx common.TrieContext) ([]byte, error)
-	tryGet(keyData *keyData, depth uint32, trieCtx common.TrieContext) ([]byte, uint32, error)
+	tryGetWithVersion(keyData *keyData, depth uint32, trieCtx common.TrieContext) ([]byte, uint32, uint32, error)
 	getNext(key []byte, trieCtx common.TrieContext) (*nodeData, error)
 	insert(pathKey common.KeyBuilder, newData []core.TrieData, goRoutinesManager common.TrieGoroutinesManager, modifiedHashes common.AtomicBytesSlice, trieCtx common.TrieContext) node
 	delete(pathKey common.KeyBuilder, data []core.TrieData, goRoutinesManager common.TrieGoroutinesManager, modifiedHashes common.AtomicBytesSlice, trieCtx common.TrieContext) (bool, node)
@@ -75,7 +75,8 @@ type dbWithGetFromEpoch interface {
 
 type snapshotNode interface {
 	commitSnapshot(
-		trieCtx common.TrieContext,
+		trieCtx *snapshotTrieContext,
+		maxEpochToSearchFrom uint32,
 		leavesChan chan core.KeyValueHolder,
 		missingNodesChan chan []byte,
 		ctx context.Context,
@@ -107,7 +108,7 @@ type epochStorer interface {
 
 type snapshotPruningStorer interface {
 	common.BaseStorer
-	GetFromOldEpochsWithoutAddingToCache(key []byte, maxEpochToSearchFrom uint32) ([]byte, core.OptionalUint32, error)
+	GetWithoutAddingToCache(key []byte, maxEpochToSearchFrom uint32) ([]byte, core.OptionalUint32, error)
 	GetFromLastEpoch(key []byte) ([]byte, error)
 	PutInEpoch(key []byte, data []byte, epoch uint32) error
 	PutInEpochWithoutCache(key []byte, data []byte, epoch uint32) error
@@ -128,6 +129,13 @@ type EpochNotifier interface {
 type IdleNodeProvider interface {
 	IsIdle() bool
 	IsInterfaceNil() bool
+}
+
+type snapshotDb interface {
+	GetWithoutAddingToCache(key []byte, maxEpochToSearchFrom uint32) ([]byte, uint32, error)
+	GetFromLastEpoch(key []byte) ([]byte, error)
+	PutInEpochWithoutCache(key []byte, data []byte) error
+	GetIdentifier() string
 }
 
 // RootManager is used to manage the root node and hashes related to it

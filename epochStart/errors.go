@@ -74,6 +74,9 @@ var ErrNilMetaBlocksPool = errors.New("nil metablocks pool")
 // ErrNilProofsPool signals that nil proofs pool has been provided
 var ErrNilProofsPool = errors.New("nil proofs pool")
 
+// ErrNilHeadersDataPool signals that nil headers data pool has been provided
+var ErrNilHeadersDataPool = errors.New("nil headers data pool")
+
 // ErrNilValidatorInfoProcessor signals that a nil validator info processor has been provided
 var ErrNilValidatorInfoProcessor = errors.New("nil validator info processor")
 
@@ -101,6 +104,14 @@ var ErrNilCryptoComponentsHolder = errors.New("nil crypto components holder")
 // ErrRewardMiniBlocksNumDoesNotMatch signals that number of created and received rewards miniblocks is not equal
 var ErrRewardMiniBlocksNumDoesNotMatch = errors.New("number of created and received rewards miniblocks missmatch")
 
+// ErrDuplicatedRewardMiniBlockHeader signals that the received metablock lists more than one rewards miniblock header
+// for the same receiver shard
+var ErrDuplicatedRewardMiniBlockHeader = errors.New("duplicated rewards miniblock header for receiver shard")
+
+// ErrDuplicatedCreatedRewardMiniBlock signals that the locally created rewards miniblocks contain more than one
+// miniblock for the same receiver shard
+var ErrDuplicatedCreatedRewardMiniBlock = errors.New("duplicated created rewards miniblock for receiver shard")
+
 // ErrNilRewardsHandler signals that rewards handler is nil
 var ErrNilRewardsHandler = errors.New("rewards handler is nil")
 
@@ -124,6 +135,12 @@ var ErrNotEpochStartBlock = errors.New("not epoch start block")
 
 // ErrValidatorInfoMiniBlocksNumDoesNotMatch signals that number of created and received validatorInfo miniblocks is not equal
 var ErrValidatorInfoMiniBlocksNumDoesNotMatch = errors.New("number of created and received validatorInfo miniblocks missmatch")
+
+// ErrDuplicatedValidatorInfoMiniBlock signals that the received body contains the same validatorInfo miniblock more than once
+var ErrDuplicatedValidatorInfoMiniBlock = errors.New("duplicated validatorInfo miniblock")
+
+// ErrDuplicatedCreatedValidatorInfoMiniBlock signals that the locally created validatorInfo miniblocks contain duplicates
+var ErrDuplicatedCreatedValidatorInfoMiniBlock = errors.New("duplicated created validatorInfo miniblock")
 
 // ErrNilValidatorInfo signals that a nil value for the validatorInfo has been provided
 var ErrNilValidatorInfo = errors.New("validator info is nil")
@@ -356,5 +373,11 @@ var ErrReceivedAuctionValidatorsBeforeStakingV4 = errors.New("auction node has b
 // ErrNilEquivalentProofsProcessor signals that a nil equivalent proofs processor was provided
 var ErrNilEquivalentProofsProcessor = errors.New("nil equivalent proofs processor")
 
-// ErrNilHeadersDataPool signals that a nil headers pool has been provided
-var ErrNilHeadersDataPool = errors.New("nil headers data pool")
+// ErrInvalidHeader signals that an invalid header was provided
+var ErrInvalidHeader = errors.New("invalid header")
+
+// ErrNilPrevBlockExecutionResults signals that nil previous block execution results were provided
+var ErrNilPrevBlockExecutionResults = errors.New("nil previous block execution results")
+
+// ErrMissingNodesConfigForBootstrapEpoch signals that the nodes coordinator config does not contain the resolved bootstrap epoch
+var ErrMissingNodesConfigForBootstrapEpoch = errors.New("nodes coordinator config missing for resolved bootstrap epoch")

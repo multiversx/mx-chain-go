@@ -19,6 +19,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing/keccak"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -30,9 +34,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 )
 
 var _ process.BlockChainHookHandler = (*BlockChainHookImpl)(nil)
@@ -41,6 +42,7 @@ var log = logger.GetOrCreate("process/smartcontract/blockchainhook")
 
 const defaultCompiledSCPath = "compiledSCStorage"
 const executeDurationAlarmThreshold = time.Duration(50) * time.Millisecond
+const maxTokenIdentifierLen = 32
 
 // ArgBlockChainHook represents the arguments structure for the blockchain hook
 type ArgBlockChainHook struct {
@@ -66,7 +68,7 @@ type ArgBlockChainHook struct {
 	Counter                  BlockChainHookCounter
 	MissingTrieNodesNotifier common.MissingTrieNodesNotifier
 	EpochStartTrigger        EpochStartTriggerHandler
-	RoundHandler             RoundHandler // TODO: @laurci - this needs to be replaced when changing the round duration
+	RoundHandler             RoundHandler
 }
 
 // BlockChainHookImpl is a wrapper over AccountsAdapter that satisfy vmcommon.BlockchainHook interface
@@ -85,7 +87,7 @@ type BlockChainHookImpl struct {
 	enableEpochsHandler   common.EnableEpochsHandler
 	counter               BlockChainHookCounter
 	epochStartTrigger     EpochStartTriggerHandler
-	roundHandler          RoundHandler // TODO: @laurci - this needs to be replaced when changing the round duration
+	roundHandler          RoundHandler
 
 	mutCurrentHdr sync.RWMutex
 	currentHdr    data.HeaderHandler
@@ -93,9 +95,11 @@ type BlockChainHookImpl struct {
 	mutEpochStartHdr sync.RWMutex
 	epochStartHdr    data.HeaderHandler
 
-	compiledScPool     storage.Cacher
-	compiledScStorage  storage.Storer
-	configSCStorage    config.StorageConfig
+	compiledScPool    storage.Cacher
+	mutCompiledSc     sync.RWMutex
+	compiledScStorage storage.Storer
+	configSCStorage   config.StorageConfig
+
 	workingDir         string
 	nilCompiledSCStore bool
 
@@ -215,6 +219,7 @@ func checkForNil(args ArgBlockChainHook) error {
 		common.DoNotReturnOldBlockInBlockchainHookFlag,
 		common.OptimizeNFTStoreFlag,
 		common.MaxBlockchainHookCountersFlag,
+		common.FixEpochChangeProposedCurrentEpochFlag,
 	})
 	if err != nil {
 		return err
@@ -290,6 +295,7 @@ func (bh *BlockChainHookImpl) GetStorageData(accountAddress []byte, index []byte
 	}
 
 	value, trieDepth, err := userAcc.AccountDataHandler().RetrieveValue(index)
+
 	messages := []interface{}{
 		"address", accountAddress,
 		"rootHash", userAcc.GetRootHash(),
@@ -337,16 +343,16 @@ func (bh *BlockChainHookImpl) processMaxReadsCounters() error {
 func (bh *BlockChainHookImpl) GetBlockhash(nonce uint64) ([]byte, error) {
 	defer stopMeasure(startMeasure("GetBlockhash"))
 
-	hdr := bh.blockChain.GetCurrentBlockHeader()
-
-	if check.IfNil(hdr) {
+	lastExecHdr := bh.blockChain.GetLastExecutedBlockHeader()
+	if check.IfNil(lastExecHdr) {
 		return nil, process.ErrNilBlockHeader
 	}
-	if nonce > hdr.GetNonce() {
+	if nonce > lastExecHdr.GetNonce() {
 		return nil, process.ErrInvalidNonceRequest
 	}
-	if nonce == hdr.GetNonce() {
-		return bh.blockChain.GetCurrentBlockHeaderHash(), nil
+	if nonce == lastExecHdr.GetNonce() {
+		_, lastExecHash, _ := bh.blockChain.GetLastExecutedBlockInfo()
+		return lastExecHash, nil
 	}
 	if bh.enableEpochsHandler.IsFlagEnabled(common.DoNotReturnOldBlockInBlockchainHookFlag) {
 		return nil, process.ErrInvalidNonceRequest
@@ -363,67 +369,96 @@ func (bh *BlockChainHookImpl) GetBlockhash(nonce uint64) ([]byte, error) {
 		return nil, err
 	}
 
-	if header.GetEpoch() != hdr.GetEpoch() {
+	if header.GetEpoch() != lastExecHdr.GetEpoch() {
 		return nil, process.ErrInvalidBlockRequestOldEpoch
 	}
 
 	return hash, nil
 }
 
-// LastNonce returns the nonce from the last committed block
+// LastNonce returns the nonce from the last executed block
 func (bh *BlockChainHookImpl) LastNonce() uint64 {
-	if !check.IfNil(bh.blockChain.GetCurrentBlockHeader()) {
-		return bh.blockChain.GetCurrentBlockHeader().GetNonce()
+	lastExecHdr := bh.blockChain.GetLastExecutedBlockHeader()
+	if check.IfNil(lastExecHdr) {
+		return 0
 	}
-	return 0
+
+	return lastExecHdr.GetNonce()
 }
 
-// LastRound returns the round from the last committed block
+// LastRound returns the round from the last executed block
 func (bh *BlockChainHookImpl) LastRound() uint64 {
-	if !check.IfNil(bh.blockChain.GetCurrentBlockHeader()) {
-		return bh.blockChain.GetCurrentBlockHeader().GetRound()
+	lastExecHdr := bh.blockChain.GetLastExecutedBlockHeader()
+	if check.IfNil(lastExecHdr) {
+		return 0
 	}
-	return 0
+
+	return lastExecHdr.GetRound()
 }
 
-// LastTimeStamp returns the timeStamp from the last committed block
+// LastTimeStamp returns the timeStamp from the last executed block
 func (bh *BlockChainHookImpl) LastTimeStamp() uint64 {
-	if !check.IfNil(bh.blockChain.GetCurrentBlockHeader()) {
-		return bh.blockChain.GetCurrentBlockHeader().GetTimeStamp()
+	lastExecHdr := bh.blockChain.GetLastExecutedBlockHeader()
+	if check.IfNil(lastExecHdr) {
+		return 0
 	}
-	return 0
+
+	timestampS, _, _ := common.GetHeaderTimestamps(lastExecHdr, bh.enableEpochsHandler)
+
+	return timestampS
 }
 
-// LastRandomSeed returns the random seed from the last committed block
+// LastTimeStampMs returns the timeStamp in milliseconds from the last executed block
+func (bh *BlockChainHookImpl) LastTimeStampMs() uint64 {
+	lastExecHdr := bh.blockChain.GetLastExecutedBlockHeader()
+	if check.IfNil(lastExecHdr) {
+		return 0
+	}
+
+	_, timestampMs, _ := common.GetHeaderTimestamps(lastExecHdr, bh.enableEpochsHandler)
+
+	return timestampMs
+}
+
+// LastRandomSeed returns the random seed from the last executed block
 func (bh *BlockChainHookImpl) LastRandomSeed() []byte {
-	if !check.IfNil(bh.blockChain.GetCurrentBlockHeader()) {
-		return bh.blockChain.GetCurrentBlockHeader().GetRandSeed()
+	lastExecHdr := bh.blockChain.GetLastExecutedBlockHeader()
+	if check.IfNil(lastExecHdr) {
+		return make([]byte, 0)
 	}
-	return make([]byte, 0)
+
+	return lastExecHdr.GetRandSeed()
 }
 
-// LastEpoch returns the epoch from the last committed block
+// LastEpoch returns the epoch from the last executed block
 func (bh *BlockChainHookImpl) LastEpoch() uint32 {
-	if !check.IfNil(bh.blockChain.GetCurrentBlockHeader()) {
-		return bh.blockChain.GetCurrentBlockHeader().GetEpoch()
+	lastExecHdr := bh.blockChain.GetLastExecutedBlockHeader()
+	if check.IfNil(lastExecHdr) {
+		return 0
 	}
-	return 0
+
+	return lastExecHdr.GetEpoch()
 }
 
 // RoundTime returns the duration of a round
 func (bh *BlockChainHookImpl) RoundTime() uint64 {
-	// TODO: @laurci - this needs to be replaced when changing the round duration
-	roundDuration := bh.roundHandler.TimeDuration()
+	bh.mutCurrentHdr.RLock()
+	currentRound := bh.currentHdr.GetRound()
+	bh.mutCurrentHdr.RUnlock()
+
+	roundDuration := bh.roundHandler.TimeDurationForRound(currentRound)
 
 	return uint64(roundDuration.Milliseconds())
 }
 
-// EpochStartBlockTimeStamp returns the timestamp of the first block of the current epoch
-func (bh *BlockChainHookImpl) EpochStartBlockTimeStamp() uint64 {
+// EpochStartBlockTimeStampMs returns the timestamp of the first block of the current epoch in milliseconds
+func (bh *BlockChainHookImpl) EpochStartBlockTimeStampMs() uint64 {
 	bh.mutEpochStartHdr.RLock()
 	defer bh.mutEpochStartHdr.RUnlock()
 
-	return bh.epochStartHdr.GetTimeStamp()
+	_, timestampMs, _ := common.GetHeaderTimestamps(bh.epochStartHdr, bh.enableEpochsHandler)
+
+	return timestampMs
 }
 
 // EpochStartBlockNonce returns the nonce of the first block of the current epoch
@@ -444,12 +479,17 @@ func (bh *BlockChainHookImpl) EpochStartBlockRound() uint64 {
 
 // GetStateRootHash returns the state root hash from the last committed block
 func (bh *BlockChainHookImpl) GetStateRootHash() []byte {
-	rootHash := bh.blockChain.GetCurrentBlockRootHash()
+	rootHash := bh.getCurrentRootHash()
 	if len(rootHash) > 0 {
 		return rootHash
 	}
 
 	return make([]byte, 0)
+}
+
+func (bh *BlockChainHookImpl) getCurrentRootHash() []byte {
+	_, _, lastExecutedRootHash := bh.blockChain.GetLastExecutedBlockInfo()
+	return lastExecutedRootHash
 }
 
 // CurrentNonce returns the nonce from the current block
@@ -473,7 +513,19 @@ func (bh *BlockChainHookImpl) CurrentTimeStamp() uint64 {
 	bh.mutCurrentHdr.RLock()
 	defer bh.mutCurrentHdr.RUnlock()
 
-	return bh.currentHdr.GetTimeStamp()
+	timestampS, _, _ := common.GetHeaderTimestamps(bh.currentHdr, bh.enableEpochsHandler)
+
+	return timestampS
+}
+
+// CurrentTimeStampMs return the timestamp in milliseconds from the current block
+func (bh *BlockChainHookImpl) CurrentTimeStampMs() uint64 {
+	bh.mutCurrentHdr.RLock()
+	defer bh.mutCurrentHdr.RUnlock()
+
+	_, timestampMs, _ := common.GetHeaderTimestamps(bh.currentHdr, bh.enableEpochsHandler)
+
+	return timestampMs
 }
 
 // CurrentRandomSeed returns the random seed from the current header
@@ -489,7 +541,18 @@ func (bh *BlockChainHookImpl) CurrentEpoch() uint32 {
 	bh.mutCurrentHdr.RLock()
 	defer bh.mutCurrentHdr.RUnlock()
 
-	return bh.currentHdr.GetEpoch()
+	currentEpoch := bh.currentHdr.GetEpoch()
+	metaHeader, isMetaHeader := bh.currentHdr.(data.MetaHeaderHandler)
+	if !isMetaHeader || !metaHeader.IsHeaderV3() || !metaHeader.IsEpochChangeProposed() {
+		return currentEpoch
+	}
+
+	epochToPrepare := currentEpoch + 1
+	if bh.enableEpochsHandler.IsFlagEnabledInEpoch(common.FixEpochChangeProposedCurrentEpochFlag, epochToPrepare) {
+		return epochToPrepare
+	}
+
+	return currentEpoch
 }
 
 // NewAddress is a hook which creates a new smart contract address from the creators address and nonce
@@ -539,14 +602,17 @@ func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCal
 		return nil, err
 	}
 
+	snapshot := bh.accounts.JournalLen()
 	vmOutput, err := function.ProcessBuiltinFunction(sndAccount, dstAccount, input)
 	if err != nil {
+		_ = bh.accounts.RevertToSnapshot(snapshot)
 		return nil, err
 	}
 
 	if !check.IfNil(sndAccount) {
 		err = bh.accounts.SaveAccount(sndAccount)
 		if err != nil {
+			_ = bh.accounts.RevertToSnapshot(snapshot)
 			return nil, err
 		}
 	}
@@ -554,6 +620,7 @@ func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCal
 	if !check.IfNil(dstAccount) && !bytes.Equal(input.CallerAddr, input.RecipientAddr) {
 		err = bh.accounts.SaveAccount(dstAccount)
 		if err != nil {
+			_ = bh.accounts.RevertToSnapshot(snapshot)
 			return nil, err
 		}
 	}
@@ -710,6 +777,12 @@ func (bh *BlockChainHookImpl) GetAllState(_ []byte) (map[string][]byte, error) {
 
 // GetESDTToken returns the unmarshalled esdt data for the given key
 func (bh *BlockChainHookImpl) GetESDTToken(address []byte, tokenID []byte, nonce uint64) (*esdt.ESDigitalToken, error) {
+	if bh.enableEpochsHandler.IsFlagEnabled(common.FixCorrectSmallIntAndGasLimitsFlag) {
+		if len(tokenID) == 0 || len(tokenID) > maxTokenIdentifierLen {
+			return nil, ErrInvalidTokenIdentifier
+		}
+	}
+
 	userAcc, err := bh.GetUserAccount(address)
 	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(0)}
 	if err == state.ErrAccNotFound {
@@ -734,12 +807,24 @@ func (bh *BlockChainHookImpl) GetESDTToken(address []byte, tokenID []byte, nonce
 
 // IsPaused returns true if the transfers for the given token ID are paused
 func (bh *BlockChainHookImpl) IsPaused(tokenID []byte) bool {
+	if bh.enableEpochsHandler.IsFlagEnabled(common.FixCorrectSmallIntAndGasLimitsFlag) {
+		if len(tokenID) == 0 || len(tokenID) > maxTokenIdentifierLen {
+			return false
+		}
+	}
+
 	esdtTokenKey := []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier + string(tokenID))
 	return bh.globalSettingsHandler.IsPaused(esdtTokenKey)
 }
 
 // IsLimitedTransfer returns true if the transfers
 func (bh *BlockChainHookImpl) IsLimitedTransfer(tokenID []byte) bool {
+	if bh.enableEpochsHandler.IsFlagEnabled(common.FixCorrectSmallIntAndGasLimitsFlag) {
+		if len(tokenID) == 0 || len(tokenID) > maxTokenIdentifierLen {
+			return false
+		}
+	}
+
 	esdtTokenKey := []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier + string(tokenID))
 	return bh.globalSettingsHandler.IsLimitedTransfer(esdtTokenKey)
 }
@@ -879,7 +964,10 @@ func (bh *BlockChainHookImpl) SetEpochStartHeader(header data.HeaderHandler) err
 // SaveCompiledCode saves the compiled code to cache and storage
 func (bh *BlockChainHookImpl) SaveCompiledCode(codeHash []byte, code []byte) {
 	bh.compiledScPool.Put(codeHash, code, len(code))
+
+	bh.mutCompiledSc.RLock()
 	err := bh.compiledScStorage.Put(codeHash, code)
+	bh.mutCompiledSc.RUnlock()
 	if err != nil {
 		log.Debug("BlockChainHookImpl.SaveCompiledCode: compiledScStorage.Put",
 			"error", err, "codeHash", codeHash)
@@ -896,7 +984,9 @@ func (bh *BlockChainHookImpl) GetCompiledCode(codeHash []byte) (bool, []byte) {
 		}
 	}
 
+	bh.mutCompiledSc.RLock()
 	compiledCode, err := bh.compiledScStorage.Get(codeHash)
+	bh.mutCompiledSc.RUnlock()
 	if err != nil || len(compiledCode) == 0 {
 		return false, nil
 	}
@@ -909,7 +999,10 @@ func (bh *BlockChainHookImpl) GetCompiledCode(codeHash []byte) (bool, []byte) {
 // DeleteCompiledCode deletes the compiled code from storage and cache
 func (bh *BlockChainHookImpl) DeleteCompiledCode(codeHash []byte) {
 	bh.compiledScPool.Remove(codeHash)
+
+	bh.mutCompiledSc.RLock()
 	err := bh.compiledScStorage.Remove(codeHash)
+	bh.mutCompiledSc.RUnlock()
 	if err != nil {
 		log.Debug("BlockChainHookImpl.DeleteCompiledCode: compiledScStorage.Remove",
 			"error", err, "codeHash", codeHash)
@@ -919,12 +1012,20 @@ func (bh *BlockChainHookImpl) DeleteCompiledCode(codeHash []byte) {
 // Close closes/cleans up the blockchain hook
 func (bh *BlockChainHookImpl) Close() error {
 	bh.compiledScPool.Clear()
+
+	bh.mutCompiledSc.Lock()
+	defer bh.mutCompiledSc.Unlock()
+
 	return bh.compiledScStorage.DestroyUnit()
 }
 
 // ClearCompiledCodes deletes the compiled codes from storage and cache
 func (bh *BlockChainHookImpl) ClearCompiledCodes() {
 	bh.compiledScPool.Clear()
+
+	bh.mutCompiledSc.Lock()
+	defer bh.mutCompiledSc.Unlock()
+
 	err := bh.compiledScStorage.DestroyUnit()
 	if err != nil {
 		log.Debug("BlockChainHookImpl.ClearCompiledCodes: compiledScStorage.DestroyUnit", "error", err)

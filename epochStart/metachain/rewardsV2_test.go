@@ -13,6 +13,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
@@ -20,7 +22,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -209,15 +210,16 @@ func TestRewardsCreatorV2_adjustProtocolSustainabilityRewardsPositiveValue(t *te
 
 	protRwShard := args.ShardCoordinator.ComputeId(protRwAddr)
 	mbSlice := createDefaultMiniBlocksSlice()
-	_ = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
+	_ = rwd.addAcceleratorRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
 
 	dust := big.NewInt(1000)
 	rwd2 := rewardsCreatorV2{
-		baseRewardsCreator: rwd,
+		baseRewardsCreator:    rwd,
+		economicsDataProvider: NewEpochEconomicsStatistics(),
 	}
 	rwd2.adjustProtocolSustainabilityRewards(protRwTx, dust)
 	require.Zero(t, protRwTx.Value.Cmp(big.NewInt(0).Add(dust, initialProtRewardValue)))
-	setProtValue := rwd.GetProtocolSustainabilityRewards()
+	setProtValue := rwd2.GetAcceleratorRewards()
 	require.Zero(t, protRwTx.Value.Cmp(setProtValue))
 }
 
@@ -240,16 +242,18 @@ func TestRewardsCreatorV2_adjustProtocolSustainabilityRewardsNegValueNotAccepted
 
 	protRwShard := args.ShardCoordinator.ComputeId(protRwAddr)
 	mbSlice := createDefaultMiniBlocksSlice()
-	_ = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
+	_ = rwd.addAcceleratorRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
 
 	rwd2 := rewardsCreatorV2{
-		baseRewardsCreator: rwd,
+		baseRewardsCreator:    rwd,
+		economicsDataProvider: NewEpochEconomicsStatistics(),
 	}
 
+	rwd2.economicsDataProvider.SetRewardsForProtocolSustainability(initialProtRewardValue)
 	dust := big.NewInt(-10)
 	rwd2.adjustProtocolSustainabilityRewards(protRwTx, dust)
 	require.Zero(t, protRwTx.Value.Cmp(initialProtRewardValue))
-	setProtValue := rwd.GetProtocolSustainabilityRewards()
+	setProtValue := rwd2.GetAcceleratorRewards()
 	require.Zero(t, protRwTx.Value.Cmp(setProtValue))
 }
 
@@ -272,16 +276,17 @@ func TestRewardsCreatorV2_adjustProtocolSustainabilityRewardsInitialNegativeValu
 
 	protRwShard := args.ShardCoordinator.ComputeId(protRwAddr)
 	mbSlice := createDefaultMiniBlocksSlice()
-	_ = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
+	_ = rwd.addAcceleratorRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
 
 	rwd2 := rewardsCreatorV2{
-		baseRewardsCreator: rwd,
+		baseRewardsCreator:    rwd,
+		economicsDataProvider: NewEpochEconomicsStatistics(),
 	}
 
 	dust := big.NewInt(0)
 	rwd2.adjustProtocolSustainabilityRewards(protRwTx, dust)
 	require.Zero(t, protRwTx.Value.Cmp(big.NewInt(0)))
-	setProtValue := rwd.GetProtocolSustainabilityRewards()
+	setProtValue := rwd2.GetAcceleratorRewards()
 	require.Zero(t, protRwTx.Value.Cmp(setProtValue))
 }
 
@@ -1213,7 +1218,7 @@ func setupNodeRewardInfo(
 
 	nrValidatorsToRemoveTopup := big.NewInt(0).Div(validatorTopupStake, topupStakePerNode)
 
-	//remove the newly added topup from some other nodes
+	// remove the newly added topup from some other nodes
 	for i := int64(1); i < nrValidatorsToRemoveTopup.Int64(); i++ {
 		nodesRewardInfo[0][i].topUpStake = big.NewInt(0)
 	}
@@ -1505,7 +1510,7 @@ func TestNewRewardsCreatorV2_addValidatorRewardsToMiniBlocks(t *testing.T) {
 		sumFees.Add(sumFees, vInfo.GetAccumulatedFees())
 	}
 
-	accumulatedDust, err := rwd.addValidatorRewardsToMiniBlocks(metaBlock, miniBlocks, nodesRewardInfo)
+	accumulatedDust, err := rwd.addValidatorRewardsToMiniBlocks(metaBlock.GetEpoch(), metaBlock.GetRound(), miniBlocks, nodesRewardInfo)
 	require.Nil(t, err)
 	require.Equal(t, big.NewInt(0), accumulatedDust)
 
@@ -1556,7 +1561,7 @@ func TestNewRewardsCreatorV2_addValidatorRewardsToMiniBlocksAddressInMetaChainDe
 		}
 	}
 
-	accumulatedDust, err := rwd.addValidatorRewardsToMiniBlocks(metaBlock, miniBlocks, nodesRewardInfo)
+	accumulatedDust, err := rwd.addValidatorRewardsToMiniBlocks(metaBlock.GetEpoch(), metaBlock.GetRound(), miniBlocks, nodesRewardInfo)
 	require.Nil(t, err)
 	require.True(t, big.NewInt(0).Cmp(accumulatedDust) < 0)
 
@@ -1619,6 +1624,7 @@ func TestNewRewardsCreatorV2_CreateRewardsMiniBlocks(t *testing.T) {
 		EpochStart:     getDefaultEpochStart(),
 		DevFeesInEpoch: big.NewInt(0),
 	}
+	rwd.economicsDataProvider.SetRewardsForProtocolSustainability(metaBlock.EpochStart.Economics.RewardsForProtocolSustainability)
 
 	var miniBlocks block.MiniBlockSlice
 	miniBlocks, err = rwd.CreateRewardsMiniBlocks(metaBlock, vInfo, &metaBlock.EpochStart.Economics)
@@ -1662,6 +1668,8 @@ func TestNewRewardsCreatorV2_CreateRewardsMiniBlocks(t *testing.T) {
 			Reserved:        nil,
 		}
 	}
+
+	rwd.economicsDataProvider.SetRewardsForProtocolSustainability(metaBlock.EpochStart.Economics.RewardsForProtocolSustainability)
 
 	err = rwd.VerifyRewardsMiniBlocks(metaBlock, vInfo, &metaBlock.EpochStart.Economics)
 	require.Nil(t, err)
@@ -1715,6 +1723,7 @@ func TestNewRewardsCreatorV2_CreateRewardsMiniBlocks2169Nodes(t *testing.T) {
 		DevFeesInEpoch: big.NewInt(0),
 	}
 
+	rwd.economicsDataProvider.SetRewardsForProtocolSustainability(metaBlock.EpochStart.Economics.RewardsForProtocolSustainability)
 	var miniBlocks block.MiniBlockSlice
 	miniBlocks, err = rwd.CreateRewardsMiniBlocks(metaBlock, vInfo, &metaBlock.EpochStart.Economics)
 	require.Nil(t, err)
@@ -1758,8 +1767,162 @@ func TestNewRewardsCreatorV2_CreateRewardsMiniBlocks2169Nodes(t *testing.T) {
 		}
 	}
 
+	rwd.economicsDataProvider.SetRewardsForProtocolSustainability(metaBlock.EpochStart.Economics.RewardsForProtocolSustainability)
 	err = rwd.VerifyRewardsMiniBlocks(metaBlock, vInfo, &metaBlock.EpochStart.Economics)
 	require.Nil(t, err)
+}
+
+func TestRewardsCreatorV2_CreateRewardsMiniBlocksWithTopUp(t *testing.T) {
+	t.Parallel()
+
+	args := getRewardsCreatorV2Arguments()
+	nbEligiblePerShard := uint32(10)
+	vInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
+
+	// Set up validators with varying top-up stakes
+	nodesRewardInfo := make(map[uint32][]*nodeRewardsData)
+	totalTopUpStake := big.NewInt(0)
+	for shardID, valList := range vInfo.GetShardValidatorsInfoMap() {
+		nodesRewardInfo[shardID] = make([]*nodeRewardsData, len(valList))
+		for i, valInfo := range valList {
+			topUp := big.NewInt(int64(i * 100)) // Different top-up for each validator
+			totalTopUpStake.Add(totalTopUpStake, topUp)
+			nodesRewardInfo[shardID][i] = &nodeRewardsData{
+				valInfo:    valInfo,
+				topUpStake: topUp,
+			}
+		}
+	}
+
+	args.StakingDataProvider = &stakingcommon.StakingDataProviderStub{
+		GetTotalTopUpStakeEligibleNodesCalled: func() *big.Int {
+			return totalTopUpStake
+		},
+		GetNodeStakedTopUpCalled: func(blsKey []byte) (*big.Int, error) {
+			for _, nodes := range nodesRewardInfo {
+				for _, node := range nodes {
+					if bytes.Equal(node.valInfo.GetPublicKey(), blsKey) {
+						return node.topUpStake, nil
+					}
+				}
+			}
+			return nil, fmt.Errorf("not found")
+		},
+	}
+
+	nbBlocksPerShard := uint64(14400)
+	blocksPerShard := make(map[uint32]uint64)
+	shardMap := createShardsMap(args.ShardCoordinator)
+	for shardID := range shardMap {
+		blocksPerShard[shardID] = nbBlocksPerShard
+	}
+	args.EconomicsDataProvider.SetNumberOfBlocksPerShard(blocksPerShard)
+	rewardsForBlocks, _ := big.NewInt(0).SetString("5000000000000000000000", 10)
+	args.EconomicsDataProvider.SetRewardsToBeDistributedForBlocks(rewardsForBlocks)
+
+	rwd, err := NewRewardsCreatorV2(args)
+	require.Nil(t, err)
+	require.NotNil(t, rwd)
+
+	metaBlock := &block.MetaBlock{
+		EpochStart:     getDefaultEpochStart(),
+		DevFeesInEpoch: big.NewInt(0),
+	}
+	rwd.economicsDataProvider.SetRewardsForProtocolSustainability(metaBlock.EpochStart.Economics.RewardsForProtocolSustainability)
+
+	miniBlocks, err := rwd.CreateRewardsMiniBlocks(metaBlock, vInfo, &metaBlock.EpochStart.Economics)
+	require.Nil(t, err)
+	require.NotNil(t, miniBlocks)
+
+	sumRewards := big.NewInt(0)
+	var tx data.TransactionHandler
+	for _, mb := range miniBlocks {
+		for _, txHash := range mb.TxHashes {
+			tx, err = rwd.currTxs.GetTx(txHash)
+			require.Nil(t, err)
+			sumRewards.Add(sumRewards, tx.GetValue())
+		}
+	}
+
+	sumFees := big.NewInt(0)
+	for _, v := range vInfo.GetAllValidatorsInfo() {
+		sumFees.Add(sumFees, v.GetAccumulatedFees())
+	}
+
+	totalRws := rwd.economicsDataProvider.RewardsToBeDistributedForBlocks()
+	rewardsForProtocolSustainability := big.NewInt(0).Set(metaBlock.EpochStart.Economics.RewardsForProtocolSustainability)
+	expectedRewards := big.NewInt(0).Add(sumFees, totalRws)
+	expectedRewards.Add(expectedRewards, rewardsForProtocolSustainability)
+	require.Equal(t, expectedRewards, sumRewards)
+}
+
+func TestRewardsCreatorV2_CreateRewardsMiniBlocksHeaderV3(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return ErrNilHeaderHandler because of nil header argument", func(t *testing.T) {
+		t.Parallel()
+
+		args := getRewardsCreatorV2Arguments()
+		rwd, err := NewRewardsCreatorV2(args)
+		require.Nil(t, err)
+
+		vInfo := state.NewShardValidatorsInfoMap()
+		prevBlockExecResults := block.BaseMetaExecutionResult{}
+
+		_, err = rwd.CreateRewardsMiniBlocksV3(nil, vInfo, &block.Economics{}, &prevBlockExecResults)
+		require.Equal(t, common.ErrNilHeaderHandler, err)
+	})
+
+	t.Run("should return ErrNilPrevBlockExecutionResults because of nil previous block execution results", func(t *testing.T) {
+		t.Parallel()
+
+		args := getRewardsCreatorV2Arguments()
+		rwd, err := NewRewardsCreatorV2(args)
+		require.Nil(t, err)
+
+		vInfo := state.NewShardValidatorsInfoMap()
+		metaBlock := &block.MetaBlockV3{}
+
+		_, err = rwd.CreateRewardsMiniBlocksV3(metaBlock, vInfo, &block.Economics{}, nil)
+		require.Equal(t, epochStart.ErrNilPrevBlockExecutionResults, err)
+	})
+
+	t.Run("should return ErrInvalidHeader because headers is not V3", func(t *testing.T) {
+		t.Parallel()
+
+		args := getRewardsCreatorV2Arguments()
+		rwd, err := NewRewardsCreatorV2(args)
+		require.Nil(t, err)
+
+		vInfo := state.NewShardValidatorsInfoMap()
+		metaBlock := &block.MetaBlock{}
+
+		prevBlockExecResults := block.BaseMetaExecutionResult{}
+
+		_, err = rwd.CreateRewardsMiniBlocksV3(metaBlock, vInfo, &block.Economics{}, &prevBlockExecResults)
+		require.Equal(t, epochStart.ErrInvalidHeader, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := getRewardsCreatorV2Arguments()
+		rwd, err := NewRewardsCreatorV2(args)
+		require.Nil(t, err)
+
+		nbEligiblePerShard := uint32(400)
+		vInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
+		metaBlock := &block.MetaBlockV3{
+			EpochStart: getDefaultEpochStart(),
+		}
+
+		prevBlockExecResults := block.BaseMetaExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{},
+		}
+
+		_, err = rwd.CreateRewardsMiniBlocksV3(metaBlock, vInfo, &metaBlock.EpochStart.Economics, &prevBlockExecResults)
+		require.Nil(t, err)
+	})
 }
 
 func getRewardsCreatorV2Arguments() RewardsCreatorArgsV2 {

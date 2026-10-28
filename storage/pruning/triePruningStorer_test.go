@@ -40,7 +40,7 @@ func TestNewTriePruningStorer(t *testing.T) {
 	})
 }
 
-func TestTriePruningStorer_GetFromOldEpochsWithoutCacheSearchesOnlyOldEpochsAndReturnsEpoch(t *testing.T) {
+func TestTriePruningStorer_GetWithoutCacheReturnsEpoch(t *testing.T) {
 	t.Parallel()
 
 	args := getDefaultArgs()
@@ -64,17 +64,17 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheSearchesOnlyOldEpochsAndR
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(cacher.Keys()))
 
-	res, epoch, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1, 10)
+	res, epoch, err := ps.GetWithoutAddingToCache(testKey1, 10)
 	assert.Equal(t, testVal1, res)
 	assert.Nil(t, err)
 	assert.True(t, epoch.HasValue)
 	assert.Equal(t, uint32(0), epoch.Value)
 
-	res, epoch, err = ps.GetFromOldEpochsWithoutAddingToCache(testKey2, 10)
-	assert.Nil(t, res)
-	assert.NotNil(t, err)
-	assert.False(t, epoch.HasValue)
-	assert.True(t, strings.Contains(err.Error(), "not found"))
+	res, epoch, err = ps.GetWithoutAddingToCache(testKey2, 10)
+	assert.Equal(t, testVal2, res)
+	assert.Nil(t, err)
+	assert.True(t, epoch.HasValue)
+	assert.Equal(t, uint32(1), epoch.Value)
 }
 
 func TestTriePruningStorer_GetFromOldEpochsWithCache(t *testing.T) {
@@ -95,7 +95,7 @@ func TestTriePruningStorer_GetFromOldEpochsWithCache(t *testing.T) {
 	assert.Nil(t, err)
 	ps.SetEpochForPutOperation(1)
 
-	res, epoch, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1, 10)
+	res, epoch, err := ps.GetWithoutAddingToCache(testKey1, 10)
 	assert.Equal(t, testVal1, res)
 	assert.Nil(t, err)
 	assert.False(t, epoch.HasValue)
@@ -117,7 +117,7 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheLessActivePersisters(t *t
 	assert.Equal(t, 1, ps.GetNumActivePersisters())
 	_ = ps.ChangeEpochSimple(1)
 
-	val, _, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1, 10)
+	val, _, err := ps.GetWithoutAddingToCache(testKey1, 10)
 	assert.Nil(t, err)
 	assert.Equal(t, testVal1, val)
 }
@@ -140,7 +140,7 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheMoreActivePersisters(t *t
 	_ = ps.ChangeEpochSimple(2)
 	_ = ps.ChangeEpochSimple(3)
 
-	val, _, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1, 10)
+	val, _, err := ps.GetWithoutAddingToCache(testKey1, 10)
 	assert.Nil(t, err)
 	assert.Equal(t, testVal1, val)
 }
@@ -176,82 +176,9 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheAllPersistersClosed(t *te
 	_ = ps.ChangeEpochSimple(3)
 	_ = ps.Close()
 
-	val, _, err := ps.GetFromOldEpochsWithoutAddingToCache([]byte("key"), 10)
+	val, _, err := ps.GetWithoutAddingToCache([]byte("key"), 10)
 	assert.Nil(t, val)
 	assert.Equal(t, storage.ErrDBIsClosed, err)
-}
-
-func TestTriePruningStorer_GetFromOldEpochsWithoutCacheDoesNotSearchInCurrentStorer(t *testing.T) {
-	t.Parallel()
-
-	args := getDefaultArgs()
-	ps, _ := pruning.NewTriePruningStorer(args)
-	cacher := cache.NewCacherStub()
-	cacher.PutCalled = func(_ []byte, _ interface{}, _ int) bool {
-		require.Fail(t, "this should not be called")
-		return false
-	}
-	ps.SetCacher(cacher)
-	testKey1 := []byte("key1")
-	testVal1 := []byte("value1")
-
-	err := ps.PutInEpochWithoutCache(testKey1, testVal1, 0)
-	assert.Nil(t, err)
-	ps.ClearCache()
-
-	res, _, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1, 10)
-	assert.Nil(t, res)
-	assert.NotNil(t, err)
-	assert.True(t, strings.Contains(err.Error(), "not found"))
-}
-
-func TestTriePruningStorer_GetFromLastEpochSearchesOnlyLastEpoch(t *testing.T) {
-	t.Parallel()
-
-	args := getDefaultArgs()
-	ps, _ := pruning.NewTriePruningStorer(args)
-	cacher := cache.NewCacherMock()
-	ps.SetCacher(cacher)
-
-	testKey1 := []byte("key1")
-	testVal1 := []byte("value1")
-	testKey2 := []byte("key2")
-	testVal2 := []byte("value2")
-	testKey3 := []byte("key3")
-	testVal3 := []byte("value3")
-
-	err := ps.PutInEpochWithoutCache(testKey1, testVal1, 0)
-	assert.Nil(t, err)
-
-	err = ps.ChangeEpochSimple(1)
-	assert.Nil(t, err)
-	ps.SetEpochForPutOperation(1)
-
-	err = ps.PutInEpochWithoutCache(testKey2, testVal2, 1)
-	assert.Nil(t, err)
-	assert.Equal(t, 0, len(cacher.Keys()))
-
-	err = ps.ChangeEpochSimple(2)
-	assert.Nil(t, err)
-	ps.SetEpochForPutOperation(2)
-
-	err = ps.PutInEpochWithoutCache(testKey3, testVal3, 2)
-	assert.Nil(t, err)
-	assert.Equal(t, 0, len(cacher.Keys()))
-
-	res, err := ps.GetFromLastEpoch(testKey2)
-	assert.Equal(t, testVal2, res)
-	assert.Nil(t, err)
-
-	res, err = ps.GetFromLastEpoch(testKey1)
-	assert.Nil(t, res)
-	assert.NotNil(t, err)
-	assert.True(t, strings.Contains(err.Error(), "not found"))
-
-	res, err = ps.GetFromLastEpoch(testKey3)
-	assert.Nil(t, res)
-	assert.NotNil(t, err)
-	assert.True(t, strings.Contains(err.Error(), "not found"))
 }
 
 func TestTriePruningStorer_GetFromCurrentEpochSearchesOnlyCurrentEpoch(t *testing.T) {

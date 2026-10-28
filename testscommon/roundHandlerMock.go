@@ -10,13 +10,16 @@ type RoundHandlerMock struct {
 	indexMut sync.RWMutex
 	index    int64
 
-	IndexCalled          func() int64
-	TimeDurationCalled   func() time.Duration
-	TimeStampCalled      func() time.Time
-	UpdateRoundCalled    func(time.Time, time.Time)
-	RemainingTimeCalled  func(startTime time.Time, maxTime time.Duration) time.Duration
-	BeforeGenesisCalled  func() bool
-	IncrementIndexCalled func()
+	IndexCalled                func() int64
+	IndexForCurrentTimeCalled  func() int64
+	TimeDurationCalled         func() time.Duration
+	TimeDurationForRoundCalled func(round uint64) time.Duration
+	TimeStampCalled            func() time.Time
+	UpdateRoundCalled          func(time.Time, time.Time)
+	RemainingTimeCalled        func(startTime time.Time, maxTime time.Duration) time.Duration
+	BeforeGenesisCalled        func() bool
+	IncrementIndexCalled       func()
+	GetTimeStampForRoundCalled func(round uint64) uint64
 }
 
 // BeforeGenesis -
@@ -42,6 +45,15 @@ func (rndm *RoundHandlerMock) Index() int64 {
 	return rndm.index
 }
 
+// IndexForCurrentTime -
+func (rndm *RoundHandlerMock) IndexForCurrentTime() int64 {
+	if rndm.IndexForCurrentTimeCalled != nil {
+		return rndm.IndexForCurrentTimeCalled()
+	}
+
+	return rndm.Index()
+}
+
 // TimeDuration -
 func (rndm *RoundHandlerMock) TimeDuration() time.Duration {
 	if rndm.TimeDurationCalled != nil {
@@ -49,6 +61,15 @@ func (rndm *RoundHandlerMock) TimeDuration() time.Duration {
 	}
 
 	return 4000 * time.Millisecond
+}
+
+// TimeDurationForRound -
+func (rndm *RoundHandlerMock) TimeDurationForRound(round uint64) time.Duration {
+	if rndm.TimeDurationForRoundCalled != nil {
+		return rndm.TimeDurationForRoundCalled(round)
+	}
+
+	return rndm.TimeDuration()
 }
 
 // TimeStamp -
@@ -86,6 +107,15 @@ func (rndm *RoundHandlerMock) IncrementIndex() {
 	if rndm.IncrementIndexCalled != nil {
 		rndm.IncrementIndexCalled()
 	}
+}
+
+// GetTimeStampForRound -
+func (rndm *RoundHandlerMock) GetTimeStampForRound(round uint64) uint64 {
+	if rndm.GetTimeStampForRoundCalled != nil {
+		return rndm.GetTimeStampForRoundCalled(round)
+	}
+
+	return 0
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

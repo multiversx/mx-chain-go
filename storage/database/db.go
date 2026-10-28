@@ -23,14 +23,14 @@ func NewlruDB(size uint32) (storage.Persister, error) {
 
 // NewLevelDB is a constructor for the leveldb persister
 // It creates the files in the location given as parameter
-func NewLevelDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles int) (s *leveldb.DB, err error) {
-	return leveldb.NewDB(path, batchDelaySeconds, maxBatchSize, maxOpenFiles)
+func NewLevelDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles int, bloomFilterSize int) (s *leveldb.DB, err error) {
+	return leveldb.NewDB(path, batchDelaySeconds, maxBatchSize, maxOpenFiles, bloomFilterSize)
 }
 
 // NewSerialDB is a constructor for the leveldb persister
 // It creates the files in the location given as parameter
-func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles int) (s *leveldb.SerialDB, err error) {
-	return leveldb.NewSerialDB(path, batchDelaySeconds, maxBatchSize, maxOpenFiles)
+func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles int, bloomFilterSize int) (s *leveldb.SerialDB, err error) {
+	return leveldb.NewSerialDB(path, batchDelaySeconds, maxBatchSize, maxOpenFiles, bloomFilterSize)
 }
 
 // NewShardIDProvider is a constructor for shard id provider

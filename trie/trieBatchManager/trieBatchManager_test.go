@@ -131,3 +131,26 @@ func TestTrieBatchManager_MarkForRemovalUpdatesCurrentBatch(t *testing.T) {
 	_, found = tbm.tempBatch.Get(key)
 	assert.False(t, found)
 }
+
+func TestTrieBatchManager_GetWithVersionDuringUpdate(t *testing.T) {
+	manager := NewTrieBatchManager("test")
+	key := []byte("key")
+	manager.Add(core.TrieData{Key: key, Value: []byte("old"), Version: core.AutoBalanceEnabled})
+	_, err := manager.MarkTrieUpdateInProgress()
+	assert.NoError(t, err)
+	data, found := manager.GetWithVersion(key)
+	assert.True(t, found)
+	assert.Equal(t, core.AutoBalanceEnabled, data.Version)
+	assert.Equal(t, []byte("old"), data.Value)
+	manager.Add(core.TrieData{Key: key, Value: []byte("new"), Version: core.NotSpecified})
+	data, found = manager.GetWithVersion(key)
+	assert.True(t, found)
+	assert.Equal(t, core.NotSpecified, data.Version)
+	assert.Equal(t, []byte("new"), data.Value)
+	manager.MarkForRemoval(key)
+	data, found = manager.GetWithVersion(key)
+	assert.True(t, found)
+	assert.Empty(t, data.Value)
+	assert.Equal(t, core.NotSpecified, data.Version)
+	manager.MarkTrieUpdateCompleted()
+}

@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
@@ -31,16 +32,19 @@ const (
 func TestNewSuppliesProcessor(t *testing.T) {
 	t.Parallel()
 
-	_, err := NewSuppliesProcessor(nil, &storageStubs.StorerStub{}, &storageStubs.StorerStub{})
+	_, err := NewSuppliesProcessor(nil, &storageStubs.StorerStub{}, &storageStubs.StorerStub{}, &storageStubs.StorerStub{})
 	require.Equal(t, core.ErrNilMarshalizer, err)
 
-	_, err = NewSuppliesProcessor(&marshallerMock.MarshalizerMock{}, nil, &storageStubs.StorerStub{})
+	_, err = NewSuppliesProcessor(&marshallerMock.MarshalizerMock{}, nil, &storageStubs.StorerStub{}, &storageStubs.StorerStub{})
 	require.Equal(t, core.ErrNilStore, err)
 
-	_, err = NewSuppliesProcessor(&marshallerMock.MarshalizerMock{}, &storageStubs.StorerStub{}, nil)
+	_, err = NewSuppliesProcessor(&marshallerMock.MarshalizerMock{}, &storageStubs.StorerStub{}, nil, &storageStubs.StorerStub{})
 	require.Equal(t, core.ErrNilStore, err)
 
-	proc, err := NewSuppliesProcessor(&marshallerMock.MarshalizerMock{}, &storageStubs.StorerStub{}, &storageStubs.StorerStub{})
+	_, err = NewSuppliesProcessor(&marshallerMock.MarshalizerMock{}, &storageStubs.StorerStub{}, &storageStubs.StorerStub{}, nil)
+	require.Equal(t, core.ErrNilStore, err)
+
+	proc, err := NewSuppliesProcessor(&marshallerMock.MarshalizerMock{}, &storageStubs.StorerStub{}, &storageStubs.StorerStub{}, &storageStubs.StorerStub{})
 	require.Nil(t, err)
 	require.NotNil(t, proc)
 	require.False(t, proc.IsInterfaceNil())
@@ -50,10 +54,10 @@ func TestProcessLogsSaveSupply(t *testing.T) {
 	t.Parallel()
 
 	token := []byte("nft-0001")
-	logs := []*data.LogData{
-		{
+	logs := []data.LogDataHandler{
+		&transaction.LogData{
 			TxHash: "txLog",
-			LogHandler: &transaction.Log{
+			Log: &transaction.Log{
 				Events: []*transaction.Event{
 					{
 						Identifier: []byte("something"),
@@ -97,7 +101,7 @@ func TestProcessLogsSaveSupply(t *testing.T) {
 				},
 			},
 		},
-		{
+		&transaction.LogData{
 			TxHash: "log",
 		},
 	}
@@ -134,7 +138,7 @@ func TestProcessLogsSaveSupply(t *testing.T) {
 		},
 	}
 
-	suppliesProc, err := NewSuppliesProcessor(marshalizer, suppliesStorer, &storageStubs.StorerStub{})
+	suppliesProc, err := NewSuppliesProcessor(marshalizer, suppliesStorer, &storageStubs.StorerStub{}, &storageStubs.StorerStub{})
 	require.Nil(t, err)
 
 	err = suppliesProc.ProcessLogs(6, logs)
@@ -147,10 +151,10 @@ func TestProcessLogsSaveSupplyShouldUpdateSupplyMintedAndBurned(t *testing.T) {
 	t.Parallel()
 
 	token := []byte("nft-0001")
-	logsCreate := []*data.LogData{
-		{
+	logsCreate := []data.LogDataHandler{
+		&transaction.LogData{
 			TxHash: "txLog",
-			LogHandler: &transaction.Log{
+			Log: &transaction.Log{
 				Events: []*transaction.Event{
 					{
 						Identifier: []byte("something"),
@@ -170,14 +174,14 @@ func TestProcessLogsSaveSupplyShouldUpdateSupplyMintedAndBurned(t *testing.T) {
 				},
 			},
 		},
-		{
+		&transaction.LogData{
 			TxHash: "log",
 		},
 	}
-	logsAddQuantity := []*data.LogData{
-		{
+	logsAddQuantity := []data.LogDataHandler{
+		&transaction.LogData{
 			TxHash: "txLog",
-			LogHandler: &transaction.Log{
+			Log: &transaction.Log{
 				Events: []*transaction.Event{
 					{
 						Identifier: []byte("something"),
@@ -197,15 +201,15 @@ func TestProcessLogsSaveSupplyShouldUpdateSupplyMintedAndBurned(t *testing.T) {
 				},
 			},
 		},
-		{
+		&transaction.LogData{
 			TxHash: "log",
 		},
 	}
 
-	logsBurn := []*data.LogData{
-		{
+	logsBurn := []data.LogDataHandler{
+		&transaction.LogData{
 			TxHash: "txLog",
-			LogHandler: &transaction.Log{
+			Log: &transaction.Log{
 				Events: []*transaction.Event{
 					{
 						Identifier: []byte("something"),
@@ -225,7 +229,7 @@ func TestProcessLogsSaveSupplyShouldUpdateSupplyMintedAndBurned(t *testing.T) {
 				},
 			},
 		},
-		{
+		&transaction.LogData{
 			TxHash: "log",
 		},
 	}
@@ -296,7 +300,7 @@ func TestProcessLogsSaveSupplyShouldUpdateSupplyMintedAndBurned(t *testing.T) {
 		},
 	}
 
-	suppliesProc, err := NewSuppliesProcessor(marshalizer, suppliesStorer, &storageStubs.StorerStub{})
+	suppliesProc, err := NewSuppliesProcessor(marshalizer, suppliesStorer, &storageStubs.StorerStub{}, &storageStubs.StorerStub{})
 	require.Nil(t, err)
 
 	err = suppliesProc.ProcessLogs(6, logsCreate)
@@ -315,10 +319,10 @@ func TestProcessLogs_RevertChangesShouldWorkForRevertingMinting(t *testing.T) {
 	t.Parallel()
 
 	token := []byte("BRT-1q2w3e")
-	logsMintNoRevert := []*data.LogData{
-		{
+	logsMintNoRevert := []data.LogDataHandler{
+		&transaction.LogData{
 			TxHash: "txLog0",
-			LogHandler: &transaction.Log{
+			Log: &transaction.Log{
 				Events: []*transaction.Event{
 					{
 						Identifier: []byte(core.BuiltInFunctionESDTLocalMint),
@@ -329,9 +333,9 @@ func TestProcessLogs_RevertChangesShouldWorkForRevertingMinting(t *testing.T) {
 				},
 			},
 		},
-		{
+		&transaction.LogData{
 			TxHash: "txLog1",
-			LogHandler: &transaction.Log{
+			Log: &transaction.Log{
 				Events: []*transaction.Event{
 					{
 						Identifier: []byte(core.BuiltInFunctionESDTLocalMint),
@@ -355,10 +359,10 @@ func TestProcessLogs_RevertChangesShouldWorkForRevertingMinting(t *testing.T) {
 		},
 	}
 
-	logsMintRevert := []*data.LogData{
-		{
-			TxHash:     "txLog3",
-			LogHandler: mintLogToBeReverted,
+	logsMintRevert := []data.LogDataHandler{
+		&transaction.LogData{
+			TxHash: "txLog3",
+			Log:    mintLogToBeReverted,
 		},
 	}
 
@@ -372,7 +376,7 @@ func TestProcessLogs_RevertChangesShouldWorkForRevertingMinting(t *testing.T) {
 
 	suppliesStorer := genericMocks.NewStorerMockWithErrKeyNotFound(0)
 
-	suppliesProc, err := NewSuppliesProcessor(marshalizer, suppliesStorer, logsStorer)
+	suppliesProc, err := NewSuppliesProcessor(marshalizer, suppliesStorer, logsStorer, &storageStubs.StorerStub{})
 	require.Nil(t, err)
 
 	err = suppliesProc.ProcessLogs(6, logsMintNoRevert)
@@ -402,14 +406,96 @@ func TestProcessLogs_RevertChangesShouldWorkForRevertingMinting(t *testing.T) {
 		testFungibleTokenMint*2, 0)
 }
 
+func TestProcessLogs_RevertChangesHeaderV3(t *testing.T) {
+	t.Parallel()
+
+	t.Run("cannot get mb headers should err", func(t *testing.T) {
+		t.Parallel()
+
+		marshalizer := marshallerMock.MarshalizerMock{}
+		logsStorer := genericMocks.NewStorerMockWithErrKeyNotFound(0)
+		suppliesStorer := genericMocks.NewStorerMockWithErrKeyNotFound(0)
+		mbStorer := genericMocks.NewStorerMockWithErrKeyNotFound(0)
+		suppliesProc, err := NewSuppliesProcessor(marshalizer, suppliesStorer, logsStorer, mbStorer)
+		require.Nil(t, err)
+
+		revertedHeader := block.HeaderV3{
+			Nonce: 7,
+			ExecutionResults: []*block.ExecutionResult{
+				nil,
+			},
+		}
+		err = suppliesProc.RevertChanges(&revertedHeader, &block.Body{})
+		require.Equal(t, process.ErrNilBaseExecutionResult, err)
+	})
+
+	t.Run("cannot get mb from storage should error", func(t *testing.T) {
+		t.Parallel()
+
+		marshalizer := marshallerMock.MarshalizerMock{}
+		logsStorer := genericMocks.NewStorerMockWithErrKeyNotFound(0)
+		suppliesStorer := genericMocks.NewStorerMockWithErrKeyNotFound(0)
+		mbStorer := genericMocks.NewStorerMockWithErrKeyNotFound(0)
+		suppliesProc, err := NewSuppliesProcessor(marshalizer, suppliesStorer, logsStorer, mbStorer)
+		require.Nil(t, err)
+
+		revertedHeader := block.HeaderV3{
+			Nonce: 7,
+			ExecutionResults: []*block.ExecutionResult{
+				{
+					MiniBlockHeaders: []block.MiniBlockHeader{
+						{
+							Hash: []byte("mbHash"),
+						},
+					},
+				},
+			},
+		}
+		err = suppliesProc.RevertChanges(&revertedHeader, &block.Body{})
+		require.Equal(t, storage.ErrKeyNotFound, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		marshalizer := marshallerMock.MarshalizerMock{}
+		logsStorer := genericMocks.NewStorerMockWithErrKeyNotFound(0)
+		suppliesStorer := genericMocks.NewStorerMockWithErrKeyNotFound(0)
+
+		mbHash := []byte("mbHash")
+		mb := &block.MiniBlock{TxHashes: [][]byte{[]byte("txHash3"), []byte("txHash4")}}
+		mbBytes, _ := marshalizer.Marshal(mb)
+		mbStorer := genericMocks.NewStorerMockWithErrKeyNotFound(0)
+		_ = mbStorer.Put(mbHash, mbBytes)
+
+		suppliesProc, err := NewSuppliesProcessor(marshalizer, suppliesStorer, logsStorer, mbStorer)
+		require.Nil(t, err)
+
+		revertedHeader := block.HeaderV3{
+			Nonce: 7,
+			ExecutionResults: []*block.ExecutionResult{
+				{
+					MiniBlockHeaders: []block.MiniBlockHeader{
+						{
+							Hash: mbHash,
+						},
+					},
+				},
+			},
+		}
+		err = suppliesProc.RevertChanges(&revertedHeader, &block.Body{})
+		require.Equal(t, nil, err)
+	})
+}
+
 func TestProcessLogs_RevertChangesShouldWorkForRevertingBurning(t *testing.T) {
 	t.Parallel()
 
 	token := []byte("BRT-1q2w3e")
-	logsMintNoRevert := []*data.LogData{
-		{
+	logsMintNoRevert := []data.LogDataHandler{
+		&transaction.LogData{
 			TxHash: "txLog0",
-			LogHandler: &transaction.Log{
+			Log: &transaction.Log{
 				Events: []*transaction.Event{
 					{
 						Identifier: []byte(core.BuiltInFunctionESDTLocalMint),
@@ -420,9 +506,9 @@ func TestProcessLogs_RevertChangesShouldWorkForRevertingBurning(t *testing.T) {
 				},
 			},
 		},
-		{
+		&transaction.LogData{
 			TxHash: "txLog1",
-			LogHandler: &transaction.Log{
+			Log: &transaction.Log{
 				Events: []*transaction.Event{
 					{
 						Identifier: []byte(core.BuiltInFunctionESDTLocalMint),
@@ -446,10 +532,10 @@ func TestProcessLogs_RevertChangesShouldWorkForRevertingBurning(t *testing.T) {
 		},
 	}
 
-	logsMintRevert := []*data.LogData{
-		{
-			TxHash:     "txLog3",
-			LogHandler: mintLogToBeReverted,
+	logsMintRevert := []data.LogDataHandler{
+		&transaction.LogData{
+			TxHash: "txLog3",
+			Log:    mintLogToBeReverted,
 		},
 	}
 
@@ -463,7 +549,7 @@ func TestProcessLogs_RevertChangesShouldWorkForRevertingBurning(t *testing.T) {
 
 	suppliesStorer := genericMocks.NewStorerMockWithErrKeyNotFound(0)
 
-	suppliesProc, err := NewSuppliesProcessor(marshalizer, suppliesStorer, logsStorer)
+	suppliesProc, err := NewSuppliesProcessor(marshalizer, suppliesStorer, logsStorer, &storageStubs.StorerStub{})
 	require.Nil(t, err)
 
 	err = suppliesProc.ProcessLogs(6, logsMintNoRevert)
@@ -535,7 +621,7 @@ func TestSupplyESDT_GetSupply(t *testing.T) {
 			}
 			return nil, errors.New("local err")
 		},
-	}, &storageStubs.StorerStub{})
+	}, &storageStubs.StorerStub{}, &storageStubs.StorerStub{})
 
 	res, err := proc.GetESDTSupply("my-token")
 	require.Nil(t, err)
