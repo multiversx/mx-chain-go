@@ -352,12 +352,11 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 		return
 	}
 
-	trieCtx := &trieContext{
-		StorageManager: stsm,
-		Marshalizer:    msh,
-		Hasher:         hsh,
+	trieCtx := &snapshotTrieContext{
+		TrieContext: &trieContext{Marshalizer: msh, Hasher: hsh},
+		storage:     stsm,
 	}
-	newRoot, rootBytes, foundInEpoch, err := newSnapshotNode(trieCtx, snapshotEntry.rootHash, snapshotEntry.epoch, snapshotEntry.missingNodesChan)
+	newRoot, encodedRoot, foundInEpoch, err := newSnapshotNode(trieCtx, snapshotEntry.rootHash, snapshotEntry.epoch, snapshotEntry.missingNodesChan)
 	if err != nil {
 		snapshotEntry.iteratorChannels.ErrChan.WriteInChanNonBlocking(err)
 		treatSnapshotError(err,
@@ -366,16 +365,6 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 			snapshotEntry.mainTrieRootHash,
 		)
 		return
-	}
-
-	err = stsm.Put(snapshotEntry.rootHash, rootBytes)
-	if err != nil {
-		snapshotEntry.iteratorChannels.ErrChan.WriteInChanNonBlocking(err)
-		treatSnapshotError(err,
-			"trie storage manager: put takeSnapshot",
-			snapshotEntry.rootHash,
-			snapshotEntry.mainTrieRootHash,
-		)
 	}
 
 	stats := statistics.NewTrieStatistics()
@@ -412,12 +401,13 @@ func treatSnapshotError(err error, message string, rootHash []byte, mainTrieRoot
 }
 
 func newSnapshotNode(
-	trieCtx common.TrieContext,
+	trieCtx *snapshotTrieContext,
 	rootHash []byte,
 	epoch uint32,
 	missingNodesCh chan []byte,
 ) (snapshotNode, []byte, uint32, error) {
-	encodedNode, rootBytes, foundInEpoch, err := db.GetWithoutAddingToCache(rootHash, epoch)
+	db := trieCtx.GetSnapshotStorage()
+	encodedNode, foundInEpoch, err := db.GetWithoutAddingToCache(rootHash, epoch)
 	if err != nil {
 		treatLogError(log, err, rootHash)
 
@@ -431,7 +421,7 @@ func newSnapshotNode(
 		return nil, nil, 0, err
 	}
 
-	n, err := decodeNode(encodedNode, msh, hsh)
+	n, err := decodeNode(encodedNode, trieCtx)
 	if err != nil {
 		return nil, nil, 0, err
 	}
@@ -441,7 +431,7 @@ func newSnapshotNode(
 		return nil, nil, 0, err
 	}
 
-	return n, encodedNode, foundInEpoch, rootBytes, nil
+	return n, encodedNode, foundInEpoch, nil
 }
 
 // IsPruningEnabled returns true if the trie pruning is enabled

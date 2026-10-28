@@ -292,7 +292,6 @@ func TestBranchNode_tryGet(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(1), maxDepth)
 }
-
 func TestBranchNode_tryGetEmptyKey(t *testing.T) {
 	t.Parallel()
 
@@ -304,7 +303,6 @@ func TestBranchNode_tryGetEmptyKey(t *testing.T) {
 	assert.Nil(t, val)
 	assert.Equal(t, uint32(0), maxDepth)
 }
-
 func TestBranchNode_tryGetChildPosOutOfRange(t *testing.T) {
 	t.Parallel()
 
@@ -316,7 +314,6 @@ func TestBranchNode_tryGetChildPosOutOfRange(t *testing.T) {
 	assert.Nil(t, val)
 	assert.Equal(t, uint32(0), maxDepth)
 }
-
 func TestBranchNode_tryGetNilChild(t *testing.T) {
 	t.Parallel()
 
@@ -328,7 +325,6 @@ func TestBranchNode_tryGetNilChild(t *testing.T) {
 	assert.Nil(t, val)
 	assert.Equal(t, uint32(0), maxDepth)
 }
-
 func TestBranchNode_tryGetCollapsedNode(t *testing.T) {
 	t.Parallel()
 
@@ -344,7 +340,6 @@ func TestBranchNode_tryGetCollapsedNode(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(1), maxDepth)
 }
-
 func TestBranchNode_getNext(t *testing.T) {
 	t.Parallel()
 
@@ -454,7 +449,6 @@ func TestBranchNode_insertCollapsedNode(t *testing.T) {
 	val, _, _, _ := newBn.tryGetWithVersion(newKeyData(key), 0, trieCtx)
 	assert.Equal(t, []byte("dogs"), val)
 }
-
 func TestBranchNode_insertInStoredBnOnExistingPos(t *testing.T) {
 	t.Parallel()
 
@@ -662,7 +656,6 @@ func TestBranchNode_deleteCollapsedNode(t *testing.T) {
 	assert.Nil(t, val)
 	assert.Nil(t, err)
 }
-
 func TestBranchNode_deleteAndReduceBn(t *testing.T) {
 	t.Parallel()
 
@@ -1021,7 +1014,7 @@ func TestBranchNode_commitSnapshotContextDone(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	err := bn.commitSnapshot(getDefaultTrieContext(), nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, []byte("nodeBytes"), 0)
+	err := bn.commitSnapshot(snapshotTrieContextForTest(getDefaultTrieContext()), 0, nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, []byte("nodeBytes"), 0)
 	assert.Equal(t, core.ErrContextClosing, err)
 }
 
@@ -1040,7 +1033,7 @@ func TestBranchNode_commitSnapshotDbIsClosing(t *testing.T) {
 	_, collapsedBn := getBnAndCollapsedBn()
 	nodeBytes, _ := collapsedBn.getEncodedNode(trieCtx)
 	missingNodesChan := make(chan []byte, 10)
-	err := collapsedBn.commitSnapshot(trieCtx, nil, missingNodesChan, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, nodeBytes, 0)
+	err := collapsedBn.commitSnapshot(snapshotTrieContextForTest(trieCtx), 0, nil, missingNodesChan, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, nodeBytes, 0)
 	assert.True(t, core.IsClosingError(err))
 	assert.Equal(t, 0, len(missingNodesChan))
 }
@@ -1060,7 +1053,7 @@ func TestBranchNode_commitSnapshotChildIsMissingErr(t *testing.T) {
 	_, collapsedBn := getBnAndCollapsedBn()
 	missingNodesChan := make(chan []byte, 10)
 	nodeBytes, _ := collapsedBn.getEncodedNode(trieCtx)
-	err := collapsedBn.commitSnapshot(trieCtx, nil, missingNodesChan, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, nodeBytes, 0)
+	err := collapsedBn.commitSnapshot(snapshotTrieContextForTest(trieCtx), 0, nil, missingNodesChan, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, nodeBytes, 0)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(missingNodesChan))
 }
@@ -1806,7 +1799,7 @@ func TestBranchNode_concurrency(t *testing.T) {
 				time.Sleep(time.Millisecond)
 			}
 
-			val, depth, err := collapsedBn.tryGet(newKeyData(existingChildKey), 0, trieCtx)
+			val, depth, _, err := collapsedBn.tryGetWithVersion(newKeyData(existingChildKey), 0, trieCtx)
 			assert.Nil(t, err)
 			assert.Equal(t, uint32(1), depth)
 			assert.Equal(t, []byte("dog"), val)
@@ -1853,7 +1846,7 @@ func TestBranchNode_concurrency(t *testing.T) {
 			for !startExecution.IsSet() {
 				time.Sleep(time.Millisecond)
 			}
-			val, depth, err := collapsedBn.tryGet(newKeyData(existingChildKey), 0, trieCtx)
+			val, depth, _, err := collapsedBn.tryGetWithVersion(newKeyData(existingChildKey), 0, trieCtx)
 			assert.Nil(t, err)
 			assert.Equal(t, uint32(1), depth)
 			assert.True(t, len(val) != 0)
@@ -1897,7 +1890,7 @@ func TestBranchNode_concurrency(t *testing.T) {
 			for !startExecution.IsSet() {
 				time.Sleep(time.Millisecond)
 			}
-			_, _, err := collapsedBn.tryGet(newKeyData(existingChildKey), 0, trieCtx)
+			_, _, _, err := collapsedBn.tryGetWithVersion(newKeyData(existingChildKey), 0, trieCtx)
 			assert.Nil(t, err)
 
 			wg.Done()
@@ -1943,7 +1936,7 @@ func TestBranchNode_concurrency(t *testing.T) {
 			for !startExecution.IsSet() {
 				time.Sleep(time.Millisecond)
 			}
-			val, depth, err := collapsedBn.tryGet(newKeyData(existingChildKey), 0, trieCtx)
+			val, depth, _, err := collapsedBn.tryGetWithVersion(newKeyData(existingChildKey), 0, trieCtx)
 			assert.Nil(t, err)
 			assert.Equal(t, uint32(1), depth)
 			assert.Equal(t, []byte("dog"), val)
@@ -1985,7 +1978,7 @@ func TestBranchNode_concurrency(t *testing.T) {
 			for !startExecution.IsSet() {
 				time.Sleep(time.Millisecond)
 			}
-			val, depth, err := bn.tryGet(newKeyData(existingChildKey), 0, trieCtx)
+			val, depth, _, err := bn.tryGetWithVersion(newKeyData(existingChildKey), 0, trieCtx)
 			assert.Nil(t, err)
 			assert.Equal(t, uint32(1), depth)
 			assert.Equal(t, []byte("dog"), val)
@@ -2004,3 +1997,22 @@ func TestBranchNode_concurrency(t *testing.T) {
 		wg.Wait()
 	})
 }
+
+func snapshotTrieContextForTest(trieCtx common.TrieContext) *snapshotTrieContext {
+	return &snapshotTrieContext{
+		TrieContext: trieCtx,
+		storage:     &snapshotDBTestAdapter{trieCtx},
+	}
+}
+
+type snapshotDBTestAdapter struct{ common.TrieContext }
+
+func (db *snapshotDBTestAdapter) GetWithoutAddingToCache(key []byte, _ uint32) ([]byte, uint32, error) {
+	data, err := db.Get(key)
+	return data, 0, err
+}
+func (db *snapshotDBTestAdapter) PutInEpochWithoutCache(key, data []byte) error {
+	return db.Put(key, data)
+}
+
+func (db *snapshotDBTestAdapter) GetFromLastEpoch(key []byte) ([]byte, error) { return db.Get(key) }

@@ -75,9 +75,8 @@ type dbWithGetFromEpoch interface {
 
 type snapshotNode interface {
 	commitSnapshot(
-		originDb snapshotDb,
+		trieCtx *snapshotTrieContext,
 		maxEpochToSearchFrom uint32,
-		trieCtx common.TrieContext,
 		leavesChan chan core.KeyValueHolder,
 		missingNodesChan chan []byte,
 		ctx context.Context,

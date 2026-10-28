@@ -85,9 +85,8 @@ type AccountsDB struct {
 	lastRootHash           []byte
 	dataTries              common.TriesHolder
 	entries                []JournalEntry
+	hashesCollector        common.TrieHashesCollector
 	stateAccessesCollector StateAccessesCollector
-	hashesCollector common.TrieHashesCollector
-
 	mutOp                  sync.RWMutex
 	loadCodeMeasurements   *loadingMeasurements
 	addressConverter       core.PubkeyConverter
@@ -136,14 +135,14 @@ func createAccountsDb(args ArgsAccountsDB) *AccountsDB {
 		},
 		addressConverter:       args.AddressConverter,
 		snapshotsManger:        args.SnapshotsManager,
+		hashesCollector:        createTrieHashesCollector(args.PruningEnabled),
 		stateAccessesCollector: args.StateAccessesCollector,
 		pruningEnabled:         args.PruningEnabled,
-		hashesCollector:  		createTrieHashesCollector(args.Trie),
 	}
 }
 
-func createTrieHashesCollector(mainTrie common.Trie) common.TrieHashesCollector {
-	if mainTrie.GetStorageManager().IsPruningEnabled() {
+func createTrieHashesCollector(pruningEnabled bool) common.TrieHashesCollector {
+	if pruningEnabled {
 		return hashesCollector.NewDataTrieHashesCollector()
 	}
 
@@ -578,7 +577,8 @@ func (adb *AccountsDB) saveAccountToTrie(accountHandler vmcommon.AccountHandler,
 		return nil, err
 	}
 
-	err = mainTrie.Update(accountHandler.AddressBytes(), buff)
+	mainTrie.Update(accountHandler.AddressBytes(), buff)
+
 	return buff, nil
 }
 
@@ -941,14 +941,10 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 	return newRoot, nil
 }
 
-func (adb *AccountsDB) markForEviction(
-	newRoot []byte,
-	collector common.TrieHashesCollector,
-) error {
+func (adb *AccountsDB) markForEviction(newRoot []byte, collector common.TrieHashesCollector) error {
 	if !adb.pruningEnabled {
 		return nil
 	}
-
 	return adb.storagePruningManager.MarkForEviction(newRoot, collector)
 }
 

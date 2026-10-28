@@ -98,9 +98,8 @@ func (en *extensionNode) commitDirty(
 }
 
 func (en *extensionNode) commitSnapshot(
-	db snapshotDb,
+	trieCtx *snapshotTrieContext,
 	maxEpochToSearchFrom uint32,
-	trieCtx common.TrieContext,
 	leavesChan chan core.KeyValueHolder,
 	missingNodesChan chan []byte,
 	ctx context.Context,
@@ -113,25 +112,19 @@ func (en *extensionNode) commitSnapshot(
 		return core.ErrContextClosing
 	}
 
-	child, childBytes, err := getNodeFromDBAndDecode(en.ChildHash, trieCtx)
+	err := commitSnapshot(
+		maxEpochToSearchFrom,
+		trieCtx,
+		leavesChan,
+		missingNodesChan,
+		ctx,
+		stats,
+		idleProvider,
+		depthLevel,
+		en.ChildHash,
+	)
 	if err != nil {
 		return err
-	}
-	childIsMissing, err := treatCommitSnapshotError(err, en.ChildHash, missingNodesChan)
-	if err != nil {
-		return err
-	}
-
-	if !childIsMissing {
-		err = child.commitSnapshot(db, maxEpochToSearchFrom, trieCtx, leavesChan, missingNodesChan, ctx, stats, idleProvider, childBytes, depthLevel+1)
-		if err != nil {
-			return err
-		}
-
-		err := trieCtx.Put(en.ChildHash, childBytes)
-		if err != nil {
-			return err
-		}
 	}
 
 	stats.AddExtensionNode(depthLevel, uint64(len(nodeBytes)))
@@ -191,20 +184,20 @@ func (en *extensionNode) getChild(key []byte, mutexKey string, trieCtx common.Tr
 	return child, key, nil
 }
 
-func (en *extensionNode) tryGetWithVersion(keyData *keyData, currentDepth uint32, trieCtx common.TrieContext) (value []byte, maxDepth uint32, err error) {
+func (en *extensionNode) tryGetWithVersion(keyData *keyData, currentDepth uint32, trieCtx common.TrieContext) (value []byte, maxDepth uint32, version uint32, err error) {
 	mutexKey := getMutexKeyFromBytes(keyData.pathKey)
 
 	child, key, err := en.getChild(keyData.keyRemainder, mutexKey, trieCtx)
 	if err != nil {
-		return nil, currentDepth, err
+		return nil, currentDepth, 0, err
 	}
 	if check.IfNil(child) {
-		return nil, currentDepth, nil
+		return nil, currentDepth, 0, nil
 	}
 
 	keyData.keyRemainder = key
 	keyData.pathKey = append(keyData.pathKey, en.Key...)
-	return child.tryGet(keyData, currentDepth+1, trieCtx)
+	return child.tryGetWithVersion(keyData, currentDepth+1, trieCtx)
 }
 
 func (en *extensionNode) getNext(key []byte, trieCtx common.TrieContext) (*nodeData, error) {

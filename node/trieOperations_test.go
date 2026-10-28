@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
@@ -47,12 +48,12 @@ func TestTrieCollectionRealProducerReleasesPruningBuffer(t *testing.T) {
 		EnterPruningBufferingModeCalled: func() { buffering.Add(1) },
 		ExitPruningBufferingModeCalled:  func() { buffering.Add(-1) },
 	}
-	tr, err := trie.NewTrie(storage, &marshal.GogoProtoMarshalizer{}, blake2b.NewBlake2b(), enableEpochsHandlerMock.NewEnableEpochsHandlerStub(), 10)
+	tr, err := trie.NewTrie(trie.TrieArgs{TrieStorage: storage, Marshalizer: &marshal.GogoProtoMarshalizer{}, Hasher: blake2b.NewBlake2b(), EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(), MaxTrieLevelInMemory: 10, Throttler: trie.NewDisabledTrieGoRoutinesThrottler()})
 	require.NoError(t, err)
 	for i := 0; i < 25; i++ {
-		require.NoError(t, tr.Update([]byte(fmt.Sprint(i)), []byte("value")))
+		tr.Update([]byte(fmt.Sprint(i)), []byte("value"))
 	}
-	require.NoError(t, tr.Commit())
+	require.NoError(t, tr.Commit(hashesCollector.NewDisabledHashesCollector()))
 	root, err := tr.RootHash()
 	require.NoError(t, err)
 	source := &stateMock.StateUserAccountHandlerStub{GetAllLeavesCalled: func(ch *common.TrieIteratorChannels, ctx context.Context) error {

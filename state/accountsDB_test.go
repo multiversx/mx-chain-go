@@ -375,6 +375,7 @@ func TestAccountsDB_SaveAccountSavesCodeAndDataTrieForUserAccount(t *testing.T) 
 		},
 		UpdateCalled: func(key, value []byte) {
 			updateCalled++
+
 		},
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &storageManager.StorageManagerStub{}
@@ -729,6 +730,7 @@ func TestAccountsDB_RemoveAccountShouldWork(t *testing.T) {
 		},
 		DeleteCalled: func(key []byte) {
 			wasCalled = true
+
 		},
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &storageManager.StorageManagerStub{}
@@ -1337,7 +1339,7 @@ func TestAccountsDB_RecreateTrieIfNeededShouldRecreate(t *testing.T) {
 		RootCalled: func() ([]byte, error) {
 			return currentHash, nil
 		},
-		RecreateCalled: func(_ common.RootHashHolder) (common.Trie, error) {
+		RecreateCalled: func(_ common.RootHashHolder, _ string) (common.Trie, error) {
 			recreatedCalled = true
 			return &trieMock.TrieStub{}, nil
 		},
@@ -1363,7 +1365,7 @@ func TestAccountsDB_RecreateTrieIfNeededShouldNotRecreate(t *testing.T) {
 		RootCalled: func() ([]byte, error) {
 			return currentHash, nil
 		},
-		RecreateCalled: func(_ common.RootHashHolder) (common.Trie, error) {
+		RecreateCalled: func(_ common.RootHashHolder, _ string) (common.Trie, error) {
 			recreatedCalled = true
 			return &trieMock.TrieStub{}, nil
 		},
@@ -3442,7 +3444,7 @@ func testAccountLoadInParallel(
 	wg.Wait()
 }
 
-func TestAccountsDB_SaveAccountShouldRevertOldCodeEntryWhenUpdateNewCodeEntryFails(t *testing.T) {
+func TestAccountsDB_SaveAccountShouldRevertOldCodeEntryWhenNewCodeSerializationFails(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("expected update new code entry error")
@@ -3458,7 +3460,6 @@ func TestAccountsDB_SaveAccountShouldRevertOldCodeEntryWhenUpdateNewCodeEntryFai
 	oldCodeEntryBytes, _ := marshaller.Marshal(oldCodeEntry)
 
 	newCode := []byte("new code")
-	newCodeHash := hasher.Compute(string(newCode))
 
 	codeEntries := map[string][]byte{
 		string(oldCodeHash): oldCodeEntryBytes,
@@ -3478,27 +3479,29 @@ func TestAccountsDB_SaveAccountShouldRevertOldCodeEntryWhenUpdateNewCodeEntryFai
 			}
 			return codeEntries[string(key)], 0, nil
 		},
-		UpdateCalled: func(key, value []byte) error {
-			if bytes.Equal(key, newCodeHash) {
-				if len(value) == 0 {
-					return nil
-				}
-				return expectedErr
-			}
-
+		UpdateCalled: func(key, value []byte) {
 			codeEntries[string(key)] = value
-			return nil
 		},
-		DeleteCalled: func(key []byte) error {
+		DeleteCalled: func(key []byte) {
 			delete(codeEntries, string(key))
-			return nil
+			return
 		},
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &storageManager.StorageManagerStub{}
 		},
 	}
 
-	adb := generateAccountDBFromTrie(trieStub)
+	args := createMockAccountsDBArgs()
+	args.Trie = trieStub
+	args.Marshaller = &marshalizerWithFailure{Marshalizer: marshaller, failure: expectedErr, shouldFail: func(obj interface{}) bool {
+		entry, ok := obj.(*state.CodeEntry)
+		if ok && bytes.Equal(entry.Code, newCode) {
+			return true
+		}
+		return false
+	}}
+	adb, err := state.NewAccountsDB(args)
+	require.NoError(t, err)
 
 	dummyAcc := generateAccount()
 	err = adb.SaveAccount(dummyAcc)
@@ -3523,7 +3526,7 @@ func TestAccountsDB_SaveAccountShouldRevertOldCodeEntryWhenUpdateNewCodeEntryFai
 	assert.Equal(t, uint32(2), restoredOldCodeEntry.NumReferences)
 }
 
-func TestAccountsDB_RevertShouldNotModifyNewCodeWhenOldCodeUpdateFails(t *testing.T) {
+func TestAccountsDB_RevertShouldNotModifyNewCodeWhenOldCodeSerializationFails(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("expected old code update error")
@@ -3568,25 +3571,30 @@ func TestAccountsDB_RevertShouldNotModifyNewCodeWhenOldCodeUpdateFails(t *testin
 
 			return codeEntries[string(key)], 0, nil
 		},
-		UpdateCalled: func(key, value []byte) error {
-			if bytes.Equal(key, oldCodeHash) && failOldCodeUpdate {
-				failOldCodeUpdate = false
-				return expectedErr
-			}
-
+		UpdateCalled: func(key, value []byte) {
 			codeEntries[string(key)] = value
-			return nil
 		},
-		DeleteCalled: func(key []byte) error {
+		DeleteCalled: func(key []byte) {
 			delete(codeEntries, string(key))
-			return nil
+			return
 		},
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &storageManager.StorageManagerStub{}
 		},
 	}
 
-	adb := generateAccountDBFromTrie(trieStub)
+	args := createMockAccountsDBArgs()
+	args.Trie = trieStub
+	args.Marshaller = &marshalizerWithFailure{Marshalizer: marshaller, failure: expectedErr, shouldFail: func(obj interface{}) bool {
+		entry, ok := obj.(*state.CodeEntry)
+		if ok && bytes.Equal(entry.Code, oldCode) && failOldCodeUpdate {
+			failOldCodeUpdate = false
+			return true
+		}
+		return false
+	}}
+	adb, err := state.NewAccountsDB(args)
+	require.NoError(t, err)
 
 	err = adb.SaveAccount(generateAccount())
 	require.NoError(t, err)
@@ -3609,7 +3617,7 @@ func TestAccountsDB_RevertShouldNotModifyNewCodeWhenOldCodeUpdateFails(t *testin
 	checkCodeEntry(newCodeHash, newCode, 3, marshaller, trieStub, t)
 }
 
-func TestAccountsDB_RevertShouldNotModifyNewCodeWhenNewCodeUpdateFails(t *testing.T) {
+func TestAccountsDB_RevertShouldNotModifyNewCodeWhenNewCodeSerializationFails(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("expected new code update error")
@@ -3654,25 +3662,30 @@ func TestAccountsDB_RevertShouldNotModifyNewCodeWhenNewCodeUpdateFails(t *testin
 
 			return codeEntries[string(key)], 0, nil
 		},
-		UpdateCalled: func(key, value []byte) error {
-			if bytes.Equal(key, newCodeHash) && failNewCodeUpdate {
-				failNewCodeUpdate = false
-				return expectedErr
-			}
-
+		UpdateCalled: func(key, value []byte) {
 			codeEntries[string(key)] = value
-			return nil
 		},
-		DeleteCalled: func(key []byte) error {
+		DeleteCalled: func(key []byte) {
 			delete(codeEntries, string(key))
-			return nil
+			return
 		},
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &storageManager.StorageManagerStub{}
 		},
 	}
 
-	adb := generateAccountDBFromTrie(trieStub)
+	args := createMockAccountsDBArgs()
+	args.Trie = trieStub
+	args.Marshaller = &marshalizerWithFailure{Marshalizer: marshaller, failure: expectedErr, shouldFail: func(obj interface{}) bool {
+		entry, ok := obj.(*state.CodeEntry)
+		if ok && bytes.Equal(entry.Code, newCode) && failNewCodeUpdate {
+			failNewCodeUpdate = false
+			return true
+		}
+		return false
+	}}
+	adb, err := state.NewAccountsDB(args)
+	require.NoError(t, err)
 
 	err = adb.SaveAccount(generateAccount())
 	require.NoError(t, err)
@@ -3773,19 +3786,22 @@ func TestAccountsDB_RevertToSnapshotShouldNotRetryCompletedEntriesWhenAccountSav
 
 	failAccountSave := true
 	trieStub := &trieMock.TrieStub{
-		UpdateCalled: func(key, _ []byte) error {
-			if bytes.Equal(key, accountAddress) && failAccountSave {
-				failAccountSave = false
-				return expectedErr
-			}
-
-			return nil
-		},
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &storageManager.StorageManagerStub{}
 		},
 	}
-	adb := generateAccountDBFromTrie(trieStub)
+	args := createMockAccountsDBArgs()
+	args.Trie = trieStub
+	args.Marshaller = &marshalizerWithFailure{Marshalizer: args.Marshaller, failure: expectedErr, shouldFail: func(obj interface{}) bool {
+		savedAccount, ok := obj.(vmcommon.AccountHandler)
+		if ok && bytes.Equal(savedAccount.AddressBytes(), accountAddress) && failAccountSave {
+			failAccountSave = false
+			return true
+		}
+		return false
+	}}
+	adb, err := state.NewAccountsDB(args)
+	require.NoError(t, err)
 
 	adb.Journalize(&journalEntryStub{})
 	snapshot := adb.JournalLen()
@@ -3806,7 +3822,7 @@ func TestAccountsDB_RevertToSnapshotShouldNotRetryCompletedEntriesWhenAccountSav
 		},
 	})
 
-	err := adb.RevertToSnapshot(snapshot)
+	err = adb.RevertToSnapshot(snapshot)
 	require.ErrorIs(t, err, expectedErr)
 
 	// The completed entry is removed, while the entry whose account save
@@ -3821,4 +3837,19 @@ func TestAccountsDB_RevertToSnapshotShouldNotRetryCompletedEntriesWhenAccountSav
 	assert.Equal(t, snapshot, adb.JournalLen())
 	assert.Equal(t, 1, completedCalls)
 	assert.Equal(t, 2, accountEntryCalls)
+}
+
+// marshalizerWithFailure injects synchronous serialization failures while trie
+// writes retain the feature branch's no-error batching interface.
+type marshalizerWithFailure struct {
+	marshal.Marshalizer
+	shouldFail func(interface{}) bool
+	failure    error
+}
+
+func (m *marshalizerWithFailure) Marshal(obj interface{}) ([]byte, error) {
+	if m.shouldFail(obj) {
+		return nil, m.failure
+	}
+	return m.Marshalizer.Marshal(obj)
 }

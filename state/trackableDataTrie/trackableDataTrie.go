@@ -261,15 +261,9 @@ func (tdt *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]*stateChang
 }
 
 func (tdt *trackableDataTrie) rollbackAppliedUpdates(dtr state.DataTrie, oldValues []core.TrieData) {
-	var trieUpdate core.TrieData
-	var err error
-
 	for i := len(oldValues) - 1; i >= 0; i-- {
-		trieUpdate = oldValues[i]
-		err = dtr.UpdateWithVersion(trieUpdate.Key, trieUpdate.Value, trieUpdate.Version)
-		if err != nil {
-			log.Error("could not apply rollback updates", "err", err, "key", trieUpdate.Key, "account", tdt.identifier)
-		}
+		update := oldValues[i]
+		dtr.UpdateWithVersion(update.Key, update.Value, update.Version)
 	}
 }
 
@@ -307,10 +301,6 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]*stateChange.Dat
 		}
 
 		wasDeleted := tdt.deleteOldEntryIfMigrated([]byte(key), dataEntry, oldVal)
-		if err != nil {
-			tdt.rollbackAppliedUpdates(dtr, trieUpdates)
-			return nil, nil, err
-		}
 
 		if wasDeleted {
 			trieUpdates = append(trieUpdates, oldVal)
@@ -552,7 +542,7 @@ func (tdt *trackableDataTrie) modifyTrie(key []byte, dataEntry dirtyData, oldVal
 	newKey := tdt.getKeyForVersion(key, version)
 
 	if len(dataEntry.value) == 0 {
-		return tdt.deleteFromTrie(oldVal, key, dtr)
+		return tdt.deleteFromTrie(oldVal, key, dtr), nil
 	}
 
 	value, err := tdt.getValueForVersion(key, dataEntry.value, version)
@@ -561,6 +551,7 @@ func (tdt *trackableDataTrie) modifyTrie(key []byte, dataEntry dirtyData, oldVal
 	}
 
 	dtr.UpdateWithVersion(newKey, value, version)
+
 	return newKey, nil
 }
 
@@ -577,7 +568,7 @@ func (tdt *trackableDataTrie) deleteFromTrie(oldVal core.TrieData, key []byte, d
 
 	if oldVal.Version == core.NotSpecified {
 		dtr.Delete(key)
-		return key,
+		return key
 	}
 
 	return nil

@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"math"
 	"math/big"
 	"math/rand"
@@ -45,7 +46,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/factory"
-	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
 	"github.com/multiversx/mx-chain-go/state/lastSnapshotMarker"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
@@ -2773,7 +2773,7 @@ func TestStateSnapshot_MultipleEpochsWithoutCompleteSnapshot(t *testing.T) {
 	args.MainStorer = mainStorer
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(5)
-	tr, _ := trie.NewTrie(trieStorage, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
+	tr, _ := trie.NewTrie(trie.TrieArgs{TrieStorage: trieStorage, Marshalizer: args.Marshalizer, Hasher: args.Hasher, EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, MaxTrieLevelInMemory: maxTrieLevelInMemory, Throttler: trie.NewDisabledTrieGoRoutinesThrottler()})
 	defer func() {
 		_ = trieStorage.Close()
 	}()
@@ -2803,7 +2803,7 @@ func TestStateSnapshot_MultipleEpochsWithoutCompleteSnapshot(t *testing.T) {
 			numLeaves += addDataToTrie(t, tr, startingIndexBasedOnEpoch, numTrieEntries)
 		}
 
-		err = tr.Commit()
+		err = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 		assert.Nil(t, err)
 	}
 
@@ -2840,9 +2840,13 @@ func TestStateSnapshot_MultipleEpochsWithoutCompleteSnapshot(t *testing.T) {
 	assert.Equal(t, numLeaves, numRetrievedLeaves)
 	wg.Wait()
 
-	hashes, err := tr.GetAllHashes()
-	assert.Nil(t, err)
-	numTrieNodes := len(hashes)
+	iterator, err := trie.NewDFSIterator(tr, rootHash)
+	require.NoError(t, err)
+	numTrieNodes := 1
+	for iterator.HasNext() {
+		require.NoError(t, iterator.Next())
+		numTrieNodes++
+	}
 	assert.Less(t, getCounters[numEpochs-1], numTrieNodes)
 }
 
@@ -2851,8 +2855,7 @@ func addDataToTrie(t *testing.T, tr common.Trie, startIndex int, numEntries int)
 	for j := startIndex; j < startIndex+numEntries; j++ {
 		key := []byte(fmt.Sprintf("key%d", j))
 		value := []byte(fmt.Sprintf("value%d", j))
-		err := tr.Update(key, value)
-		assert.Nil(t, err)
+		tr.Update(key, value)
 		numLeaves++
 	}
 

@@ -561,6 +561,7 @@ type BatchHandler interface {
 	Add(data core.TrieData)
 	MarkForRemoval(key []byte)
 	Get(key []byte) ([]byte, bool)
+	GetWithVersion(key []byte) (core.TrieData, bool)
 }
 
 // TrieGoroutinesManager defines the methods needed for managing the trie goroutines

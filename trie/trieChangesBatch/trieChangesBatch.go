@@ -119,3 +119,21 @@ func getSortedData(dataMap map[string]core.TrieData) []core.TrieData {
 
 	return data
 }
+
+// GetWithVersion returns the pending value and leaf version, or an empty value for a pending deletion.
+func (t *trieChangesBatch) GetWithVersion(key []byte) (core.TrieData, bool) {
+	t.mutex.RLock()
+	defer t.mutex.RUnlock()
+
+	data, ok := t.insertedData[string(key)]
+	if ok {
+		return data, true
+	}
+
+	_, ok = t.deletedKeys[string(key)]
+	if ok {
+		return core.TrieData{}, true
+	}
+
+	return core.TrieData{}, false
+}

@@ -8,11 +8,9 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-
-	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 )
 
 const (
@@ -22,10 +20,10 @@ const (
 	dirtyFlagSizeInBytes = 1
 	versionSizeInBytes   = 4
 	pollingIdleNode      = time.Millisecond
+	rootMutexKey         = "root"
 	// maxUnreportedParkedTime bounds how long a snapshot goroutine may sit parked behind node
 	// operations before reporting it: sustained parking starves the snapshot and defers pruning
 	maxUnreportedParkedTime = time.Minute
-	rootMutexKey         = "root"
 )
 
 type branchNode struct {
@@ -131,7 +129,6 @@ func decodeNode(encNode []byte, trieCtx common.TrieContext) (node, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return newNode, nil
 }
 
@@ -141,8 +138,8 @@ func validateDecodedNode(n node) error {
 		return nil
 	}
 
-	if len(bn.EncodedChildren) != nrOfChildren {
-		return fmt.Errorf("%w for EncodedChildren, len is %d", ErrInvalidEncoding, len(bn.EncodedChildren))
+	if len(bn.ChildrenHashes) != nrOfChildren {
+		return fmt.Errorf("%w for EncodedChildren, len is %d", ErrInvalidEncoding, len(bn.ChildrenHashes))
 	}
 
 	if len(bn.ChildrenVersion) != 0 && len(bn.ChildrenVersion) != nrOfChildren {
@@ -250,10 +247,8 @@ func shouldMigrateCurrentNode(
 }
 
 func commitSnapshot(
-	db snapshotDb,
 	maxEpochToSearchFrom uint32,
-	marshaller marshal.Marshalizer,
-	hasher hashing.Hasher,
+	trieCtx *snapshotTrieContext,
 	leavesChan chan core.KeyValueHolder,
 	missingNodesChan chan []byte,
 	ctx context.Context,
@@ -262,6 +257,7 @@ func commitSnapshot(
 	depthLevel int,
 	hash []byte,
 ) error {
+	db := trieCtx.GetSnapshotStorage()
 	encChild, foundInEpoch, err := db.GetWithoutAddingToCache(hash, maxEpochToSearchFrom)
 	if err != nil {
 		treatLogError(log, err, hash)
@@ -275,12 +271,12 @@ func commitSnapshot(
 		return nil
 	}
 
-	child, err := decodeNode(encChild, marshaller, hasher)
+	child, err := decodeNode(encChild, trieCtx)
 	if err != nil {
 		return err
 	}
 
-	err = child.commitSnapshot(db, foundInEpoch, leavesChan, missingNodesChan, ctx, stats, idleProvider, encChild, depthLevel+1)
+	err = child.commitSnapshot(trieCtx, foundInEpoch, leavesChan, missingNodesChan, ctx, stats, idleProvider, encChild, depthLevel+1)
 	if err != nil {
 		return err
 	}

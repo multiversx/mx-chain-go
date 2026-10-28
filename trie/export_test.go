@@ -84,11 +84,6 @@ func GetDefaultTrieStorageManagerParameters() NewTrieStorageManagerArgs {
 	}
 }
 
-// SnapshotsGoroutineNum -
-func SnapshotsGoroutineNum(perCore uint32) int32 {
-	return snapshotsGoroutineNum(perCore)
-}
-
 // ExecuteUpdatesFromBatch -
 func ExecuteUpdatesFromBatch(tr common.Trie) {
 	pmt, _ := tr.(*patriciaMerkleTrie)
@@ -110,3 +105,5 @@ func SetGoRoutinesManager(tr common.Trie, gm common.TrieGoroutinesManager) {
 func GetModifiedHashes(tr common.Trie) [][]byte {
 	return tr.(*patriciaMerkleTrie).GetOldHashes()
 }
+
+func SnapshotsGoroutineNum(perCore uint32) int32 { return snapshotsGoroutineNum(perCore) }

@@ -238,11 +238,6 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 				continue
 			}
 
-			nextNodes, err = currentNode.getChildren(ts.trieContext)
-			if err != nil {
-				return false, err
-			}
-
 			tmpNewElement := ts.addNew(nextNodes)
 			newElement = newElement || tmpNewElement
 
@@ -310,35 +305,30 @@ func (ts *trieSyncer) getNode(hash []byte) (node, error) {
 	)
 }
 
-func getNodeFromCacheOrStorage(
-	hash []byte,
-	interceptedNodesCacher storage.Cacher,
-	trieCtx common.TrieContext,
-) (node, error) {
-	if _, recovery := db.(*recoveryTrieStorageManager); recovery {
-		n, err := getVerifiedNodeFromStorage(hash, db, marshalizer, hasher)
+func getNodeFromCacheOrStorage(hash []byte, interceptedNodesCacher storage.Cacher, trieCtx common.TrieContext) (node, error) {
+	if _, recovery := trieCtx.GetStorage().(*recoveryTrieStorageManager); recovery {
+		n, err := getVerifiedNodeFromStorage(hash, trieCtx)
 		if err == nil {
 			return n, nil
 		}
-		return getNodeFromCache(hash, interceptedNodesCacher, marshalizer, hasher)
+		return getNodeFromCache(hash, interceptedNodesCacher, trieCtx)
 	}
 	n, err := getNodeFromCache(hash, interceptedNodesCacher, trieCtx)
 	if err == nil {
 		return n, nil
 	}
-
-	return getVerifiedNodeFromStorage(hash, db, marshalizer, hasher)
+	return getVerifiedNodeFromStorage(hash, trieCtx)
 }
 
-func getVerifiedNodeFromStorage(hash []byte, db common.TrieStorageInteractor, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
+func getVerifiedNodeFromStorage(hash []byte, trieCtx common.TrieContext) (node, error) {
 	existingNode, _, err := getNodeFromDBAndDecode(hash, trieCtx)
 	if err != nil {
 		return nil, ErrNodeNotFound
 	}
-	if !bytes.Equal(existingNode.getHash(), hash) {
+	computedHash, err := encodeNodeAndGetHash(existingNode, trieCtx)
+	if err != nil || !bytes.Equal(computedHash, hash) {
 		return nil, ErrNodeNotFound
 	}
-
 	return existingNode, nil
 }
 

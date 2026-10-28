@@ -2,7 +2,7 @@ package trie_test
 
 import (
 	"testing"
-	
+
 	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/stretchr/testify/assert"

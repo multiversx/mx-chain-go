@@ -10,10 +10,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/trie/leavesRetriever/trieNodeData"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var _ = node(&branchNode{})
@@ -136,9 +135,8 @@ func (bn *branchNode) commitDirty(
 
 // TODO refactor long parameter list
 func (bn *branchNode) commitSnapshot(
-	db snapshotDb,
+	trieCtx *snapshotTrieContext,
 	maxEpochToSearchFrom uint32,
-	trieCtx common.TrieContext,
 	leavesChan chan core.KeyValueHolder,
 	missingNodesChan chan []byte,
 	ctx context.Context,
@@ -156,21 +154,17 @@ func (bn *branchNode) commitSnapshot(
 			continue
 		}
 
-		child, childBytes, err := getNodeFromDBAndDecode(bn.ChildrenHashes[i], trieCtx)
-		childIsMissing, err := treatCommitSnapshotError(err, bn.ChildrenHashes[i], missingNodesChan)
-		if err != nil {
-			return err
-		}
-		if childIsMissing {
-			continue
-		}
-
-		err = child.commitSnapshot(db, maxEpochToSearchFrom ,trieCtx, leavesChan, missingNodesChan, ctx, stats, idleProvider, childBytes, depthLevel+1)
-		if err != nil {
-			return err
-		}
-
-		err = trieCtx.Put(bn.ChildrenHashes[i], childBytes)
+		err := commitSnapshot(
+			maxEpochToSearchFrom,
+			trieCtx,
+			leavesChan,
+			missingNodesChan,
+			ctx,
+			stats,
+			idleProvider,
+			depthLevel,
+			bn.ChildrenHashes[i],
+		)
 		if err != nil {
 			return err
 		}
@@ -214,7 +208,7 @@ func (bn *branchNode) resolveIfCollapsed(pos byte, trieCtx common.TrieContext) (
 	return bn.children[pos], bn.ChildrenHashes[pos], nil
 }
 
-func (bn *branchNode) tryGetWithVersion((keyData *keyData, currentDepth uint32, trieCtx common.TrieContext) (value []byte, maxDepth uint32, version uint32, err error) {
+func (bn *branchNode) tryGetWithVersion(keyData *keyData, currentDepth uint32, trieCtx common.TrieContext) (value []byte, maxDepth uint32, version uint32, err error) {
 	if len(keyData.keyRemainder) == 0 {
 		return nil, currentDepth, 0, nil
 	}

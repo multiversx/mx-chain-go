@@ -111,3 +111,26 @@ func (t *trieBatchManager) MarkForRemoval(key []byte) {
 func (t *trieBatchManager) IsInterfaceNil() bool {
 	return t == nil
 }
+
+// GetWithVersion reads the newest pending change, checking the active batch before the batch being applied.
+func (t *trieBatchManager) GetWithVersion(key []byte) (core.TrieData, bool) {
+	t.mutex.RLock()
+	defer t.mutex.RUnlock()
+
+	val, isPresent := t.currentBatch.GetWithVersion(key)
+	if isPresent {
+		log.Trace("found data in the current batch", "identifier", t.identifier, "key", key, "value", val)
+		return val, true
+	}
+
+	if t.isUpdateInProgress && !check.IfNil(t.tempBatch) {
+		val, isPresent = t.tempBatch.GetWithVersion(key)
+		if isPresent {
+			log.Trace("found data in the temp batch", "identifier", t.identifier, "key", key, "value", val)
+			return val, true
+		}
+	}
+
+	log.Trace("data not found in any batch", "identifier", t.identifier, "key", key)
+	return core.TrieData{}, false
+}

@@ -73,7 +73,8 @@ func (jea *journalEntryCode) revertCodeEntry(
 	}
 
 	if codeEntry == nil {
-		return jea.trie.Update(codeHash, nil)
+		jea.trie.Update(codeHash, nil)
+		return nil
 	}
 
 	_, err := saveCodeEntry(

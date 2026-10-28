@@ -155,14 +155,14 @@ func (tr *patriciaMerkleTrie) Get(key []byte) ([]byte, uint32, error) {
 	return value, depth, err
 }
 
-// GetWithVersion returns the stored leaf version in the same traversal as the value.
-func (tr *patriciaMerkleTrie) GetWithVersion(key []byte) (value []byte, depth uint32, version uint32, err error) {
+// GetWithVersion returns the value and leaf version, including pending batch changes.
+func (tr *patriciaMerkleTrie) GetWithVersion(key []byte) ([]byte, uint32, uint32, error) {
 	tr.trieOperationInProgress.SetValue(true)
 	defer tr.trieOperationInProgress.Reset()
 
-	val, found := tr.batchManager.Get(key)
+	data, found := tr.batchManager.GetWithVersion(key)
 	if found {
-		return val, 0, nil
+		return data.Value, 0, uint32(data.Version), nil
 	}
 
 	rootData := tr.GetRootData()
@@ -175,25 +175,27 @@ func (tr *patriciaMerkleTrie) GetWithVersion(key []byte) (value []byte, depth ui
 		keyRemainder: hexKey,
 		pathKey:      []byte{},
 	}
-	value, depth, version, err = tr.root.tryGetWithVersion(hexKey, rootDepthLevel, tr.trieStorage)
+	val, depth, version, err := rootData.root.tryGetWithVersion(kd, rootDepthLevel, tr.TrieContext)
 	if err != nil {
 		err = fmt.Errorf("trie get error: %w, for key %v", err, hex.EncodeToString(key))
 		return nil, depth, 0, err
 	}
 
-	return value, depth, version, nil
+	return val, depth, version, nil
 }
 
 // Update updates the value at the given key.
 // If the key is not in the trie, it will be added.
-// If the value is empty, the key will be removed from the trie
+// If the value is empty, the key will be removed from the trie.
+// Changes are batched; RootHash and Commit report errors when applying them.
 func (tr *patriciaMerkleTrie) Update(key, value []byte) {
 	log.Trace("update trie", "key", key, "val", value)
 
 	tr.updateBatch(key, value, core.NotSpecified)
 }
 
-// UpdateWithVersion does the same thing as Update, but the new leaf that is created will be of the specified version
+// UpdateWithVersion queues an update with the specified leaf version.
+// RootHash and Commit report errors when applying the batched changes.
 func (tr *patriciaMerkleTrie) UpdateWithVersion(key []byte, value []byte, version core.TrieNodeVersion) {
 	log.Trace("update trie with version", "key", key, "val", value, "version", version)
 
@@ -214,7 +216,8 @@ func (tr *patriciaMerkleTrie) updateBatch(key []byte, value []byte, version core
 	tr.batchManager.MarkForRemoval(key)
 }
 
-// Delete removes the node that has the given key from the tree
+// Delete queues removal of the node with the given key.
+// RootHash and Commit report errors when applying the batched changes.
 func (tr *patriciaMerkleTrie) Delete(key []byte) {
 	tr.batchManager.MarkForRemoval(key)
 }
@@ -305,7 +308,9 @@ func (tr *patriciaMerkleTrie) insertBatch(sortedDataForInsertion []core.TrieData
 
 func (tr *patriciaMerkleTrie) getOldRootHash(rootData RootData) []byte {
 	if check.IfNil(rootData.root) {
-		return []byte{}
+		// Deleting the last leaf can empty the trie before it is committed.
+		// Later batches must still refer to the previous committed root.
+		return rootData.oldRootHash
 	}
 
 	if rootData.root.isDirty() {
@@ -405,6 +410,9 @@ func (tr *patriciaMerkleTrie) Commit(hashesCollector common.TrieHashesCollector)
 	rootNode := rootData.root
 	if check.IfNil(rootNode) {
 		log.Trace("trying to commit empty trie")
+		// An empty trie can still have deleted nodes waiting for pruning.
+		hashesCollector.AddObsoleteHashes(rootData.oldRootHash, rootData.oldHashes)
+		tr.ResetCollectedHashes()
 		return nil
 	}
 	if !rootNode.isDirty() {
