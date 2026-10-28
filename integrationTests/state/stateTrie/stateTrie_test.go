@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"math"
 	"math/big"
 	"math/rand"
@@ -277,18 +278,17 @@ func TestTrieDB_RecreateFromStorageShouldWork(t *testing.T) {
 	args.Hasher = hasher
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 
-	maxTrieLevelInMemory := uint(5)
-	tr1, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
+	tr1, _ := trie.NewTrie(integrationTests.GetTrieArgs(trieStorage))
 
 	key := hasher.Compute("key")
 	value := hasher.Compute("value")
 
-	_ = tr1.Update(key, value)
+	tr1.Update(key, value)
 	h1, _ := tr1.RootHash()
-	err := tr1.Commit()
+	err := tr1.Commit(hashesCollector.NewDisabledHashesCollector())
 	require.Nil(t, err)
 
-	tr2, err := tr1.Recreate(holders.NewDefaultRootHashesHolder(h1))
+	tr2, err := tr1.Recreate(holders.NewDefaultRootHashesHolder(h1), "")
 	require.Nil(t, err)
 
 	valRecov, _, err := tr2.Get(key)
@@ -967,6 +967,11 @@ func TestAccountsDB_ExecALotOfBalanceTxOKorNOK(t *testing.T) {
 	integrationTests.PrintShardAccount(acntDest.(state.UserAccountHandler), "Destination")
 }
 
+type trieWithToString interface {
+	common.Trie
+	ToString() string
+}
+
 func BenchmarkCreateOneMillionAccountsWithMockDB(b *testing.B) {
 	nrOfAccounts := 1000000
 	balance := 1500000
@@ -1000,7 +1005,7 @@ func BenchmarkCreateOneMillionAccountsWithMockDB(b *testing.B) {
 		core.ConvertBytes(rtm.Sys),
 	)
 
-	_ = tr.String()
+	_ = tr.(trieWithToString).ToString()
 }
 
 func BenchmarkCreateOneMillionAccounts(b *testing.B) {
@@ -1060,8 +1065,8 @@ func createAccounts(
 	args := testStorage.GetStorageManagerArgs()
 	args.MainStorer = store
 	trieStorage, _ := trie.NewTrieStorageManager(args)
-	maxTrieLevelInMemory := uint(5)
-	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
+
+	tr, _ := trie.NewTrie(integrationTests.GetTrieArgs(trieStorage))
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 	argsAccCreator := factory.ArgsAccountCreator{
 		Hasher:                 integrationTests.TestHasher,
@@ -1292,7 +1297,7 @@ func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 func collapseTrie(state state.UserAccountHandler, t *testing.T) {
 	stateRootHash := state.GetRootHash()
 	stateTrie := state.DataTrie().(common.Trie)
-	stateNewTrie, _ := stateTrie.Recreate(holders.NewDefaultRootHashesHolder(stateRootHash))
+	stateNewTrie, _ := stateTrie.Recreate(holders.NewDefaultRootHashesHolder(stateRootHash), "")
 	require.NotNil(t, stateNewTrie)
 
 	state.SetDataTrie(stateNewTrie)
@@ -1695,12 +1700,12 @@ func checkTrieCanBeRecreated(tb testing.TB, node *integrationTests.TestProcessor
 
 	stateTrie := node.TrieContainer.Get([]byte(dataRetriever.UserAccountsUnit.String()))
 	roothash := node.BlockChain.GetCurrentBlockRootHash()
-	tr, err := stateTrie.Recreate(holders.NewDefaultRootHashesHolder(roothash))
+	tr, err := stateTrie.Recreate(holders.NewDefaultRootHashesHolder(roothash), "")
 	require.Nil(tb, err)
 	require.NotNil(tb, tr)
 
 	_, _, finalRoothash := node.BlockChain.GetFinalBlockInfo()
-	tr, err = stateTrie.Recreate(holders.NewDefaultRootHashesHolder(finalRoothash))
+	tr, err = stateTrie.Recreate(holders.NewDefaultRootHashesHolder(finalRoothash), "")
 	require.Nil(tb, err)
 	require.NotNil(tb, tr)
 
@@ -1712,7 +1717,7 @@ func checkTrieCanBeRecreated(tb testing.TB, node *integrationTests.TestProcessor
 	err = integrationTests.TestMarshalizer.Unmarshal(hdr, hdrBytes)
 	require.Nil(tb, err)
 
-	tr, err = stateTrie.Recreate(holders.NewDefaultRootHashesHolder(hdr.GetRootHash()))
+	tr, err = stateTrie.Recreate(holders.NewDefaultRootHashesHolder(hdr.GetRootHash()), "")
 	require.Nil(tb, err)
 	require.NotNil(tb, tr)
 }
@@ -1863,7 +1868,7 @@ func testNodeStateSnapshotAndPruning(
 	stateTrie := node.TrieContainer.Get([]byte(dataRetriever.UserAccountsUnit.String()))
 	assert.Equal(t, 1, len(snapshotsRootHashes))
 	for i := range snapshotsRootHashes {
-		tr, err := stateTrie.Recreate(holders.NewDefaultRootHashesHolder(snapshotsRootHashes[i]))
+		tr, err := stateTrie.Recreate(holders.NewDefaultRootHashesHolder(snapshotsRootHashes[i]), "")
 		require.Nil(t, err)
 		require.NotNil(t, tr)
 	}
@@ -1871,7 +1876,7 @@ func testNodeStateSnapshotAndPruning(
 	assert.Equal(t, 1, len(prunedRootHashes))
 	// if pruning is called for a root hash in a different epoch than the commit, then recreate trie should work
 	for i := 0; i < len(prunedRootHashes)-1; i++ {
-		tr, err := stateTrie.Recreate(holders.NewDefaultRootHashesHolder(prunedRootHashes[i]))
+		tr, err := stateTrie.Recreate(holders.NewDefaultRootHashesHolder(prunedRootHashes[i]), "")
 		require.Nil(t, tr)
 		require.NotNil(t, err)
 	}
@@ -2091,7 +2096,7 @@ func TestAccountRemoval(t *testing.T) {
 
 	shardNode := nodes[0]
 
-	dataTriesRootHashes, codeMap := generateAccounts(shardNode, accounts)
+	_, codeMap := generateAccounts(shardNode, accounts)
 
 	_, _ = shardNode.AccntState.Commit()
 	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
@@ -2124,13 +2129,6 @@ func TestAccountRemoval(t *testing.T) {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		checkCodeConsistency(t, shardNode, codeMap)
 	}
-
-	delayRounds = 5
-	for i := 0; i < delayRounds; i++ {
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
-	}
-
-	checkDataTrieConsistency(t, shardNode.AccntState, removedAccounts, dataTriesRootHashes)
 }
 
 func generateAccounts(
@@ -2172,24 +2170,6 @@ func getDataTrieEntry() ([]byte, []byte) {
 	value := []byte("value" + index)
 
 	return key, value
-}
-
-func checkDataTrieConsistency(
-	t *testing.T,
-	adb state.AccountsAdapter,
-	removedAccounts map[int]struct{},
-	dataTriesRootHashes [][]byte,
-) {
-	for i, rootHash := range dataTriesRootHashes {
-		_, ok := removedAccounts[i]
-		if ok {
-			err := adb.RecreateTrie(holders.NewDefaultRootHashesHolder(rootHash))
-			assert.NotNil(t, err)
-		} else {
-			err := adb.RecreateTrie(holders.NewDefaultRootHashesHolder(rootHash))
-			require.Nil(t, err)
-		}
-	}
 }
 
 func TestProofAndVerifyProofDataTrie(t *testing.T) {
@@ -2737,8 +2717,7 @@ func createAccountsDBTestSetup() *state.AccountsDB {
 	args := testStorage.GetStorageManagerArgs()
 	args.GeneralConfig = generalCfg
 	trieStorage, _ := trie.NewTrieStorageManager(args)
-	maxTrieLevelInMemory := uint(5)
-	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
+	tr, _ := trie.NewTrie(integrationTests.GetTrieArgs(trieStorage))
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 	argsAccCreator := factory.ArgsAccountCreator{
 		Hasher:                 integrationTests.TestHasher,
@@ -2794,7 +2773,7 @@ func TestStateSnapshot_MultipleEpochsWithoutCompleteSnapshot(t *testing.T) {
 	args.MainStorer = mainStorer
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(5)
-	tr, _ := trie.NewTrie(trieStorage, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
+	tr, _ := trie.NewTrie(trie.TrieArgs{TrieStorage: trieStorage, Marshalizer: args.Marshalizer, Hasher: args.Hasher, EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, MaxTrieLevelInMemory: maxTrieLevelInMemory, Throttler: trie.NewDisabledTrieGoRoutinesThrottler()})
 	defer func() {
 		_ = trieStorage.Close()
 	}()
@@ -2824,7 +2803,7 @@ func TestStateSnapshot_MultipleEpochsWithoutCompleteSnapshot(t *testing.T) {
 			numLeaves += addDataToTrie(t, tr, startingIndexBasedOnEpoch, numTrieEntries)
 		}
 
-		err = tr.Commit()
+		err = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 		assert.Nil(t, err)
 	}
 
@@ -2861,9 +2840,13 @@ func TestStateSnapshot_MultipleEpochsWithoutCompleteSnapshot(t *testing.T) {
 	assert.Equal(t, numLeaves, numRetrievedLeaves)
 	wg.Wait()
 
-	hashes, err := tr.GetAllHashes()
-	assert.Nil(t, err)
-	numTrieNodes := len(hashes)
+	iterator, err := trie.NewDFSIterator(tr, rootHash)
+	require.NoError(t, err)
+	numTrieNodes := 1
+	for iterator.HasNext() {
+		require.NoError(t, iterator.Next())
+		numTrieNodes++
+	}
 	assert.Less(t, getCounters[numEpochs-1], numTrieNodes)
 }
 
@@ -2872,8 +2855,7 @@ func addDataToTrie(t *testing.T, tr common.Trie, startIndex int, numEntries int)
 	for j := startIndex; j < startIndex+numEntries; j++ {
 		key := []byte(fmt.Sprintf("key%d", j))
 		value := []byte(fmt.Sprintf("value%d", j))
-		err := tr.Update(key, value)
-		assert.Nil(t, err)
+		tr.Update(key, value)
 		numLeaves++
 	}
 

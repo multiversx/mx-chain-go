@@ -29,6 +29,11 @@ type testPair struct {
 const generate32ByteSlices = 0
 const generate32HexByteSlices = 1
 
+type trieWithToString interface {
+	common.Trie
+	ToString() string
+}
+
 func TestCreationOfTheGenesisState(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -82,25 +87,25 @@ func TestExtensionNodeToBranchEdgeCaseSet1(t *testing.T) {
 	key3 := "eb6d6e15652c0c4d1f73490e12c8b310"
 	val := "value"
 
-	_ = tr1.Update([]byte(key1), []byte(val))
-	_ = tr1.Update([]byte(key2), []byte(val))
-	_ = tr1.Update([]byte(key3), []byte(val))
+	tr1.Update([]byte(key1), []byte(val))
+	tr1.Update([]byte(key2), []byte(val))
+	tr1.Update([]byte(key3), []byte(val))
 
 	fmt.Println()
-	strTr1 := tr1.String()
+	strTr1 := tr1.(trieWithToString).ToString()
 	fmt.Println(strTr1)
 
 	hash1, _ := tr1.RootHash()
 	fmt.Printf("root hash1: %s\n", base64.StdEncoding.EncodeToString(hash1))
 
-	_ = tr2.Update([]byte(key1), []byte(val))
-	_ = tr2.Update([]byte(key3), []byte(val))
-	_ = tr2.Update([]byte(key2), []byte(val))
+	tr2.Update([]byte(key1), []byte(val))
+	tr2.Update([]byte(key3), []byte(val))
+	tr2.Update([]byte(key2), []byte(val))
 	hash2, _ := tr2.RootHash()
 	fmt.Printf("root hash2: %s\n", base64.StdEncoding.EncodeToString(hash2))
 
 	fmt.Println()
-	strTr2 := tr2.String()
+	strTr2 := tr2.(trieWithToString).ToString()
 	fmt.Println(strTr2)
 
 	assert.Equal(t, hash1, hash2)
@@ -122,29 +127,29 @@ func TestExtensionNodeToBranchEdgeCaseSet2(t *testing.T) {
 	key6 := "a5dfc2ec3b0607e820ad375c5074c510"
 	val := "value"
 
-	_ = tr1.Update([]byte(key5), []byte(val))
-	_ = tr1.Update([]byte(key3), []byte(val))
-	_ = tr1.Update([]byte(key1), []byte(val))
-	_ = tr1.Update([]byte(key6), []byte(val))
-	_ = tr1.Update([]byte(key2), []byte(val))
-	_ = tr1.Update([]byte(key4), []byte(val))
+	tr1.Update([]byte(key5), []byte(val))
+	tr1.Update([]byte(key3), []byte(val))
+	tr1.Update([]byte(key1), []byte(val))
+	tr1.Update([]byte(key6), []byte(val))
+	tr1.Update([]byte(key2), []byte(val))
+	tr1.Update([]byte(key4), []byte(val))
 
 	fmt.Println()
-	strTr1 := tr1.String()
+	strTr1 := tr1.(trieWithToString).ToString()
 	fmt.Println(strTr1)
 
 	hash1, _ := tr1.RootHash()
 	fmt.Printf("root hash1: %s\n", base64.StdEncoding.EncodeToString(hash1))
 
-	_ = tr2.Update([]byte(key1), []byte(val))
-	_ = tr2.Update([]byte(key2), []byte(val))
-	_ = tr2.Update([]byte(key3), []byte(val))
-	_ = tr2.Update([]byte(key4), []byte(val))
-	_ = tr2.Update([]byte(key5), []byte(val))
-	_ = tr2.Update([]byte(key6), []byte(val))
+	tr2.Update([]byte(key1), []byte(val))
+	tr2.Update([]byte(key2), []byte(val))
+	tr2.Update([]byte(key3), []byte(val))
+	tr2.Update([]byte(key4), []byte(val))
+	tr2.Update([]byte(key5), []byte(val))
+	tr2.Update([]byte(key6), []byte(val))
 
 	fmt.Println()
-	strTr2 := tr2.String()
+	strTr2 := tr2.(trieWithToString).ToString()
 	fmt.Println(strTr2)
 
 	hash2, _ := tr2.RootHash()
@@ -303,12 +308,12 @@ func printTestDebugLines(
 
 	fmt.Println()
 	fmt.Println("Reference trie:")
-	strRefTrie := referenceTrie.String()
+	strRefTrie := referenceTrie.(trieWithToString).ToString()
 	fmt.Println(strRefTrie)
 
 	fmt.Println()
 	fmt.Println("Actual trie:")
-	strTr := tr.String()
+	strTr := tr.(trieWithToString).ToString()
 	fmt.Println(strTr)
 }
 
@@ -361,14 +366,14 @@ func execute(
 	for _, idx := range randomTotalPairsIdx {
 		tPair := totalPairs[idx]
 
-		_ = tr.Update(tPair.key, tPair.val)
+		tr.Update(tPair.key, tPair.val)
 	}
 	afterAddRootHash, _ := tr.RootHash()
 
 	for _, idx := range randomRemovablePairsIdx {
 		tPair := totalPairs[idx]
 
-		_ = tr.Delete(tPair.key)
+		tr.Delete(tPair.key)
 	}
 	finalRootHash, _ := tr.RootHash()
 

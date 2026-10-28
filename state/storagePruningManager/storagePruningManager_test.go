@@ -1,10 +1,11 @@
 package storagePruningManager
 
 import (
+	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
+	"github.com/stretchr/testify/assert"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
+	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/common/statistics"
@@ -33,7 +34,16 @@ func getDefaultTrieAndAccountsDbAndStoragePruningManager() (common.Trie, *state.
 	hasher := &hashingMocks.HasherMock{}
 	args := storage.GetStorageManagerArgs()
 	trieStorage, _ := trie.NewTrieStorageManager(args)
-	tr, _ := trie.NewTrie(trieStorage, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
+	th, _ := throttler.NewNumGoRoutinesThrottler(10)
+	trieArgs := trie.TrieArgs{
+		TrieStorage:          trieStorage,
+		Marshalizer:          marshaller,
+		Hasher:               hasher,
+		EnableEpochsHandler:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		MaxTrieLevelInMemory: 5,
+		Throttler:            th,
+	}
+	tr, _ := trie.NewTrie(trieArgs)
 	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{
 		RootHashesSize: 100,
 		HashesSize:     10000,
@@ -82,13 +92,13 @@ func TestAccountsDB_TriePruneAndCancelPruneWhileSnapshotInProgressAddsToPruningB
 	tr, adb, spm := getDefaultTrieAndAccountsDbAndStoragePruningManager()
 	trieStorage := tr.GetStorageManager()
 
-	_ = tr.Update([]byte("doe"), []byte("reindeer"))
-	_ = tr.Update([]byte("dog"), []byte("puppy"))
-	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	tr.Update([]byte("doe"), []byte("reindeer"))
+	tr.Update([]byte("dog"), []byte("puppy"))
+	tr.Update([]byte("dogglesworth"), []byte("cat"))
 	_, _ = adb.Commit()
 	oldRootHash, _ := tr.RootHash()
 
-	_ = tr.Update([]byte("dogglesworth"), []byte("catnip"))
+	tr.Update([]byte("dogglesworth"), []byte("catnip"))
 	_, _ = adb.Commit()
 	newRootHash, _ := tr.RootHash()
 
@@ -105,13 +115,13 @@ func TestAccountsDB_TriePruneOnRollbackWhileSnapshotInProgressCancelsPrune(t *te
 
 	tr, adb, spm := getDefaultTrieAndAccountsDbAndStoragePruningManager()
 	trieStorage := tr.GetStorageManager()
-	_ = tr.Update([]byte("doe"), []byte("reindeer"))
-	_ = tr.Update([]byte("dog"), []byte("puppy"))
-	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	tr.Update([]byte("doe"), []byte("reindeer"))
+	tr.Update([]byte("dog"), []byte("puppy"))
+	tr.Update([]byte("dogglesworth"), []byte("cat"))
 	_, _ = adb.Commit()
 	oldRootHash, _ := tr.RootHash()
 
-	_ = tr.Update([]byte("dogglesworth"), []byte("catnip"))
+	tr.Update([]byte("dogglesworth"), []byte("catnip"))
 	_, _ = adb.Commit()
 	newRootHash, _ := tr.RootHash()
 
@@ -128,13 +138,13 @@ func TestAccountsDB_TriePruneAfterSnapshotIsDonePrunesBufferedHashes(t *testing.
 
 	tr, adb, spm := getDefaultTrieAndAccountsDbAndStoragePruningManager()
 	trieStorage := tr.GetStorageManager()
-	_ = tr.Update([]byte("doe"), []byte("reindeer"))
-	_ = tr.Update([]byte("dog"), []byte("puppy"))
-	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	tr.Update([]byte("doe"), []byte("reindeer"))
+	tr.Update([]byte("dog"), []byte("puppy"))
+	tr.Update([]byte("dogglesworth"), []byte("cat"))
 	_, _ = adb.Commit()
 	oldRootHash, _ := tr.RootHash()
 
-	_ = tr.Update([]byte("dogglesworth"), []byte("catnip"))
+	tr.Update([]byte("dogglesworth"), []byte("catnip"))
 	_, _ = adb.Commit()
 	newRootHash, _ := tr.RootHash()
 
@@ -154,13 +164,13 @@ func TestAccountsDB_TrieCancelPruneAndPruningBufferNotEmptyAddsToPruningBuffer(t
 	tr, adb, spm := getDefaultTrieAndAccountsDbAndStoragePruningManager()
 	trieStorage := tr.GetStorageManager()
 
-	_ = tr.Update([]byte("doe"), []byte("reindeer"))
-	_ = tr.Update([]byte("dog"), []byte("puppy"))
-	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	tr.Update([]byte("doe"), []byte("reindeer"))
+	tr.Update([]byte("dog"), []byte("puppy"))
+	tr.Update([]byte("dogglesworth"), []byte("cat"))
 	_, _ = adb.Commit()
 	oldRootHash, _ := tr.RootHash()
 
-	_ = tr.Update([]byte("dogglesworth"), []byte("catnip"))
+	tr.Update([]byte("dogglesworth"), []byte("catnip"))
 	_, _ = adb.Commit()
 	newRootHash, _ := tr.RootHash()
 
@@ -180,13 +190,13 @@ func TestAccountsDB_TriePruneAndCancelPruneAddedToBufferInOrder(t *testing.T) {
 	tr, adb, spm := getDefaultTrieAndAccountsDbAndStoragePruningManager()
 	trieStorage := tr.GetStorageManager()
 
-	_ = tr.Update([]byte("doe"), []byte("reindeer"))
-	_ = tr.Update([]byte("dog"), []byte("puppy"))
-	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	tr.Update([]byte("doe"), []byte("reindeer"))
+	tr.Update([]byte("dog"), []byte("puppy"))
+	tr.Update([]byte("dogglesworth"), []byte("cat"))
 	_, _ = adb.Commit()
 	oldRootHash, _ := tr.RootHash()
 
-	_ = tr.Update([]byte("dogglesworth"), []byte("catnip"))
+	tr.Update([]byte("dogglesworth"), []byte("catnip"))
 	_, _ = adb.Commit()
 	newRootHash, _ := tr.RootHash()
 
@@ -215,20 +225,20 @@ func TestAccountsDB_PruneAfterCancelPruneShouldFail(t *testing.T) {
 	tr, adb, spm := getDefaultTrieAndAccountsDbAndStoragePruningManager()
 	trieStorage := tr.GetStorageManager()
 
-	_ = tr.Update([]byte("doe"), []byte("reindeer"))
-	_ = tr.Update([]byte("dog"), []byte("puppy"))
-	_ = tr.Update([]byte("ddog"), []byte("cat"))
+	tr.Update([]byte("doe"), []byte("reindeer"))
+	tr.Update([]byte("dog"), []byte("puppy"))
+	tr.Update([]byte("ddog"), []byte("cat"))
 	_, _ = adb.Commit()
 	rootHash, _ := tr.RootHash()
 
-	_ = tr.Update([]byte("dog"), []byte("value of dog"))
+	tr.Update([]byte("dog"), []byte("value of dog"))
 	_, _ = adb.Commit()
 	spm.CancelPrune(rootHash, state.NewRoot, trieStorage)
 
 	spm.CancelPrune(rootHash, state.OldRoot, trieStorage)
 	spm.PruneTrie(rootHash, state.OldRoot, trieStorage, state.NewPruningHandler(state.EnableDataRemoval))
 
-	newTr, err := tr.Recreate(holders.NewDefaultRootHashesHolder(rootHash))
+	newTr, err := tr.Recreate(holders.NewDefaultRootHashesHolder(rootHash), "")
 	assert.Nil(t, err)
 	assert.NotNil(t, newTr)
 }
@@ -273,7 +283,7 @@ func TestStoragePruningManager_Reset(t *testing.T) {
 	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(ewlArgs)
 	spm, _ := NewStoragePruningManager(ewl, 1000)
 
-	err := spm.MarkForEviction([]byte("rootHash"), []byte("newRootHash"), map[string]struct{}{"hash1": {}, "hash2": {}}, map[string]struct{}{"hash3": {}, "hash4": {}})
+	err := spm.MarkForEviction([]byte("newRootHash"), newHashesCollectorForTest([]byte("rootHash"), map[string]struct{}{"hash1": {}, "hash2": {}}, map[string]struct{}{"hash3": {}, "hash4": {}}))
 	assert.Nil(t, err)
 	err = spm.markForEviction([]byte("rootHash2"), map[string]struct{}{"hash5": {}, "hash6": {}}, state.NewRoot)
 	assert.Nil(t, err)
@@ -308,14 +318,14 @@ func TestStoragePruningManager_DuplicateKeyIncrementsNumReferences(t *testing.T)
 	// Put R0|OldRoot twice (simulates delayed pruning with recycled root hash)
 	oldHashes1 := map[string]struct{}{"h1": {}, "h2": {}}
 	newHashes1 := map[string]struct{}{"h3": {}}
-	err := spm.MarkForEviction([]byte("R0"), []byte("R1"), oldHashes1, newHashes1)
+	err := spm.MarkForEviction([]byte("R1"), newHashesCollectorForTest([]byte("R0"), oldHashes1, newHashes1))
 	assert.Nil(t, err)
 	assert.Equal(t, 2, spm.EvictionWaitingListCacheLen())
 
 	// Second MarkForEviction with same oldRoot R0 increments numReferences
 	oldHashes2 := map[string]struct{}{"h4": {}, "h5": {}}
 	newHashes2 := map[string]struct{}{"h6": {}}
-	err = spm.MarkForEviction([]byte("R0"), []byte("R2"), oldHashes2, newHashes2)
+	err = spm.MarkForEviction([]byte("R2"), newHashesCollectorForTest([]byte("R0"), oldHashes2, newHashes2))
 	assert.Nil(t, err)
 	assert.Equal(t, 3, spm.EvictionWaitingListCacheLen()) // R0|OldRoot, R1|NewRoot, R2|NewRoot
 
@@ -342,9 +352,11 @@ func TestStoragePruningManager_EvictionWaitingListCacheLen(t *testing.T) {
 
 	assert.Equal(t, 0, spm.EvictionWaitingListCacheLen())
 
-	err := spm.MarkForEviction([]byte("old"), []byte("new"),
-		map[string]struct{}{"h1": {}},
-		map[string]struct{}{"h2": {}})
+	err := spm.MarkForEviction([]byte("new"), newHashesCollectorForTest([]byte("old"), map[string]struct{}{"h1": {}}, map[string]struct{}{"h2": {}}))
 	assert.Nil(t, err)
 	assert.Equal(t, 2, spm.EvictionWaitingListCacheLen())
+}
+
+func newHashesCollectorForTest(oldRoot []byte, oldHashes, newHashes common.ModifiedHashes) common.TrieHashesCollector {
+	return &trieMock.TrieHashesCollectorStub{GetCollectedDataCalled: func() ([]byte, common.ModifiedHashes, common.ModifiedHashes) { return oldRoot, oldHashes, newHashes }}
 }

@@ -27,7 +27,7 @@ var _ = math.Inf
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 type CollapsedBn struct {
-	EncodedChildren [][]byte `protobuf:"bytes,1,rep,name=EncodedChildren,proto3" json:"EncodedChildren,omitempty"`
+	ChildrenHashes  [][]byte `protobuf:"bytes,1,rep,name=ChildrenHashes,proto3" json:"ChildrenHashes,omitempty"`
 	ChildrenVersion []byte   `protobuf:"bytes,2,opt,name=ChildrenVersion,proto3" json:"ChildrenVersion,omitempty"`
 }
 
@@ -59,9 +59,9 @@ func (m *CollapsedBn) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_CollapsedBn proto.InternalMessageInfo
 
-func (m *CollapsedBn) GetEncodedChildren() [][]byte {
+func (m *CollapsedBn) GetChildrenHashes() [][]byte {
 	if m != nil {
-		return m.EncodedChildren
+		return m.ChildrenHashes
 	}
 	return nil
 }
@@ -75,7 +75,7 @@ func (m *CollapsedBn) GetChildrenVersion() []byte {
 
 type CollapsedEn struct {
 	Key          []byte `protobuf:"bytes,1,opt,name=Key,proto3" json:"Key,omitempty"`
-	EncodedChild []byte `protobuf:"bytes,2,opt,name=EncodedChild,proto3" json:"EncodedChild,omitempty"`
+	ChildHash    []byte `protobuf:"bytes,2,opt,name=ChildHash,proto3" json:"ChildHash,omitempty"`
 	ChildVersion uint32 `protobuf:"varint,3,opt,name=ChildVersion,proto3" json:"ChildVersion,omitempty"`
 }
 
@@ -114,9 +114,9 @@ func (m *CollapsedEn) GetKey() []byte {
 	return nil
 }
 
-func (m *CollapsedEn) GetEncodedChild() []byte {
+func (m *CollapsedEn) GetChildHash() []byte {
 	if m != nil {
-		return m.EncodedChild
+		return m.ChildHash
 	}
 	return nil
 }
@@ -192,25 +192,25 @@ func init() {
 func init() { proto.RegisterFile("node.proto", fileDescriptor_0c843d59d2d938e7) }
 
 var fileDescriptor_0c843d59d2d938e7 = []byte{
-	// 283 bytes of a gzipped FileDescriptorProto
+	// 288 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0xca, 0xcb, 0x4f, 0x49,
 	0xd5, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x05, 0x53, 0x52, 0xba, 0xe9, 0x99, 0x25, 0x19,
 	0xa5, 0x49, 0x7a, 0xc9, 0xf9, 0xb9, 0xfa, 0xe9, 0xf9, 0xe9, 0xf9, 0xfa, 0x60, 0xe1, 0xa4, 0xd2,
-	0x34, 0x30, 0x0f, 0xcc, 0x01, 0xb3, 0x20, 0xba, 0x94, 0x72, 0xb9, 0xb8, 0x9d, 0xf3, 0x73, 0x72,
-	0x12, 0x0b, 0x8a, 0x53, 0x53, 0x9c, 0xf2, 0x84, 0xf4, 0xb8, 0xf8, 0x5d, 0xf3, 0x92, 0xf3, 0x53,
-	0x52, 0x53, 0x9c, 0x33, 0x32, 0x73, 0x52, 0x8a, 0x52, 0xf3, 0x24, 0x18, 0x15, 0x98, 0x35, 0x78,
-	0x9c, 0x58, 0x4e, 0xdc, 0x93, 0x67, 0x0c, 0x42, 0x97, 0x04, 0xa9, 0x87, 0xb1, 0xc3, 0x52, 0x8b,
-	0x8a, 0x33, 0xf3, 0xf3, 0x24, 0x98, 0x14, 0x18, 0x11, 0xea, 0xd1, 0x24, 0x95, 0xd2, 0x91, 0xac,
-	0x73, 0xcd, 0x13, 0x12, 0xe0, 0x62, 0xf6, 0x4e, 0xad, 0x94, 0x60, 0x04, 0x69, 0x09, 0x02, 0x31,
-	0x85, 0x94, 0xb8, 0x78, 0x90, 0xed, 0x80, 0x98, 0x16, 0x84, 0x22, 0x06, 0x52, 0x03, 0x66, 0xc0,
-	0x6c, 0x64, 0x56, 0x60, 0xd4, 0xe0, 0x0d, 0x42, 0x11, 0x53, 0xf2, 0x47, 0xb2, 0xc8, 0x07, 0x9b,
-	0x45, 0x22, 0x5c, 0xac, 0x61, 0x89, 0x39, 0xa5, 0xa9, 0x50, 0x1b, 0x20, 0x1c, 0x21, 0x09, 0x2e,
-	0x76, 0x54, 0x53, 0x61, 0x5c, 0x27, 0xbb, 0x0b, 0x0f, 0xe5, 0x18, 0x6e, 0x3c, 0x94, 0x63, 0xf8,
-	0xf0, 0x50, 0x8e, 0xb1, 0xe1, 0x91, 0x1c, 0xe3, 0x8a, 0x47, 0x72, 0x8c, 0x27, 0x1e, 0xc9, 0x31,
-	0x5e, 0x78, 0x24, 0xc7, 0x78, 0xe3, 0x91, 0x1c, 0xe3, 0x83, 0x47, 0x72, 0x8c, 0x2f, 0x1e, 0xc9,
-	0x31, 0x7c, 0x78, 0x24, 0xc7, 0x38, 0xe1, 0xb1, 0x1c, 0xc3, 0x85, 0xc7, 0x72, 0x0c, 0x37, 0x1e,
-	0xcb, 0x31, 0x44, 0xb1, 0x94, 0x14, 0x65, 0xa6, 0x26, 0xb1, 0x81, 0xc3, 0xdb, 0x18, 0x10, 0x00,
-	0x00, 0xff, 0xff, 0x62, 0x19, 0x3f, 0xae, 0xb3, 0x01, 0x00, 0x00,
+	0x34, 0x30, 0x0f, 0xcc, 0x01, 0xb3, 0x20, 0xba, 0x94, 0xb2, 0xb9, 0xb8, 0x9d, 0xf3, 0x73, 0x72,
+	0x12, 0x0b, 0x8a, 0x53, 0x53, 0x9c, 0xf2, 0x84, 0x74, 0xb8, 0xf8, 0x9c, 0x33, 0x32, 0x73, 0x52,
+	0x8a, 0x52, 0xf3, 0x3c, 0x12, 0x8b, 0x33, 0x52, 0x8b, 0x25, 0x18, 0x15, 0x98, 0x35, 0x78, 0x9c,
+	0x58, 0x4e, 0xdc, 0x93, 0x67, 0x0c, 0x42, 0x93, 0x13, 0xd2, 0xe3, 0xe2, 0x87, 0x89, 0x84, 0xa5,
+	0x16, 0x15, 0x67, 0xe6, 0xe7, 0x49, 0x30, 0x29, 0x30, 0xc2, 0x95, 0xa3, 0x4b, 0x2a, 0x25, 0x22,
+	0x59, 0xe6, 0x9a, 0x27, 0x24, 0xc0, 0xc5, 0xec, 0x9d, 0x5a, 0x29, 0xc1, 0x08, 0xd2, 0x12, 0x04,
+	0x62, 0x0a, 0xc9, 0x70, 0x71, 0x82, 0xf5, 0x80, 0xcc, 0x87, 0x18, 0x15, 0x84, 0x10, 0x10, 0x52,
+	0xe2, 0xe2, 0x01, 0x73, 0x60, 0x76, 0x31, 0x2b, 0x30, 0x6a, 0xf0, 0x06, 0xa1, 0x88, 0x29, 0xf9,
+	0x23, 0x59, 0xe1, 0x83, 0xcd, 0x0a, 0x11, 0x2e, 0xd6, 0xb0, 0xc4, 0x9c, 0xd2, 0x54, 0xa8, 0xf1,
+	0x10, 0x8e, 0x90, 0x04, 0x17, 0x3b, 0xaa, 0xa9, 0x30, 0xae, 0x93, 0xdd, 0x85, 0x87, 0x72, 0x0c,
+	0x37, 0x1e, 0xca, 0x31, 0x7c, 0x78, 0x28, 0xc7, 0xd8, 0xf0, 0x48, 0x8e, 0x71, 0xc5, 0x23, 0x39,
+	0xc6, 0x13, 0x8f, 0xe4, 0x18, 0x2f, 0x3c, 0x92, 0x63, 0xbc, 0xf1, 0x48, 0x8e, 0xf1, 0xc1, 0x23,
+	0x39, 0xc6, 0x17, 0x8f, 0xe4, 0x18, 0x3e, 0x3c, 0x92, 0x63, 0x9c, 0xf0, 0x58, 0x8e, 0xe1, 0xc2,
+	0x63, 0x39, 0x86, 0x1b, 0x8f, 0xe5, 0x18, 0xa2, 0x58, 0x4a, 0x8a, 0x32, 0x53, 0x93, 0xd8, 0xc0,
+	0xe1, 0x6c, 0x0c, 0x08, 0x00, 0x00, 0xff, 0xff, 0x03, 0x0a, 0x21, 0xb8, 0xab, 0x01, 0x00, 0x00,
 }
 
 func (this *CollapsedBn) Equal(that interface{}) bool {
@@ -232,11 +232,11 @@ func (this *CollapsedBn) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	if len(this.EncodedChildren) != len(that1.EncodedChildren) {
+	if len(this.ChildrenHashes) != len(that1.ChildrenHashes) {
 		return false
 	}
-	for i := range this.EncodedChildren {
-		if !bytes.Equal(this.EncodedChildren[i], that1.EncodedChildren[i]) {
+	for i := range this.ChildrenHashes {
+		if !bytes.Equal(this.ChildrenHashes[i], that1.ChildrenHashes[i]) {
 			return false
 		}
 	}
@@ -267,7 +267,7 @@ func (this *CollapsedEn) Equal(that interface{}) bool {
 	if !bytes.Equal(this.Key, that1.Key) {
 		return false
 	}
-	if !bytes.Equal(this.EncodedChild, that1.EncodedChild) {
+	if !bytes.Equal(this.ChildHash, that1.ChildHash) {
 		return false
 	}
 	if this.ChildVersion != that1.ChildVersion {
@@ -311,7 +311,7 @@ func (this *CollapsedBn) GoString() string {
 	}
 	s := make([]string, 0, 6)
 	s = append(s, "&trie.CollapsedBn{")
-	s = append(s, "EncodedChildren: "+fmt.Sprintf("%#v", this.EncodedChildren)+",\n")
+	s = append(s, "ChildrenHashes: "+fmt.Sprintf("%#v", this.ChildrenHashes)+",\n")
 	s = append(s, "ChildrenVersion: "+fmt.Sprintf("%#v", this.ChildrenVersion)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
@@ -323,7 +323,7 @@ func (this *CollapsedEn) GoString() string {
 	s := make([]string, 0, 7)
 	s = append(s, "&trie.CollapsedEn{")
 	s = append(s, "Key: "+fmt.Sprintf("%#v", this.Key)+",\n")
-	s = append(s, "EncodedChild: "+fmt.Sprintf("%#v", this.EncodedChild)+",\n")
+	s = append(s, "ChildHash: "+fmt.Sprintf("%#v", this.ChildHash)+",\n")
 	s = append(s, "ChildVersion: "+fmt.Sprintf("%#v", this.ChildVersion)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
@@ -375,11 +375,11 @@ func (m *CollapsedBn) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x12
 	}
-	if len(m.EncodedChildren) > 0 {
-		for iNdEx := len(m.EncodedChildren) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.EncodedChildren[iNdEx])
-			copy(dAtA[i:], m.EncodedChildren[iNdEx])
-			i = encodeVarintNode(dAtA, i, uint64(len(m.EncodedChildren[iNdEx])))
+	if len(m.ChildrenHashes) > 0 {
+		for iNdEx := len(m.ChildrenHashes) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.ChildrenHashes[iNdEx])
+			copy(dAtA[i:], m.ChildrenHashes[iNdEx])
+			i = encodeVarintNode(dAtA, i, uint64(len(m.ChildrenHashes[iNdEx])))
 			i--
 			dAtA[i] = 0xa
 		}
@@ -412,10 +412,10 @@ func (m *CollapsedEn) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x18
 	}
-	if len(m.EncodedChild) > 0 {
-		i -= len(m.EncodedChild)
-		copy(dAtA[i:], m.EncodedChild)
-		i = encodeVarintNode(dAtA, i, uint64(len(m.EncodedChild)))
+	if len(m.ChildHash) > 0 {
+		i -= len(m.ChildHash)
+		copy(dAtA[i:], m.ChildHash)
+		i = encodeVarintNode(dAtA, i, uint64(len(m.ChildHash)))
 		i--
 		dAtA[i] = 0x12
 	}
@@ -488,8 +488,8 @@ func (m *CollapsedBn) Size() (n int) {
 	}
 	var l int
 	_ = l
-	if len(m.EncodedChildren) > 0 {
-		for _, b := range m.EncodedChildren {
+	if len(m.ChildrenHashes) > 0 {
+		for _, b := range m.ChildrenHashes {
 			l = len(b)
 			n += 1 + l + sovNode(uint64(l))
 		}
@@ -511,7 +511,7 @@ func (m *CollapsedEn) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovNode(uint64(l))
 	}
-	l = len(m.EncodedChild)
+	l = len(m.ChildHash)
 	if l > 0 {
 		n += 1 + l + sovNode(uint64(l))
 	}
@@ -552,7 +552,7 @@ func (this *CollapsedBn) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&CollapsedBn{`,
-		`EncodedChildren:` + fmt.Sprintf("%v", this.EncodedChildren) + `,`,
+		`ChildrenHashes:` + fmt.Sprintf("%v", this.ChildrenHashes) + `,`,
 		`ChildrenVersion:` + fmt.Sprintf("%v", this.ChildrenVersion) + `,`,
 		`}`,
 	}, "")
@@ -564,7 +564,7 @@ func (this *CollapsedEn) String() string {
 	}
 	s := strings.Join([]string{`&CollapsedEn{`,
 		`Key:` + fmt.Sprintf("%v", this.Key) + `,`,
-		`EncodedChild:` + fmt.Sprintf("%v", this.EncodedChild) + `,`,
+		`ChildHash:` + fmt.Sprintf("%v", this.ChildHash) + `,`,
 		`ChildVersion:` + fmt.Sprintf("%v", this.ChildVersion) + `,`,
 		`}`,
 	}, "")
@@ -621,7 +621,7 @@ func (m *CollapsedBn) Unmarshal(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field EncodedChildren", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field ChildrenHashes", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
@@ -648,8 +648,8 @@ func (m *CollapsedBn) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.EncodedChildren = append(m.EncodedChildren, make([]byte, postIndex-iNdEx))
-			copy(m.EncodedChildren[len(m.EncodedChildren)-1], dAtA[iNdEx:postIndex])
+			m.ChildrenHashes = append(m.ChildrenHashes, make([]byte, postIndex-iNdEx))
+			copy(m.ChildrenHashes[len(m.ChildrenHashes)-1], dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
@@ -774,7 +774,7 @@ func (m *CollapsedEn) Unmarshal(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field EncodedChild", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field ChildHash", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
@@ -801,9 +801,9 @@ func (m *CollapsedEn) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.EncodedChild = append(m.EncodedChild[:0], dAtA[iNdEx:postIndex]...)
-			if m.EncodedChild == nil {
-				m.EncodedChild = []byte{}
+			m.ChildHash = append(m.ChildHash[:0], dAtA[iNdEx:postIndex]...)
+			if m.ChildHash == nil {
+				m.ChildHash = []byte{}
 			}
 			iNdEx = postIndex
 		case 3:

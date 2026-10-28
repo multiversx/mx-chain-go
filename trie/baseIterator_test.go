@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -14,8 +15,9 @@ func TestNewBaseIterator(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
+	rootHash, _ := tr.RootHash()
 
-	it, err := trie.NewBaseIterator(tr)
+	it, err := trie.NewBaseIterator(tr, rootHash)
 	assert.Nil(t, err)
 	assert.NotNil(t, it)
 }
@@ -25,7 +27,7 @@ func TestNewBaseIteratorNilTrieShouldErr(t *testing.T) {
 
 	var tr common.Trie
 
-	it, err := trie.NewBaseIterator(tr)
+	it, err := trie.NewBaseIterator(tr, nil)
 	assert.Nil(t, it)
 	assert.Equal(t, trie.ErrNilTrie, err)
 }
@@ -34,12 +36,16 @@ func TestBaseIterator_HasNext(t *testing.T) {
 	t.Parallel()
 
 	tr := emptyTrie()
-	_ = tr.Update([]byte("dog"), []byte("dog"))
-	it, _ := trie.NewBaseIterator(tr)
+	tr.Update([]byte("dog"), []byte("dog"))
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
+	rootHash, _ := tr.RootHash()
+	it, _ := trie.NewBaseIterator(tr, rootHash)
 	assert.False(t, it.HasNext())
 
-	_ = tr.Update([]byte("doe"), []byte("doe"))
-	it, _ = trie.NewBaseIterator(tr)
+	tr.Update([]byte("doe"), []byte("doe"))
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
+	rootHash, _ = tr.RootHash()
+	it, _ = trie.NewBaseIterator(tr, rootHash)
 	assert.True(t, it.HasNext())
 }
 
@@ -47,7 +53,8 @@ func TestBaseIterator_GetMarshalizedNode(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
-	it, _ := trie.NewBaseIterator(tr)
+	rootHash, _ := tr.RootHash()
+	it, _ := trie.NewBaseIterator(tr, rootHash)
 
 	encNode, err := it.MarshalizedNode()
 	assert.Nil(t, err)
@@ -62,11 +69,11 @@ func TestBaseIterator_GetHash(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	rootHash, _ := tr.RootHash()
-	it, _ := trie.NewBaseIterator(tr)
+	it, _ := trie.NewBaseIterator(tr, rootHash)
 
-	hash, err := it.GetHash()
-	assert.Nil(t, err)
+	hash := it.GetHash()
 	assert.Equal(t, rootHash, hash)
 }
 
@@ -74,10 +81,11 @@ func TestIterator_Search(t *testing.T) {
 	t.Parallel()
 
 	tr := emptyTrie()
-	_ = tr.Update([]byte("doe"), []byte("reindeer"))
-	_ = tr.Update([]byte("dog"), []byte("puppy"))
-	_ = tr.Update([]byte("ddog"), []byte("cat"))
-	_ = tr.Update([]byte("ddoge"), []byte("foo"))
+	tr.Update([]byte("doe"), []byte("reindeer"))
+	tr.Update([]byte("dog"), []byte("puppy"))
+	tr.Update([]byte("ddog"), []byte("cat"))
+	tr.Update([]byte("ddoge"), []byte("foo"))
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 	expectedHashes := []string{
 		"ecc2304769996585131ad6276c1422265813a2b79d60392130c4baa19a9b4e06",
@@ -106,9 +114,9 @@ func TestIterator_Search(t *testing.T) {
 			expectedHashes[8],
 		}
 
-		it, _ := trie.NewDFSIterator(tr)
-		nodeHash, err := it.GetHash()
-		require.Nil(t, err)
+		rootHash, _ := tr.RootHash()
+		it, _ := trie.NewDFSIterator(tr, rootHash)
+		nodeHash := it.GetHash()
 
 		nodesHashes := make([]string, 0)
 		nodesHashes = append(nodesHashes, hex.EncodeToString(nodeHash))
@@ -117,8 +125,7 @@ func TestIterator_Search(t *testing.T) {
 			err := it.Next()
 			require.Nil(t, err)
 
-			nodeHash, err := it.GetHash()
-			require.Nil(t, err)
+			nodeHash := it.GetHash()
 
 			nodesHashes = append(nodesHashes, hex.EncodeToString(nodeHash))
 		}

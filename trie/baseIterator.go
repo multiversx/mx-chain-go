@@ -3,18 +3,24 @@ package trie
 import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/holders"
 )
 
 type baseIterator struct {
-	currentNode node
-	nextNodes   []node
-	db          common.TrieStorageInteractor
+	currentNode nodeWithHash
+	nextNodes   []nodeWithHash
+	trieContext common.TrieContext
 }
 
 // newBaseIterator creates a new instance of trie iterator
-func newBaseIterator(trie common.Trie) (*baseIterator, error) {
+func newBaseIterator(trie common.Trie, rootHash []byte) (*baseIterator, error) {
 	if check.IfNil(trie) {
 		return nil, ErrNilTrie
+	}
+
+	trie, err := trie.Recreate(holders.NewDefaultRootHashesHolder(rootHash), "")
+	if err != nil {
+		return nil, err
 	}
 
 	pmt, ok := trie.(*patriciaMerkleTrie)
@@ -22,16 +28,19 @@ func newBaseIterator(trie common.Trie) (*baseIterator, error) {
 		return nil, ErrWrongTypeAssertion
 	}
 
-	trieStorage := trie.GetStorageManager()
-	nextNodes, err := pmt.root.getChildren(trieStorage)
+	rootNode := pmt.GetRootNode()
+	nextNodes, err := rootNode.getChildren(pmt.TrieContext)
 	if err != nil {
 		return nil, err
 	}
 
 	return &baseIterator{
-		currentNode: pmt.root,
+		currentNode: nodeWithHash{
+			node: rootNode,
+			hash: rootHash,
+		},
 		nextNodes:   nextNodes,
-		db:          trieStorage,
+		trieContext: pmt.TrieContext,
 	}, nil
 }
 
@@ -41,34 +50,23 @@ func (it *baseIterator) HasNext() bool {
 }
 
 // next moves the iterator to the next node
-func (it *baseIterator) next() ([]node, error) {
+func (it *baseIterator) next() ([]nodeWithHash, error) {
 	n := it.nextNodes[0]
 
-	err := n.isEmptyOrNil()
-	if err != nil {
+	if check.IfNil(n.node) {
 		return nil, ErrNilNode
 	}
 
 	it.currentNode = n
-	return it.currentNode.getChildren(it.db)
+	return it.currentNode.node.getChildren(it.trieContext)
 }
 
 // MarshalizedNode marshalizes the current node, and then returns the serialized node
 func (it *baseIterator) MarshalizedNode() ([]byte, error) {
-	err := it.currentNode.setHash()
-	if err != nil {
-		return nil, err
-	}
-
-	return it.currentNode.getEncodedNode()
+	return it.currentNode.node.getEncodedNode(it.trieContext)
 }
 
 // GetHash returns the current node hash
-func (it *baseIterator) GetHash() ([]byte, error) {
-	err := it.currentNode.setHash()
-	if err != nil {
-		return nil, err
-	}
-
-	return it.currentNode.getHash(), nil
+func (it *baseIterator) GetHash() []byte {
+	return it.currentNode.hash
 }

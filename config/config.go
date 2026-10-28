@@ -511,6 +511,7 @@ type StateTriesConfig struct {
 	PeerStatePruningEnabled     bool
 	MaxStateTrieLevelInMemory   uint
 	MaxPeerTrieLevelInMemory    uint
+	MaxNumGoroutines            uint
 	StateStatisticsEnabled      bool
 }
 

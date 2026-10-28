@@ -23,11 +23,6 @@ func (adb *AccountsDB) GetAccount(address []byte) (vmcommon.AccountHandler, erro
 	return adb.getAccount(address, adb.getMainTrie())
 }
 
-// GetObsoleteHashes -
-func (adb *AccountsDB) GetObsoleteHashes() map[string][][]byte {
-	return adb.obsoleteDataTrieHashes
-}
-
 // CommitWithStateAccessesForHeader -
 func (adb *AccountsDB) CommitWithStateAccessesForHeader(headerHash []byte) ([]byte, error) {
 	adb.stateAccessesCollector.BeginExecution(headerHash)

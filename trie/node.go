@@ -8,129 +8,81 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/hashing"
-	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-
-	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 )
 
 const (
 	nrOfChildren         = 17
 	firstByte            = 0
-	hexTerminator        = 16
-	nibbleMask           = 0x0f
 	pointerSizeInBytes   = 8
-	numNodeInnerPointers = 2 // each trie node contains a marshalizer and a hasher
+	dirtyFlagSizeInBytes = 1
+	versionSizeInBytes   = 4
 	pollingIdleNode      = time.Millisecond
+	rootMutexKey         = "root"
 	// maxUnreportedParkedTime bounds how long a snapshot goroutine may sit parked behind node
 	// operations before reporting it: sustained parking starves the snapshot and defers pruning
 	maxUnreportedParkedTime = time.Minute
 )
 
-type baseNode struct {
-	hash   []byte
-	dirty  bool
-	marsh  marshal.Marshalizer
-	hasher hashing.Hasher
-}
-
 type branchNode struct {
 	CollapsedBn
 	children [nrOfChildren]node
-	*baseNode
+	dirty    bool
 }
 
 type extensionNode struct {
 	CollapsedEn
 	child node
-	*baseNode
+	dirty bool
 }
 
 type leafNode struct {
 	CollapsedLn
-	*baseNode
+	dirty bool
 }
 
-func hashChildrenAndNode(n node) ([]byte, error) {
-	err := n.hashChildren()
+func encodeNodeAndGetHash(n node, trieCtx common.TrieContext) ([]byte, error) {
+	encNode, err := n.getEncodedNode(trieCtx)
 	if err != nil {
 		return nil, err
 	}
 
-	hashed, err := n.hashNode()
-	if err != nil {
-		return nil, err
-	}
-
-	return hashed, nil
-}
-
-func encodeNodeAndGetHash(n node) ([]byte, error) {
-	encNode, err := n.getEncodedNode()
-	if err != nil {
-		return nil, err
-	}
-
-	hash := n.getHasher().Compute(string(encNode))
+	hash := trieCtx.Compute(string(encNode))
 
 	return hash, nil
 }
 
 // encodeNodeAndCommitToDB will encode and save provided node. It returns the node's value in bytes
-func encodeNodeAndCommitToDB(n node, db common.BaseStorer) (int, error) {
-	key, err := computeAndSetNodeHash(n)
+func encodeNodeAndCommitToDB(n node, trieCtx common.TrieContext) (int, error) {
+	val, err := n.getEncodedNode(trieCtx)
 	if err != nil {
 		return 0, err
 	}
-
-	val, err := collapseAndEncodeNode(n)
-	if err != nil {
-		return 0, err
-	}
+	key := trieCtx.Compute(string(val))
 
 	// test point encodeNodeAndCommitToDB
 
-	err = db.Put(key, val)
+	err = trieCtx.Put(key, val)
 
 	return len(val), err
 }
 
-func collapseAndEncodeNode(n node) ([]byte, error) {
-	n, err := n.getCollapsed()
-	if err != nil {
-		return nil, err
-	}
-
-	return n.getEncodedNode()
-}
-
-func computeAndSetNodeHash(n node) ([]byte, error) {
-	key := n.getHash()
-	if len(key) != 0 {
-		return key, nil
-	}
-
-	err := n.setHash()
-	if err != nil {
-		return nil, err
-	}
-	key = n.getHash()
-
-	return key, nil
-}
-
-func getNodeFromDBAndDecode(n []byte, db common.TrieStorageInteractor, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
-	encChild, err := db.Get(n)
+func getNodeFromDBAndDecode(n []byte, trieCtx common.TrieContext) (node, []byte, error) {
+	encodedNode, err := trieCtx.Get(n)
 	if err != nil {
 		treatLogError(log, err, n)
 
-		return nil, core.NewGetNodeFromDBErrWithKey(n, err, db.GetIdentifier())
+		return nil, nil, core.NewGetNodeFromDBErrWithKey(n, err, trieCtx.GetIdentifier())
 	}
 
-	return decodeNode(encChild, marshalizer, hasher)
+	decodedNode, err := decodeNode(encodedNode, trieCtx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return decodedNode, encodedNode, nil
 }
 
 func treatLogError(logInstance logger.Logger, err error, key []byte) {
@@ -139,20 +91,6 @@ func treatLogError(logInstance logger.Logger, err error, key []byte) {
 	}
 
 	logInstance.Trace(core.GetNodeFromDBErrorString, "error", err, "key", key, "stack trace", string(debug.Stack()))
-}
-
-func resolveIfCollapsed(n node, pos byte, db common.TrieStorageInteractor) error {
-	err := n.isEmptyOrNil()
-	if err != nil {
-		return err
-	}
-
-	if !n.isPosCollapsed(int(pos)) {
-		handleStorageInteractorStats(db)
-		return nil
-	}
-
-	return n.resolveCollapsed(pos, db)
 }
 
 func handleStorageInteractorStats(db common.TrieStorageInteractor) {
@@ -169,22 +107,7 @@ func concat(s1 []byte, s2 ...byte) []byte {
 	return r
 }
 
-func hasValidHash(n node) (bool, error) {
-	err := n.isEmptyOrNil()
-	if err != nil {
-		return false, err
-	}
-
-	childHash := n.getHash()
-	childIsDirty := n.isDirty()
-	if childHash == nil || childIsDirty {
-		return false, nil
-	}
-
-	return true, nil
-}
-
-func decodeNode(encNode []byte, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
+func decodeNode(encNode []byte, trieCtx common.TrieContext) (node, error) {
 	if len(encNode) < 1 {
 		return nil, ErrInvalidEncoding
 	}
@@ -197,7 +120,7 @@ func decodeNode(encNode []byte, marshalizer marshal.Marshalizer, hasher hashing.
 		return nil, err
 	}
 
-	err = marshalizer.Unmarshal(newNode, encNode)
+	err = trieCtx.Unmarshal(newNode, encNode)
 	if err != nil {
 		return nil, err
 	}
@@ -206,10 +129,6 @@ func decodeNode(encNode []byte, marshalizer marshal.Marshalizer, hasher hashing.
 	if err != nil {
 		return nil, err
 	}
-
-	newNode.setMarshalizer(marshalizer)
-	newNode.setHasher(hasher)
-
 	return newNode, nil
 }
 
@@ -219,8 +138,8 @@ func validateDecodedNode(n node) error {
 		return nil
 	}
 
-	if len(bn.EncodedChildren) != nrOfChildren {
-		return fmt.Errorf("%w for EncodedChildren, len is %d", ErrInvalidEncoding, len(bn.EncodedChildren))
+	if len(bn.ChildrenHashes) != nrOfChildren {
+		return fmt.Errorf("%w for EncodedChildren, len is %d", ErrInvalidEncoding, len(bn.ChildrenHashes))
 	}
 
 	if len(bn.ChildrenVersion) != 0 && len(bn.ChildrenVersion) != nrOfChildren {
@@ -233,11 +152,11 @@ func validateDecodedNode(n node) error {
 func getEmptyNodeOfType(t byte) (node, error) {
 	switch t {
 	case extension:
-		return &extensionNode{baseNode: &baseNode{}}, nil
+		return &extensionNode{}, nil
 	case leaf:
-		return &leafNode{baseNode: &baseNode{}}, nil
+		return &leafNode{}, nil
 	case branch:
-		return &branchNode{baseNode: &baseNode{}}, nil
+		return &branchNode{}, nil
 	default:
 		return nil, ErrInvalidNode
 	}
@@ -245,24 +164,6 @@ func getEmptyNodeOfType(t byte) (node, error) {
 
 func childPosOutOfRange(pos byte) bool {
 	return pos >= nrOfChildren
-}
-
-// keyBytesToHex transforms key bytes into hex nibbles. The key nibbles are reversed, meaning that the
-// last key nibble will be the first in the hex key. A hex terminator is added at the end of the hex key.
-func keyBytesToHex(str []byte) []byte {
-	hexLength := len(str)*2 + 1
-	nibbles := make([]byte, hexLength)
-
-	hexSliceIndex := 0
-	nibbles[hexLength-1] = hexTerminator
-
-	for i := hexLength - 2; i > 0; i -= 2 {
-		nibbles[i] = str[hexSliceIndex] >> keyBuilder.NibbleSize
-		nibbles[i-1] = str[hexSliceIndex] & nibbleMask
-		hexSliceIndex++
-	}
-
-	return nibbles
 }
 
 // prefixLen returns the length of the common prefix of a and b.
@@ -346,10 +247,8 @@ func shouldMigrateCurrentNode(
 }
 
 func commitSnapshot(
-	db snapshotDb,
 	maxEpochToSearchFrom uint32,
-	marshaller marshal.Marshalizer,
-	hasher hashing.Hasher,
+	trieCtx *snapshotTrieContext,
 	leavesChan chan core.KeyValueHolder,
 	missingNodesChan chan []byte,
 	ctx context.Context,
@@ -358,6 +257,7 @@ func commitSnapshot(
 	depthLevel int,
 	hash []byte,
 ) error {
+	db := trieCtx.GetSnapshotStorage()
 	encChild, foundInEpoch, err := db.GetWithoutAddingToCache(hash, maxEpochToSearchFrom)
 	if err != nil {
 		treatLogError(log, err, hash)
@@ -371,15 +271,62 @@ func commitSnapshot(
 		return nil
 	}
 
-	child, err := decodeNode(encChild, marshaller, hasher)
+	child, err := decodeNode(encChild, trieCtx)
 	if err != nil {
 		return err
 	}
 
-	err = child.commitSnapshot(db, foundInEpoch, leavesChan, missingNodesChan, ctx, stats, idleProvider, encChild, depthLevel+1)
+	err = child.commitSnapshot(trieCtx, foundInEpoch, leavesChan, missingNodesChan, ctx, stats, idleProvider, encChild, depthLevel+1)
 	if err != nil {
 		return err
 	}
 
 	return db.PutInEpochWithoutCache(hash, encChild)
+}
+
+func saveDirtyNodeToStorage(
+	n node,
+	goRoutinesManager common.TrieGoroutinesManager,
+	hashesCollector common.TrieHashesCollector,
+	trieCtx common.TrieContext,
+) bool {
+	n.setDirty(false)
+	encNode, err := n.getEncodedNode(trieCtx)
+	if err != nil {
+		goRoutinesManager.SetError(err)
+		return false
+	}
+	hash := trieCtx.Compute(string(encNode))
+	hashesCollector.AddDirtyHash(hash)
+
+	// test point encodeNodeAndCommitToDB
+
+	err = trieCtx.Put(hash, encNode)
+	if err != nil {
+		goRoutinesManager.SetError(err)
+		return false
+	}
+	return true
+}
+
+func getChildPathKey(kb common.KeyBuilder, child []byte) common.KeyBuilder {
+	clonedKeyBuilder := kb.DeepClone()
+	clonedKeyBuilder.BuildKey(child)
+	return clonedKeyBuilder
+}
+
+func getMutexKeyFromPath(kb common.KeyBuilder) string {
+	mutexKey := kb.GetRawKey()
+	if len(mutexKey) == 0 {
+		return rootMutexKey
+	}
+
+	return string(mutexKey)
+}
+
+func getMutexKeyFromBytes(key []byte) string {
+	if len(key) == 0 {
+		return rootMutexKey
+	}
+	return string(key)
 }
