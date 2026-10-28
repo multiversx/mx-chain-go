@@ -966,10 +966,8 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 				return nil, 0, nil
 			},
 			UpdateWithVersionCalled: func(_, _ []byte, _ core.TrieNodeVersion) {
-				return
 			},
 			DeleteCalled: func(_ []byte) {
-				return
 			},
 		}
 		tdt.SetDataTrie(trie)
@@ -1219,7 +1217,6 @@ func TestTrackableDataTrie_SaveDirtyDataShouldRollbackPreviousUpdateWhenLaterGet
 				assert.Fail(t, "this should not happen")
 			}
 
-			return
 		},
 	}
 
@@ -1319,14 +1316,12 @@ func TestTrackableDataTrie_SaveDirtyDataShouldRollbackMigrationDeleteWhenMetadat
 		DeleteCalled: func(deleteKey []byte) {
 			assert.Equal(t, key, deleteKey)
 			deleteCalled = true
-			return
 		},
 		UpdateWithVersionCalled: func(updateKey, value []byte, version core.TrieNodeVersion) {
 			assert.Equal(t, key, updateKey)
 			assert.Equal(t, append(oldValue, append(key, identifier...)...), value)
 			assert.Equal(t, core.NotSpecified, version)
 			rollbackCalled = true
-			return
 		},
 	}
 
@@ -1381,7 +1376,6 @@ func TestTrackableDataTrie_SaveDirtyDataShouldRollbackMigrationDeleteAndNewKeyWh
 		},
 		DeleteCalled: func(deleteKey []byte) {
 			assert.Equal(t, key, deleteKey)
-			return
 		},
 		UpdateWithVersionCalled: func(updateKey, value []byte, version core.TrieNodeVersion) {
 			updateCalls++
@@ -1453,14 +1447,12 @@ func TestTrackableDataTrie_SaveDirtyDataShouldRollbackDeleteWhenMetadataDecodeFa
 		DeleteCalled: func(deleteKey []byte) {
 			assert.Equal(t, hashedKey, deleteKey)
 			deleteCalled = true
-			return
 		},
 		UpdateWithVersionCalled: func(updateKey, value []byte, version core.TrieNodeVersion) {
 			assert.Equal(t, hashedKey, updateKey)
 			assert.Equal(t, serializedOldValue, value)
 			assert.Equal(t, core.AutoBalanceEnabled, version)
 			rollbackCalled = true
-			return
 		},
 	}
 
@@ -1527,7 +1519,6 @@ func TestTrackableDataTrie_SaveDirtyDataShouldRollbackDeleteOfANonMigratedKeyWhe
 		DeleteCalled: func(key []byte) {
 			successfulDeletes[string(key)] = struct{}{}
 			delete(trieValues, string(key))
-			return
 		},
 		UpdateWithVersionCalled: func(key, value []byte, _ core.TrieNodeVersion) {
 			if len(value) == 0 {
@@ -1536,7 +1527,6 @@ func TestTrackableDataTrie_SaveDirtyDataShouldRollbackDeleteOfANonMigratedKeyWhe
 			}
 
 			trieValues[string(key)] = append([]byte(nil), value...)
-			return
 		},
 	}
 

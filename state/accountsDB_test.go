@@ -3484,7 +3484,6 @@ func TestAccountsDB_SaveAccountShouldRevertOldCodeEntryWhenNewCodeSerializationF
 		},
 		DeleteCalled: func(key []byte) {
 			delete(codeEntries, string(key))
-			return
 		},
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &storageManager.StorageManagerStub{}
@@ -3576,7 +3575,6 @@ func TestAccountsDB_RevertShouldNotModifyNewCodeWhenOldCodeSerializationFails(t 
 		},
 		DeleteCalled: func(key []byte) {
 			delete(codeEntries, string(key))
-			return
 		},
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &storageManager.StorageManagerStub{}
@@ -3667,7 +3665,6 @@ func TestAccountsDB_RevertShouldNotModifyNewCodeWhenNewCodeSerializationFails(t 
 		},
 		DeleteCalled: func(key []byte) {
 			delete(codeEntries, string(key))
-			return
 		},
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &storageManager.StorageManagerStub{}

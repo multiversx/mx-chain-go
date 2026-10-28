@@ -944,13 +944,6 @@ func TestPatriciaMerkleTrie_GetAndVerifyProof(t *testing.T) {
 	}
 }
 
-func dumpTrieContents(tr common.Trie, values [][]byte) {
-	fmt.Println(tr.(trieWithToString).ToString())
-	for _, val := range values {
-		fmt.Println(val)
-	}
-}
-
 func TestPatriciaMerkleTrie_GetTrieStats(t *testing.T) {
 	t.Parallel()
 
