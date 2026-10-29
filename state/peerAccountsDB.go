@@ -3,6 +3,7 @@ package state
 import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/stateAnalysis"
 )
 
 // PeerAccountsDB will save and synchronize data from peer processor, plus will synchronize with nodesCoordinator
@@ -20,6 +21,7 @@ func NewPeerAccountsDB(args ArgsAccountsDB) (*PeerAccountsDB, error) {
 	adb := &PeerAccountsDB{
 		AccountsDB: createAccountsDb(args),
 	}
+	adb.analysisAdapter = stateAnalysis.AdapterPeer
 
 	return adb, nil
 }

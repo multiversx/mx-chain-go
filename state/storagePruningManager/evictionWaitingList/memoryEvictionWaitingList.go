@@ -9,6 +9,7 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/stateAnalysis"
 	"github.com/multiversx/mx-chain-go/state"
 )
 
@@ -72,6 +73,8 @@ func (mewl *memoryEvictionWaitingList) Put(rootHash []byte, hashes common.Modifi
 	}
 
 	log.Debug("trie nodes eviction waiting list full, emptying...")
+	stateAnalysis.Inc(stateAnalysis.CPruneEwlWipes)
+	stateAnalysis.Add(stateAnalysis.CPruneEwlHashesDropped, int64(len(mewl.reversedCache)))
 	mewl.cache = make(map[string]*rootHashData)
 	mewl.reversedCache = make(map[string]*hashInfo)
 

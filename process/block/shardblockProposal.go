@@ -14,6 +14,7 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/stateAnalysis"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
 )
@@ -324,6 +325,9 @@ func (sp *shardProcessor) ProcessBlockProposal(
 	}
 	defer sp.processStatusHandler.SetIdle()
 
+	stateAnalysis.BeginBlock(headerHandler.GetShardID(), headerHandler.GetEpoch(), headerHandler.GetRound(), headerHandler.GetNonce(), headerHandler.GetTxCount(), headerHandler.IsStartOfEpochBlock())
+	defer stateAnalysis.AddSince(stateAnalysis.CBlockProcessNs, stateAnalysis.Now())
+
 	sp.roundNotifier.CheckRound(headerHandler)
 	sp.epochNotifier.CheckEpoch(headerHandler)
 	sp.requestHandler.SetEpoch(headerHandler.GetEpoch())
@@ -449,6 +453,8 @@ func (sp *shardProcessor) CommitBlockProposalState(headerHandler data.HeaderHand
 	if ok {
 		sp.saveEpochStartEconomicsIfNeeded(header)
 	}
+
+	stateAnalysis.EndBlock()
 
 	return nil
 }

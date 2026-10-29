@@ -30,6 +30,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/common/goroutines"
 	"github.com/multiversx/mx-chain-go/common/ordering"
+	"github.com/multiversx/mx-chain-go/common/stateAnalysis"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -342,6 +343,15 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	nr.logInformation(managedCoreComponents, managedCryptoComponents, managedBootstrapComponents)
+
+	err = stateAnalysis.Init(
+		stateAnalysisConfig(configs.GeneralConfig.StateAnalysisConfig),
+		managedBootstrapComponents.ShardCoordinator().SelfId(),
+		configs.FlagsConfig.WorkingDir,
+	)
+	if err != nil {
+		return true, err
+	}
 
 	log.Debug("creating data components")
 	managedDataComponents, err := nr.CreateManagedDataComponents(
@@ -1647,6 +1657,8 @@ func closeAllComponents(
 	log.Debug("stopping consensus...")
 	log.LogIfError(consensusComponentsCloser.Close())
 
+	stateAnalysis.Close()
+
 	log.Debug("stopping async execution...")
 	log.LogIfError(executionManagerCloser.Close())
 
@@ -1820,4 +1832,21 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 	}
 	// the entries only record that a transaction's signatures were already verified, which does not become stale
 	return interceptors.NewWhiteListDataVerifier(whiteListCacheVerified, 0)
+}
+
+func stateAnalysisConfig(cfg config.StateAnalysisConfig) stateAnalysis.Config {
+	return stateAnalysis.Config{
+		Enabled:                  cfg.Enabled,
+		Label:                    cfg.Label,
+		OutputDir:                cfg.OutputDir,
+		BlocksPerRow:             cfg.BlocksPerRow,
+		MaxTrackedKeys:           cfg.MaxTrackedKeys,
+		TopKPerEpoch:             cfg.TopKPerEpoch,
+		MemorySampleEveryNBlocks: cfg.MemorySampleEveryNBlocks,
+		OutlierCommitTimeMs:      cfg.OutlierCommitTimeMs,
+		OutlierStorageReads:      cfg.OutlierStorageReads,
+		OutlierJournalLen:        cfg.OutlierJournalLen,
+		ProfileEveryNEpochs:      cfg.ProfileEveryNEpochs,
+		ProfileNumBlocks:         cfg.ProfileNumBlocks,
+	}
 }

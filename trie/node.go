@@ -14,6 +14,7 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/stateAnalysis"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 )
 
@@ -69,12 +70,14 @@ func hashChildrenAndNode(n node) ([]byte, error) {
 }
 
 func encodeNodeAndGetHash(n node) ([]byte, error) {
+	start := stateAnalysis.Now()
 	encNode, err := n.getEncodedNode()
 	if err != nil {
 		return nil, err
 	}
 
 	hash := n.getHasher().Compute(string(encNode))
+	recordEncode(n, len(encNode), start, true)
 
 	return hash, nil
 }
@@ -94,22 +97,35 @@ func encodeNodeAndCommitToDB(n node, db common.BaseStorer) (int, error) {
 	// test point encodeNodeAndCommitToDB
 
 	err = db.Put(key, val)
+	if stateAnalysis.Enabled() {
+		kind := stateAnalysis.TrieKind()
+		stateAnalysis.Inc(stateAnalysis.CTrieDirtyCommitted.Node(kind, nodeTypeIndex(n)))
+		stateAnalysis.Add(stateAnalysis.CTrieDirtyBytes.Kind(kind), int64(len(val)))
+	}
 
 	return len(val), err
 }
 
 func collapseAndEncodeNode(n node) ([]byte, error) {
-	n, err := n.getCollapsed()
+	start := stateAnalysis.Now()
+	collapsed, err := n.getCollapsed()
 	if err != nil {
 		return nil, err
 	}
 
-	return n.getEncodedNode()
+	encoded, err := collapsed.getEncodedNode()
+	if err != nil {
+		return nil, err
+	}
+	recordEncode(n, len(encoded), start, false)
+
+	return encoded, nil
 }
 
 func computeAndSetNodeHash(n node) ([]byte, error) {
 	key := n.getHash()
 	if len(key) != 0 {
+		stateAnalysis.Inc(stateAnalysis.CTrieSetHashCached.Kind(stateAnalysis.TrieKind()))
 		return key, nil
 	}
 
@@ -123,6 +139,7 @@ func computeAndSetNodeHash(n node) ([]byte, error) {
 }
 
 func getNodeFromDBAndDecode(n []byte, db common.TrieStorageInteractor, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
+	start := stateAnalysis.Now()
 	encChild, err := db.Get(n)
 	if err != nil {
 		treatLogError(log, err, n)
@@ -130,7 +147,52 @@ func getNodeFromDBAndDecode(n []byte, db common.TrieStorageInteractor, marshaliz
 		return nil, core.NewGetNodeFromDBErrWithKey(n, err, db.GetIdentifier())
 	}
 
-	return decodeNode(encChild, marshalizer, hasher)
+	decodeStart := stateAnalysis.Now()
+	decoded, err := decodeNode(encChild, marshalizer, hasher)
+	if err != nil {
+		return nil, err
+	}
+	recordNodeLoad(decoded, len(encChild), start, decodeStart)
+
+	return decoded, nil
+}
+
+// nodeTypeIndex returns the stateAnalysis node type of the given node
+func nodeTypeIndex(n node) int {
+	switch n.(type) {
+	case *branchNode:
+		return stateAnalysis.NodeBranch
+	case *extensionNode:
+		return stateAnalysis.NodeExtension
+	default:
+		return stateAnalysis.NodeLeaf
+	}
+}
+
+func recordNodeLoad(n node, size int, start time.Time, decodeStart time.Time) {
+	if !stateAnalysis.Enabled() {
+		return
+	}
+	kind := stateAnalysis.TrieKind()
+	loadNs := int64(time.Since(start))
+	stateAnalysis.Inc(stateAnalysis.CTrieNodeLoad.Node(kind, nodeTypeIndex(n)))
+	stateAnalysis.Add(stateAnalysis.CTrieNodeLoadNs.Kind(kind), loadNs)
+	stateAnalysis.Add(stateAnalysis.CTrieNodeLoadBytes.Kind(kind), int64(size))
+	stateAnalysis.AddSince(stateAnalysis.CTrieDecodeNs.Kind(kind), decodeStart)
+	stateAnalysis.Max(stateAnalysis.MTrieLoadNs, loadNs)
+}
+
+func recordEncode(n node, size int, start time.Time, withHash bool) {
+	if !stateAnalysis.Enabled() {
+		return
+	}
+	kind := stateAnalysis.TrieKind()
+	stateAnalysis.Inc(stateAnalysis.CTrieEncode.Node(kind, nodeTypeIndex(n)))
+	stateAnalysis.Add(stateAnalysis.CTrieEncodeBytes.Kind(kind), int64(size))
+	stateAnalysis.AddSince(stateAnalysis.CTrieEncodeNs.Kind(kind), start)
+	if withHash {
+		stateAnalysis.Inc(stateAnalysis.CTrieHashCompute.Kind(kind))
+	}
 }
 
 func treatLogError(logInstance logger.Logger, err error, key []byte) {
@@ -149,6 +211,7 @@ func resolveIfCollapsed(n node, pos byte, db common.TrieStorageInteractor) error
 
 	if !n.isPosCollapsed(int(pos)) {
 		handleStorageInteractorStats(db)
+		stateAnalysis.Inc(stateAnalysis.CTrieResidentHit.Kind(stateAnalysis.TrieKind()))
 		return nil
 	}
 

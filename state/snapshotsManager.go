@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/stateAnalysis"
 	"github.com/multiversx/mx-chain-go/storage/storageEpochChange"
 	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 )
@@ -248,6 +249,7 @@ func (sm *snapshotsManager) snapshotState(
 	iteratorChannels := sm.channelsProvider.GetIteratorChannels()
 
 	sm.stateMetrics.UpdateMetricsOnSnapshotStart()
+	stateAnalysis.SnapshotStarted(trieStorageManager.GetIdentifier())
 
 	go func() {
 		stats.NewSnapshotStarted()
@@ -287,6 +289,7 @@ func (sm *snapshotsManager) snapshotUserAccountDataTrie(
 		return
 	}
 
+	identifier := trieStorageManager.GetIdentifier()
 	for leaf := range iteratorChannels.LeavesChan {
 		userAccount, skipAccount, err := getUserAccountFromBytes(sm.accountFactory, sm.marshaller, leaf.Key(), leaf.Value())
 		if err != nil {
@@ -294,9 +297,11 @@ func (sm *snapshotsManager) snapshotUserAccountDataTrie(
 			return
 		}
 		if skipAccount {
+			sm.observeNonAccountLeaf(identifier, leaf.Value())
 			continue
 		}
 
+		stateAnalysis.ObserveSnapshotAccount(identifier, len(leaf.Value()), true, len(userAccount.GetCodeHash()) != 0, len(userAccount.GetRootHash()) != 0)
 		if len(userAccount.GetRootHash()) == 0 {
 			continue
 		}
@@ -355,6 +360,15 @@ func (sm *snapshotsManager) processSnapshotCompletion(
 	}()
 
 	errorDuringSnapshot := errChan.ReadFromChanNonBlocking()
+	stateAnalysis.SnapshotCompleted(
+		trieStorageManager.GetIdentifier(),
+		epoch,
+		rootHash,
+		stats.GetSnapshotDuration(),
+		stats.GetSnapshotNumNodes(),
+		stats.numThrottlerWaits.Get(),
+		errorDuringSnapshot != nil,
+	)
 	shouldNotMarkActive := trieStorageManager.IsClosed() || errorDuringSnapshot != nil
 	if shouldNotMarkActive {
 		log.Debug("will not set activeDB in epoch as the snapshot might be incomplete",
@@ -414,4 +428,19 @@ func (sm *snapshotsManager) waitForCompletionIfAppropriate(stats common.Snapshot
 // IsInterfaceNil returns true if there is no value under the interface
 func (sm *snapshotsManager) IsInterfaceNil() bool {
 	return sm == nil
+}
+
+// observeNonAccountLeaf records a main trie leaf that is not an account (a code entry, or an unknown leaf)
+func (sm *snapshotsManager) observeNonAccountLeaf(identifier string, value []byte) {
+	if !stateAnalysis.Enabled() {
+		return
+	}
+
+	stateAnalysis.ObserveSnapshotAccount(identifier, len(value), false, false, false)
+	var codeEntry CodeEntry
+	err := sm.marshaller.Unmarshal(&codeEntry, value)
+	if err != nil || len(codeEntry.Code) == 0 {
+		return
+	}
+	stateAnalysis.ObserveSnapshotCodeEntry(identifier, len(codeEntry.Code), codeEntry.NumReferences)
 }

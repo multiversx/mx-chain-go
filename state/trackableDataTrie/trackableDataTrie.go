@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"sort"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
+	"github.com/multiversx/mx-chain-go/common/stateAnalysis"
 	errorsCommon "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/dataTrieValue"
@@ -85,9 +87,11 @@ func NewTrackableDataTrie(
 // The search starts with dirty map, continues with original map and ends with the trie
 // Data must have been retrieved from its trie
 func (tdt *trackableDataTrie) RetrieveValue(key []byte) ([]byte, uint32, error) {
+	stateAnalysis.Inc(stateAnalysis.CDtRetrieve)
 	// search in dirty data cache
 	if dataEntry, found := tdt.dirtyData[string(key)]; found {
 		log.Trace("retrieve value from dirty data", "key", key, "value", dataEntry.value, "account", tdt.identifier)
+		stateAnalysis.Inc(stateAnalysis.CDtRetrieveDirtyHit)
 
 		return dataEntry.value, 0, nil
 	}
@@ -96,7 +100,9 @@ func (tdt *trackableDataTrie) RetrieveValue(key []byte) ([]byte, uint32, error) 
 	if check.IfNil(tdt.tr) {
 		return nil, 0, state.ErrNilTrie
 	}
+	retrieveStart := stateAnalysis.Now()
 	trieValue, depth, err := tdt.retrieveValueFromTrie(key, false)
+	stateAnalysis.AddSince(stateAnalysis.CDtRetrieveNs, retrieveStart)
 	if err != nil {
 		return nil, depth, err
 	}
@@ -124,6 +130,7 @@ func (tdt *trackableDataTrie) SaveKeyValue(key []byte, value []byte) error {
 		newVersion: core.GetVersionForNewData(tdt.enableEpochsHandler),
 	}
 
+	stateAnalysis.Inc(stateAnalysis.CDtSaveKeyValue)
 	tdt.dirtyData[string(key)] = dataEntry
 	return nil
 }
@@ -260,6 +267,7 @@ func (tdt *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]*stateChang
 }
 
 func (tdt *trackableDataTrie) rollbackAppliedUpdates(dtr state.DataTrie, oldValues []core.TrieData) {
+	stateAnalysis.Inc(stateAnalysis.CDtRollback)
 	var trieUpdate core.TrieData
 	var err error
 
@@ -273,6 +281,12 @@ func (tdt *trackableDataTrie) rollbackAppliedUpdates(dtr state.DataTrie, oldValu
 }
 
 func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]*stateChange.DataTrieChange, []core.TrieData, error) {
+	if stateAnalysis.Enabled() {
+		stateAnalysis.Inc(stateAnalysis.CDtUpdateTrieCalls)
+		stateAnalysis.Add(stateAnalysis.CDtUpdateDirtyKeys, int64(len(tdt.dirtyData)))
+		stateAnalysis.Max(stateAnalysis.MDtDirtyKeys, int64(len(tdt.dirtyData)))
+		defer stateAnalysis.AddSince(stateAnalysis.CDtUpdateNs, time.Now())
+	}
 	oldValues := make([]core.TrieData, len(tdt.dirtyData))
 	newData := make([]*stateChange.DataTrieChange, len(tdt.dirtyData))
 	deletedKeys := make([]*stateChange.DataTrieChange, 0)
@@ -291,12 +305,15 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]*stateChange.Dat
 	for _, key := range keys {
 		dataEntry := tdt.dirtyData[key]
 		writesHashedKey := len(dataEntry.value) != 0 && dataEntry.newVersion == core.AutoBalanceEnabled
+		oldReadStart := stateAnalysis.Now()
 		oldVal, _, err := tdt.retrieveValueFromTrie([]byte(key), writesHashedKey)
+		stateAnalysis.AddSince(stateAnalysis.CDtUpdateOldReadNs, oldReadStart)
 		if err != nil {
 			tdt.rollbackAppliedUpdates(dtr, trieUpdates)
 			return nil, nil, err
 		}
 		oldValues[index] = oldVal
+		tdt.classifyUpdate([]byte(key), dataEntry, oldVal)
 		if oldVal.Version == core.AutoBalanceEnabled && len(oldVal.Value) != 0 {
 			_, decodeErr := tdt.getValueAutoBalanceVersion([]byte(key), oldVal.Value)
 			if decodeErr != nil && tdt.enableEpochsHandler.IsFlagEnabled(common.FixDataTrieLeafValidationFlag) {
@@ -422,12 +439,21 @@ func (tdt *trackableDataTrie) collectReadOperation(key []byte, val []byte, versi
 }
 
 func (tdt *trackableDataTrie) retrieveValueFromTrie(key []byte, writesHashedKey bool) (core.TrieData, uint32, error) {
+	prevKind := stateAnalysis.SetTrieKind(stateAnalysis.KindData)
+	defer stateAnalysis.SetTrieKind(prevKind)
+
 	legacyAtHashedKey := false
 	if tdt.enableEpochsHandler.IsFlagEnabled(common.AutoBalanceDataTriesFlag) {
 		hashedKey := tdt.hasher.Compute(string(key))
+		stateAnalysis.Inc(stateAnalysis.CDtKeyHashComputed)
+		stateAnalysis.Inc(stateAnalysis.CDtLookupHashed)
 		valWithMetadata, depth, version, err := tdt.tr.GetWithVersion(hashedKey)
 		if err != nil {
 			return core.TrieData{}, 0, err
+		}
+		if len(valWithMetadata) != 0 {
+			stateAnalysis.Inc(stateAnalysis.CDtLookupHashedHit)
+			stateAnalysis.TouchDataTrieKey(tdt.identifier, key, len(valWithMetadata))
 		}
 
 		versionMismatch := len(valWithMetadata) != 0 && version != uint32(core.AutoBalanceEnabled)
@@ -457,9 +483,17 @@ func (tdt *trackableDataTrie) retrieveValueFromTrie(key []byte, writesHashedKey 
 		}
 	}
 
+	stateAnalysis.Inc(stateAnalysis.CDtLookupRaw)
 	valWithMetadata, depth, version, err := tdt.tr.GetWithVersion(key)
 	if err != nil {
 		return core.TrieData{}, 0, err
+	}
+	if len(valWithMetadata) != 0 {
+		stateAnalysis.Inc(stateAnalysis.CDtLookupRawHit)
+		stateAnalysis.TouchDataTrieKey(tdt.identifier, key, len(valWithMetadata))
+	} else {
+		stateAnalysis.Inc(stateAnalysis.CDtLookupMiss)
+		stateAnalysis.TouchDataTrieKey(tdt.identifier, key, 0)
 	}
 	versionMismatch := len(valWithMetadata) != 0 && version != uint32(core.NotSpecified)
 	validateVersion := versionMismatch && tdt.enableEpochsHandler.IsFlagEnabled(common.FixDataTrieLeafValidationFlag)
@@ -546,6 +580,9 @@ func (tdt *trackableDataTrie) deleteOldEntryIfMigrated(key []byte, newData dirty
 }
 
 func (tdt *trackableDataTrie) modifyTrie(key []byte, dataEntry dirtyData, oldVal core.TrieData, dtr state.DataTrie) ([]byte, error) {
+	prevKind := stateAnalysis.SetTrieKind(stateAnalysis.KindData)
+	defer stateAnalysis.SetTrieKind(prevKind)
+
 	version := dataEntry.newVersion
 	newKey := tdt.getKeyForVersion(key, version)
 
@@ -586,4 +623,38 @@ func (tdt *trackableDataTrie) deleteFromTrie(oldVal core.TrieData, key []byte, d
 // IsInterfaceNil returns true if there is no value under the interface
 func (tdt *trackableDataTrie) IsInterfaceNil() bool {
 	return tdt == nil
+}
+
+// classifyUpdate records what kind of change a dirty key produces on the trie, by comparing it with the old value
+func (tdt *trackableDataTrie) classifyUpdate(key []byte, dataEntry dirtyData, oldVal core.TrieData) {
+	if !stateAnalysis.Enabled() {
+		return
+	}
+
+	stateAnalysis.Add(stateAnalysis.CDtUpdateBytesNew, int64(len(dataEntry.value)))
+	stateAnalysis.Add(stateAnalysis.CDtUpdateBytesOld, int64(len(oldVal.Value)))
+
+	if len(dataEntry.value) == 0 {
+		if len(oldVal.Value) == 0 {
+			stateAnalysis.Inc(stateAnalysis.CDtUpdateDeleteMiss)
+			return
+		}
+		stateAnalysis.Inc(stateAnalysis.CDtUpdateDelete)
+		return
+	}
+	if len(oldVal.Value) == 0 {
+		stateAnalysis.Inc(stateAnalysis.CDtUpdateInsert)
+		return
+	}
+	if oldVal.Version != dataEntry.newVersion {
+		stateAnalysis.Inc(stateAnalysis.CDtUpdateMigrate)
+		return
+	}
+
+	oldValue, err := tdt.getValueWithoutMetadata(key, oldVal)
+	if err == nil && bytes.Equal(oldValue, dataEntry.value) {
+		stateAnalysis.Inc(stateAnalysis.CDtUpdateNoop)
+		return
+	}
+	stateAnalysis.Inc(stateAnalysis.CDtUpdateModify)
 }

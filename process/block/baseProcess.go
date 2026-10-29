@@ -29,6 +29,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/common/logging"
+	"github.com/multiversx/mx-chain-go/common/stateAnalysis"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -2604,6 +2605,7 @@ func (bp *baseProcessor) commitState(headerHandler data.HeaderHandler) error {
 	startTime := time.Now()
 	defer func() {
 		elapsedTime := time.Since(startTime)
+		stateAnalysis.Add(stateAnalysis.CBlockCommitNs, int64(elapsedTime))
 		log.Debug("elapsed time to commit accounts state",
 			"time [s]", elapsedTime,
 			"header nonce", headerHandler.GetNonce(),

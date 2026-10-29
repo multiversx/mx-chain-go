@@ -10,6 +10,7 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/stateAnalysis"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/pruningBuffer"
 )
@@ -76,10 +77,14 @@ func (spm *storagePruningManager) markForEviction(
 	}
 
 	rootHash = append(rootHash, byte(identifier))
+	stateAnalysis.Inc(stateAnalysis.CPruneEwlPut)
+	stateAnalysis.Add(stateAnalysis.CPruneEwlHashes, int64(len(hashes)))
 	err := spm.dbEvictionWaitingList.Put(rootHash, hashes)
 	if err != nil {
 		return err
 	}
+	stateAnalysis.SetGauge(stateAnalysis.GPruneEwlLen, int64(spm.dbEvictionWaitingList.CacheLen()))
+	stateAnalysis.SetGauge(stateAnalysis.GPruneBufferLen, int64(spm.pruningBuffer.Len()))
 
 	logMapWithTrace(fmt.Sprintf("MarkForEviction %d", identifier), "hash", hashes)
 	return nil
@@ -146,6 +151,7 @@ func (spm *storagePruningManager) CancelPrune(rootHash []byte, identifier state.
 
 func (spm *storagePruningManager) cancelPrune(rootHash []byte) {
 	log.Trace("trie storage manager cancel prune", "root", rootHash)
+	stateAnalysis.Inc(stateAnalysis.CPruneCancel)
 	_, _ = spm.dbEvictionWaitingList.Evict(rootHash)
 }
 
@@ -172,6 +178,8 @@ func (spm *storagePruningManager) resolveBufferedHashes(oldHashes [][]byte, tsm 
 
 func (spm *storagePruningManager) prune(rootHash []byte, tsm common.StorageManager, handler state.PruningHandler) {
 	log.Trace("trie storage manager prune", "root", rootHash)
+	stateAnalysis.Inc(stateAnalysis.CPruneCalls)
+	defer stateAnalysis.AddSince(stateAnalysis.CPruneRemoveNs, stateAnalysis.Now())
 
 	err := spm.removeFromDb(rootHash, tsm, handler)
 	if err != nil {
@@ -229,6 +237,7 @@ func (spm *storagePruningManager) removeFromDb(
 		if errRemove != nil {
 			return errRemove
 		}
+		stateAnalysis.Inc(stateAnalysis.CPruneNodesRemoved)
 	}
 
 	return nil

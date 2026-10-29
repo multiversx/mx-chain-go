@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/stateAnalysis"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
@@ -36,6 +37,7 @@ type trieStorageManager struct {
 	idleProvider          IdleNodeProvider
 	identifier            string
 	statsCollector        common.StateStatisticsHandler
+	analysisUnit          int
 }
 
 type snapshotsQueueEntry struct {
@@ -94,6 +96,7 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 		idleProvider:       args.IdleProvider,
 		identifier:         args.Identifier,
 		statsCollector:     args.StatsCollector,
+		analysisUnit:       stateAnalysis.UnitFromIdentifier(args.Identifier),
 	}
 	numSnapshotGoroutines := snapshotsGoroutineNum(args.GeneralConfig.SnapshotsGoroutinesPerCore)
 	log.Debug("trieStorageManager: snapshot goroutines",
@@ -187,7 +190,16 @@ func (tsm *trieStorageManager) cleanupChans() {
 
 // Get checks all the storers for the given key, and returns it if it is found
 func (tsm *trieStorageManager) Get(key []byte) ([]byte, error) {
+	start := stateAnalysis.Now()
 	val, err := tsm.mainStorer.Get(key)
+	if stateAnalysis.Enabled() {
+		stateAnalysis.Inc(stateAnalysis.CStTsmGet.Unit(tsm.analysisUnit))
+		stateAnalysis.AddSince(stateAnalysis.CStTsmGetNs.Unit(tsm.analysisUnit), start)
+		stateAnalysis.Add(stateAnalysis.CStTsmGetBytes.Unit(tsm.analysisUnit), int64(len(val)))
+		if len(val) == 0 {
+			stateAnalysis.Inc(stateAnalysis.CStTsmGetMiss.Unit(tsm.analysisUnit))
+		}
+	}
 	if core.IsClosingError(err) {
 		return nil, err
 	}
@@ -216,7 +228,14 @@ func (tsm *trieStorageManager) GetFromCurrentEpoch(key []byte) ([]byte, error) {
 
 // Put adds the given value to the main storer
 func (tsm *trieStorageManager) Put(key []byte, val []byte) error {
-	return tsm.mainStorer.Put(key, val)
+	start := stateAnalysis.Now()
+	err := tsm.mainStorer.Put(key, val)
+	if stateAnalysis.Enabled() {
+		stateAnalysis.Inc(stateAnalysis.CStTsmPut.Unit(tsm.analysisUnit))
+		stateAnalysis.AddSince(stateAnalysis.CStTsmPutNs.Unit(tsm.analysisUnit), start)
+		stateAnalysis.Add(stateAnalysis.CStTsmPutBytes.Unit(tsm.analysisUnit), int64(len(val)))
+	}
+	return err
 }
 
 // PutInEpoch adds the given value to the main storer in the specified epoch
@@ -363,7 +382,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 		return
 	}
 
-	stats := statistics.NewTrieStatistics()
+	stats := stateAnalysis.WrapSnapshotStats(statistics.NewTrieStatistics(), tsm.identifier, len(snapshotEntry.address) != 0)
 	err = newRoot.commitSnapshot(stsm, foundInEpoch, snapshotEntry.iteratorChannels.LeavesChan, snapshotEntry.missingNodesChan, ctx, stats, tsm.idleProvider, encodedRoot, rootDepthLevel)
 	if err != nil {
 		snapshotEntry.iteratorChannels.ErrChan.WriteInChanNonBlocking(err)
@@ -376,7 +395,8 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 	}
 
 	stats.AddAccountInfo(snapshotEntry.address, snapshotEntry.rootHash)
-	snapshotEntry.stats.AddTrieStats(stats, getTrieTypeFromAddress(snapshotEntry.address))
+	stateAnalysis.ObserveSnapshotTrie(stats)
+	snapshotEntry.stats.AddTrieStats(stateAnalysis.UnwrapSnapshotStats(stats), getTrieTypeFromAddress(snapshotEntry.address))
 }
 
 func getTrieTypeFromAddress(address string) common.TrieType {

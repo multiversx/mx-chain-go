@@ -954,6 +954,33 @@
     MaxPeerTrieLevelInMemory = 5
     StateStatisticsEnabled = false
 
+[StateAnalysisConfig]
+    # Enabled turns on the state/trie analysis collector. Meant for import-db re-execution runs only:
+    # it adds counters on every trie, accounts adapter and storage operation and writes csv/json files
+    # under <OutputDir>/shard_<id>/ (blocks.csv.gz, outliers.csv.gz, reuse.csv.gz, hotset.csv.gz,
+    # snapshots.csv.gz, structure/, profiles/)
+    Enabled = false
+    # Label tags every row (e.g. the git branch under test) so that runs can be compared
+    Label = "master"
+    # OutputDir is relative to the working directory unless absolute
+    OutputDir = "state-analysis"
+    # BlocksPerRow is the number of blocks aggregated in one row of blocks.csv.gz
+    BlocksPerRow = 100
+    # MaxTrackedKeys bounds the reuse-distance and hot-set maps (memory ~100 bytes per key)
+    MaxTrackedKeys = 2000000
+    # TopKPerEpoch is the number of hottest keys exported per epoch and per kind
+    TopKPerEpoch = 1000
+    # MemorySampleEveryNBlocks sets how often runtime.MemStats and the resident trie size are sampled
+    MemorySampleEveryNBlocks = 100
+    # Outlier thresholds: a block exceeding any of them gets its own full row in outliers.csv.gz
+    OutlierCommitTimeMs = 2000
+    OutlierStorageReads = 50000
+    OutlierJournalLen = 50000
+    # ProfileEveryNEpochs writes a CPU profile for the first ProfileNumBlocks blocks of every N-th epoch
+    # and a heap profile at the end of that window (0 disables)
+    ProfileEveryNEpochs = 50
+    ProfileNumBlocks = 200
+
 [TrieLeavesRetrieverConfig]
     Enabled = false
     MaxSizeInBytes = 10485760 #10MB

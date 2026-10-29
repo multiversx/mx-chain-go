@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/stateAnalysis"
 )
 
 type snapshotTrieStorageManager struct {
@@ -32,7 +33,13 @@ func newSnapshotTrieStorageManager(tsm *trieStorageManager, epoch uint32) (*snap
 func (stsm *snapshotTrieStorageManager) GetWithoutAddingToCache(key []byte, maxEpochToSearchFrom uint32) ([]byte, uint32, error) {
 	// test point get during snapshot
 
+	start := stateAnalysis.Now()
 	val, epoch, err := stsm.mainSnapshotStorer.GetWithoutAddingToCache(key, maxEpochToSearchFrom)
+	if stateAnalysis.Enabled() {
+		stateAnalysis.Inc(stateAnalysis.CStSnapGet.Unit(stsm.tsm.analysisUnit))
+		stateAnalysis.AddSince(stateAnalysis.CStSnapGetNs.Unit(stsm.tsm.analysisUnit), start)
+		stateAnalysis.Add(stateAnalysis.CStSnapGetBytes.Unit(stsm.tsm.analysisUnit), int64(len(val)))
+	}
 	if core.IsClosingError(err) {
 		return nil, 0, err
 	}
@@ -59,6 +66,7 @@ func (stsm *snapshotTrieStorageManager) putInPreviousStorerIfAbsent(key []byte, 
 	}
 
 	if epoch.Value >= stsm.epoch-1 {
+		stateAnalysis.Inc(stateAnalysis.CStSnapPutPrevSkip.Unit(stsm.tsm.analysisUnit))
 		return
 	}
 
@@ -67,6 +75,7 @@ func (stsm *snapshotTrieStorageManager) putInPreviousStorerIfAbsent(key []byte, 
 	}
 
 	log.Trace("put missing hash in snapshot storer", "hash", key, "epoch", stsm.epoch-1)
+	stateAnalysis.Inc(stateAnalysis.CStSnapPutPrev.Unit(stsm.tsm.analysisUnit))
 	err := stsm.mainSnapshotStorer.PutInEpoch(key, val, stsm.epoch-1)
 	if err != nil {
 		log.Warn("can not put in epoch",
@@ -79,6 +88,8 @@ func (stsm *snapshotTrieStorageManager) putInPreviousStorerIfAbsent(key []byte, 
 // PutInEpochWithoutCache adds the given (key, data) in the current epoch without adding it to cache
 func (stsm *snapshotTrieStorageManager) PutInEpochWithoutCache(key, data []byte) error {
 	log.Trace("put hash in snapshot storer", "hash", key, "epoch", stsm.epoch)
+	stateAnalysis.Inc(stateAnalysis.CStSnapPut.Unit(stsm.tsm.analysisUnit))
+	stateAnalysis.Add(stateAnalysis.CStSnapPutBytes.Unit(stsm.tsm.analysisUnit), int64(len(data)))
 	return stsm.mainSnapshotStorer.PutInEpochWithoutCache(key, data, stsm.epoch)
 }
 

@@ -4,6 +4,8 @@ import (
 	"sync"
 
 	logger "github.com/multiversx/mx-chain-logger-go"
+
+	"github.com/multiversx/mx-chain-go/common/stateAnalysis"
 )
 
 var log = logger.GetOrCreate("state/pruningBuffer")
@@ -37,10 +39,12 @@ func (pb *pruningBuffer) Add(rootHash []byte) {
 		pb.buffer = pb.buffer[1:]
 		pb.buffer = append(pb.buffer, rootHash)
 		log.Debug("pruning buffer is full, removing oldest", "added hash", rootHash, "removed hash", removedHash)
+		stateAnalysis.Inc(stateAnalysis.CPruneBufferOverflow)
 
 		return
 	}
 
+	stateAnalysis.Inc(stateAnalysis.CPruneBufferAdd)
 	pb.buffer = append(pb.buffer, rootHash)
 	log.Trace("pruning buffer add", "rootHash", rootHash)
 }

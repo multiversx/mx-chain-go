@@ -22,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/holders"
+	"github.com/multiversx/mx-chain-go/common/stateAnalysis"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
@@ -90,6 +91,7 @@ type AccountsDB struct {
 	loadCodeMeasurements   *loadingMeasurements
 	addressConverter       core.PubkeyConverter
 	pruningEnabled         bool
+	analysisAdapter        int
 
 	stackDebug []byte
 }
@@ -207,6 +209,14 @@ func (adb *AccountsDB) GetCode(codeHash []byte) []byte {
 		adb.loadCodeMeasurements.addMeasurement(len(codeEntry.Code), duration)
 	}()
 
+	if stateAnalysis.Enabled() {
+		stateAnalysis.Inc(stateAnalysis.CAdbGetCode.Adapter(adb.analysisAdapter))
+		defer func() {
+			stateAnalysis.Add(stateAnalysis.CAdbGetCodeBytes.Adapter(adb.analysisAdapter), int64(len(codeEntry.Code)))
+			stateAnalysis.AddSince(stateAnalysis.CAdbGetCodeNs.Adapter(adb.analysisAdapter), startTime)
+		}()
+	}
+
 	val, _, err := adb.getMainTrie().Get(codeHash)
 	if err != nil {
 		return nil
@@ -257,13 +267,26 @@ func (adb *AccountsDB) SaveAccount(account vmcommon.AccountHandler) error {
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
-	oldAccount, err := adb.getAccount(account.AddressBytes(), adb.mainTrie)
+	saveStart := stateAnalysis.Now()
+	if stateAnalysis.Enabled() {
+		stateAnalysis.Inc(stateAnalysis.CAdbSaveAccount.Adapter(adb.analysisAdapter))
+		stateAnalysis.TouchAccount(adb.analysisAdapter, account.AddressBytes(), 0, true)
+		defer func() {
+			saveNs := int64(time.Since(saveStart))
+			stateAnalysis.Add(stateAnalysis.CAdbSaveNs.Adapter(adb.analysisAdapter), saveNs)
+			stateAnalysis.Max(stateAnalysis.MAdbSaveNs, saveNs)
+		}()
+	}
+
+	oldAccount, oldAccountBytes, err := adb.getAccountAndBytes(account.AddressBytes(), adb.mainTrie)
+	stateAnalysis.AddSince(stateAnalysis.CAdbSaveRereadNs.Adapter(adb.analysisAdapter), saveStart)
 	if err != nil {
 		return err
 	}
 
 	var entry JournalEntry
 	if check.IfNil(oldAccount) {
+		stateAnalysis.Inc(stateAnalysis.CAdbSaveNewAccount.Adapter(adb.analysisAdapter))
 		entry, err = NewJournalEntryAccountCreation(account.AddressBytes(), adb.mainTrie)
 		if err != nil {
 			return err
@@ -285,6 +308,9 @@ func (adb *AccountsDB) SaveAccount(account vmcommon.AccountHandler) error {
 	marshalledAccount, err := adb.saveAccountToTrie(account, adb.mainTrie)
 	if err != nil {
 		return err
+	}
+	if stateAnalysis.Enabled() && bytes.Equal(oldAccountBytes, marshalledAccount) {
+		stateAnalysis.Inc(stateAnalysis.CAdbSaveUnchanged.Adapter(adb.analysisAdapter))
 	}
 
 	sc := &stateChange.StateAccess{
@@ -377,6 +403,7 @@ func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
 }
 
 func (adb *AccountsDB) getCodeEntry(hash []byte) (*CodeEntry, error) {
+	stateAnalysis.Inc(stateAnalysis.CAdbCodeEntryGet.Adapter(adb.analysisAdapter))
 	codeEntry, err := getCodeEntry(hash, adb.mainTrie, adb.marshaller)
 	if err != nil {
 		return nil, err
@@ -510,6 +537,8 @@ func (adb *AccountsDB) loadDataTrieConcurrentSafe(accountHandler baseAccountHand
 
 	dataTrie := adb.dataTries.Get(accountHandler.AddressBytes())
 	if dataTrie != nil {
+		stateAnalysis.Inc(stateAnalysis.CAdbDataTrieHolderHit.Adapter(adb.analysisAdapter))
+		stateAnalysis.TouchDataTrie(adb.analysisAdapter, accountHandler.AddressBytes(), false)
 		accountHandler.SetDataTrie(dataTrie)
 		return nil
 	}
@@ -518,8 +547,18 @@ func (adb *AccountsDB) loadDataTrieConcurrentSafe(accountHandler baseAccountHand
 		return nil
 	}
 
+	recreateStart := stateAnalysis.Now()
+	if stateAnalysis.Enabled() {
+		stateAnalysis.Inc(stateAnalysis.CAdbAccountsWithRootHash.Adapter(adb.analysisAdapter))
+		stateAnalysis.Inc(stateAnalysis.CAdbDataTrieRecreate.Adapter(adb.analysisAdapter))
+		stateAnalysis.TouchDataTrie(adb.analysisAdapter, accountHandler.AddressBytes(), false)
+		defer stateAnalysis.AddSince(stateAnalysis.CAdbDataTrieRecreateNs.Adapter(adb.analysisAdapter), recreateStart)
+	}
+
 	rootHashHolder := holders.NewDefaultRootHashesHolder(accountHandler.GetRootHash())
+	prevKind := stateAnalysis.SetTrieKind(stateAnalysis.KindData)
 	dataTrie, err := mainTrie.Recreate(rootHashHolder)
+	stateAnalysis.SetTrieKind(prevKind)
 	if err != nil {
 		return fmt.Errorf("trie was not found for hash, rootHash = %s, err = %w", hex.EncodeToString(accountHandler.GetRootHash()), err)
 	}
@@ -532,12 +571,18 @@ func (adb *AccountsDB) loadDataTrieConcurrentSafe(accountHandler baseAccountHand
 // saveDataTrie is used to save the data trie (not committing it) and to recompute the new Root value
 // If data is not dirtied, method will not create its JournalEntries to keep track of data modification
 func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) ([]*stateChange.DataTrieChange, error) {
+	saveStart := stateAnalysis.Now()
 	newValues, oldValues, err := accountHandler.SaveDirtyData(adb.mainTrie)
 	if err != nil {
 		return nil, err
 	}
 	if len(oldValues) == 0 {
 		return nil, nil
+	}
+	if stateAnalysis.Enabled() {
+		stateAnalysis.Inc(stateAnalysis.CAdbSaveDataTrieDirty.Adapter(adb.analysisAdapter))
+		stateAnalysis.TouchDataTrie(adb.analysisAdapter, accountHandler.AddressBytes(), true)
+		defer stateAnalysis.AddSince(stateAnalysis.CAdbSaveDataTrieNs.Adapter(adb.analysisAdapter), saveStart)
 	}
 
 	entry, err := NewJournalEntryDataTrieUpdates(oldValues, accountHandler)
@@ -546,7 +591,11 @@ func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) ([]*state
 	}
 	adb.journalize(entry)
 
+	rootHashStart := stateAnalysis.Now()
+	prevKind := stateAnalysis.SetTrieKind(stateAnalysis.KindData)
 	rootHash, err := accountHandler.DataTrie().RootHash()
+	stateAnalysis.SetTrieKind(prevKind)
+	stateAnalysis.AddSince(stateAnalysis.CAdbSaveDataTrieRootHashNs.Adapter(adb.analysisAdapter), rootHashStart)
 	if err != nil {
 		return nil, err
 	}
@@ -570,11 +619,18 @@ func (adb *AccountsDB) saveAccountToTrie(accountHandler vmcommon.AccountHandler,
 	log.Trace("accountsDB.saveAccountToTrie", "address", accountHandler.AddressBytes())
 
 	// pass the reference to marshaller, otherwise it will fail marshalling balance
+	marshalStart := stateAnalysis.Now()
 	buff, err := adb.marshaller.Marshal(accountHandler)
 	if err != nil {
 		return nil, err
 	}
+	if stateAnalysis.Enabled() {
+		stateAnalysis.AddSince(stateAnalysis.CAdbSaveMarshalNs.Adapter(adb.analysisAdapter), marshalStart)
+		stateAnalysis.Add(stateAnalysis.CAdbSaveBytes.Adapter(adb.analysisAdapter), int64(len(buff)))
+	}
 
+	prevKind := stateAnalysis.SetTrieKind(stateAnalysis.KindForAdapter(adb.analysisAdapter))
+	defer stateAnalysis.SetTrieKind(prevKind)
 	err = mainTrie.Update(accountHandler.AddressBytes(), buff)
 	if err != nil {
 		return nil, err
@@ -594,6 +650,7 @@ func (adb *AccountsDB) RemoveAccount(address []byte) error {
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
+	stateAnalysis.Inc(stateAnalysis.CAdbRemoveAccount.Adapter(adb.analysisAdapter))
 	acnt, err := adb.getAccount(address, adb.mainTrie)
 	if err != nil {
 		return err
@@ -617,6 +674,8 @@ func (adb *AccountsDB) RemoveAccount(address []byte) error {
 		"address", hex.EncodeToString(address),
 	)
 
+	prevKind := stateAnalysis.SetTrieKind(stateAnalysis.KindForAdapter(adb.analysisAdapter))
+	defer stateAnalysis.SetTrieKind(prevKind)
 	return adb.mainTrie.Delete(address)
 }
 
@@ -646,6 +705,8 @@ func (adb *AccountsDB) removeDataTrie(baseAcc baseAccountHandler) error {
 	}
 
 	rootHashHolder := holders.NewDefaultRootHashesHolder(rootHash)
+	prevKind := stateAnalysis.SetTrieKind(stateAnalysis.KindData)
+	defer stateAnalysis.SetTrieKind(prevKind)
 	dataTrie, err := adb.mainTrie.Recreate(rootHashHolder)
 	if err != nil {
 		return err
@@ -655,6 +716,8 @@ func (adb *AccountsDB) removeDataTrie(baseAcc baseAccountHandler) error {
 	if err != nil {
 		return err
 	}
+	stateAnalysis.Inc(stateAnalysis.CAdbRemoveDataTrie.Adapter(adb.analysisAdapter))
+	stateAnalysis.Add(stateAnalysis.CAdbRemoveDataTrieHashes.Adapter(adb.analysisAdapter), int64(len(hashes)))
 
 	adb.obsoleteDataTrieHashes[string(rootHash)] = hashes
 
@@ -698,6 +761,7 @@ func (adb *AccountsDB) LoadAccount(address []byte) (vmcommon.AccountHandler, err
 	}
 
 	log.Trace("accountsDB.LoadAccount", "address", address)
+	stateAnalysis.Inc(stateAnalysis.CAdbLoadAccount.Adapter(adb.analysisAdapter))
 
 	mainTrie := adb.getMainTrie()
 	acnt, err := adb.getAccount(address, mainTrie)
@@ -720,12 +784,28 @@ func (adb *AccountsDB) LoadAccount(address []byte) (vmcommon.AccountHandler, err
 }
 
 func (adb *AccountsDB) getAccount(address []byte, mainTrie common.Trie) (vmcommon.AccountHandler, error) {
+	acnt, _, err := adb.getAccountAndBytes(address, mainTrie)
+	return acnt, err
+}
+
+func (adb *AccountsDB) getAccountAndBytes(address []byte, mainTrie common.Trie) (vmcommon.AccountHandler, []byte, error) {
+	getStart := stateAnalysis.Now()
+	prevKind := stateAnalysis.SetTrieKind(stateAnalysis.KindForAdapter(adb.analysisAdapter))
 	val, _, err := mainTrie.Get(address)
+	stateAnalysis.SetTrieKind(prevKind)
+	if stateAnalysis.Enabled() {
+		stateAnalysis.AddSince(stateAnalysis.CAdbGetAccountNs.Adapter(adb.analysisAdapter), getStart)
+		stateAnalysis.TouchAccount(adb.analysisAdapter, address, len(val), false)
+		if val != nil {
+			stateAnalysis.Inc(stateAnalysis.CAdbGetAccountFound.Adapter(adb.analysisAdapter))
+			stateAnalysis.Add(stateAnalysis.CAdbGetAccountBytes.Adapter(adb.analysisAdapter), int64(len(val)))
+		}
+	}
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if val == nil {
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	sc := &stateChange.StateAccess{
@@ -739,19 +819,21 @@ func (adb *AccountsDB) getAccount(address []byte, mainTrie common.Trie) (vmcommo
 
 	acnt, err := adb.accountFactory.CreateAccount(address)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
+	unmarshalStart := stateAnalysis.Now()
 	err = adb.marshaller.Unmarshal(acnt, val)
+	stateAnalysis.AddSince(stateAnalysis.CAdbUnmarshalNs.Adapter(adb.analysisAdapter), unmarshalStart)
 	if err != nil {
 		if adb.isReservedAccountAddress(address, val) {
-			return nil, ErrAccountAddressIsReserved
+			return nil, nil, ErrAccountAddressIsReserved
 		}
 
-		return nil, err
+		return nil, nil, err
 	}
 
-	return acnt, nil
+	return acnt, val, nil
 }
 
 func (adb *AccountsDB) isReservedAccountAddress(address []byte, value []byte) bool {
@@ -772,6 +854,7 @@ func (adb *AccountsDB) GetExistingAccount(address []byte) (vmcommon.AccountHandl
 	}
 
 	log.Trace("accountsDB.GetExistingAccount", "address", address)
+	stateAnalysis.Inc(stateAnalysis.CAdbGetExisting.Adapter(adb.analysisAdapter))
 
 	mainTrie := adb.getMainTrie()
 	acnt, err := adb.getAccount(address, mainTrie)
@@ -779,6 +862,7 @@ func (adb *AccountsDB) GetExistingAccount(address []byte) (vmcommon.AccountHandl
 		return nil, err
 	}
 	if check.IfNil(acnt) {
+		stateAnalysis.Inc(stateAnalysis.CAdbGetExistingMissing.Adapter(adb.analysisAdapter))
 		return nil, ErrAccNotFound
 	}
 
@@ -863,9 +947,15 @@ func (adb *AccountsDB) RevertToSnapshot(snapshot int) error {
 
 	if snapshot == 0 {
 		log.Trace("revert snapshot to adb.lastRootHash", "hash", adb.lastRootHash)
+		stateAnalysis.Inc(stateAnalysis.CAdbRevertFull.Adapter(adb.analysisAdapter))
+		stateAnalysis.Add(stateAnalysis.CAdbRevertEntries.Adapter(adb.analysisAdapter), int64(len(adb.entries)))
 		return adb.recreateTrie(holders.NewDefaultRootHashesHolder(adb.lastRootHash))
 	}
 
+	stateAnalysis.Inc(stateAnalysis.CAdbRevertPartial.Adapter(adb.analysisAdapter))
+	stateAnalysis.Add(stateAnalysis.CAdbRevertEntries.Adapter(adb.analysisAdapter), int64(len(adb.entries)-snapshot))
+	prevKind := stateAnalysis.SetTrieKind(stateAnalysis.KindForAdapter(adb.analysisAdapter))
+	defer stateAnalysis.SetTrieKind(prevKind)
 	for i := len(adb.entries) - 1; i >= snapshot; i-- {
 		account, err := adb.entries[i].Revert()
 		if err != nil {
@@ -938,24 +1028,43 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 
 func (adb *AccountsDB) commit() ([]byte, error) {
 	log.Trace("accountsDB.Commit started")
+	commitStart := stateAnalysis.Now()
+	adapter := adb.analysisAdapter
+	if stateAnalysis.Enabled() {
+		stateAnalysis.Inc(stateAnalysis.CAdbCommit.Adapter(adapter))
+		stateAnalysis.Add(stateAnalysis.CAdbJournalLenAtCommit.Adapter(adapter), int64(len(adb.entries)))
+		defer stateAnalysis.AddSince(stateAnalysis.CAdbCommitNs.Adapter(adapter), commitStart)
+	}
 	adb.entries = make([]JournalEntry, 0)
 
 	oldHashes := make(common.ModifiedHashes)
 	newHashes := make(common.ModifiedHashes)
 	// Step 1. commit all data tries
 	dataTries := adb.dataTries.GetAll()
+	prevKind := stateAnalysis.SetTrieKind(stateAnalysis.KindData)
 	for i := 0; i < len(dataTries); i++ {
 		err := adb.commitTrie(dataTries[i], oldHashes, newHashes)
 		if err != nil {
+			stateAnalysis.SetTrieKind(prevKind)
 			return nil, err
 		}
+	}
+	if stateAnalysis.Enabled() {
+		stateAnalysis.Add(stateAnalysis.CAdbCommitDataTries.Adapter(adapter), int64(len(dataTries)))
+		stateAnalysis.AddSince(stateAnalysis.CAdbCommitDataTriesNs.Adapter(adapter), commitStart)
+		stateAnalysis.SetGauge(stateAnalysis.GHolderDataTries.At(adapter), int64(len(dataTries)))
+		adb.sampleResidentMemory(dataTries)
 	}
 	adb.dataTries.Reset()
 
 	oldRoot := adb.mainTrie.GetOldRoot()
 
 	// Step 2. commit main trie
+	mainStart := stateAnalysis.Now()
+	stateAnalysis.SetTrieKind(stateAnalysis.KindForAdapter(adapter))
 	err := adb.commitTrie(adb.mainTrie, oldHashes, newHashes)
+	stateAnalysis.SetTrieKind(prevKind)
+	stateAnalysis.AddSince(stateAnalysis.CAdbCommitMainTrieNs.Adapter(adapter), mainStart)
 	if err != nil {
 		return nil, err
 	}
@@ -966,12 +1075,20 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 		return nil, err
 	}
 
+	stateAccStart := stateAnalysis.Now()
 	err = adb.stateAccessesCollector.CommitCollectedAccesses(newRoot)
+	stateAnalysis.AddSince(stateAnalysis.CAdbCommitStateAccNs.Adapter(adapter), stateAccStart)
 	if err != nil {
 		return nil, err
 	}
 
+	evictStart := stateAnalysis.Now()
 	err = adb.markForEviction(oldRoot, newRoot, oldHashes, newHashes)
+	if stateAnalysis.Enabled() {
+		stateAnalysis.AddSince(stateAnalysis.CAdbCommitEvictNs.Adapter(adapter), evictStart)
+		stateAnalysis.Add(stateAnalysis.CAdbCommitOldHashes.Adapter(adapter), int64(len(oldHashes)))
+		stateAnalysis.Add(stateAnalysis.CAdbCommitNewHashes.Adapter(adapter), int64(len(newHashes)))
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -1075,6 +1192,9 @@ func (adb *AccountsDB) recreateTrie(options common.RootHashHolder) error {
 	adb.entries = make([]JournalEntry, 0)
 
 	adb.stateAccessesCollector.Reset()
+	stateAnalysis.Inc(stateAnalysis.CAdbRecreateTrie.Adapter(adb.analysisAdapter))
+	prevKind := stateAnalysis.SetTrieKind(stateAnalysis.KindForAdapter(adb.analysisAdapter))
+	defer stateAnalysis.SetTrieKind(prevKind)
 	newTrie, err := adb.mainTrie.Recreate(options)
 	if err != nil {
 		return err
@@ -1202,6 +1322,7 @@ func (adb *AccountsDB) journalize(entry JournalEntry) {
 	}
 
 	adb.entries = append(adb.entries, entry)
+	stateAnalysis.Inc(stateAnalysis.CAdbJournalize.Adapter(adb.analysisAdapter))
 	log.Trace("accountsDB.Journalize",
 		"new length", len(adb.entries),
 		"entry type", fmt.Sprintf("%T", entry),
@@ -1265,7 +1386,40 @@ func (adb *AccountsDB) ResetPruning() {
 
 // SnapshotState triggers the snapshotting process of the state trie
 func (adb *AccountsDB) SnapshotState(rootHash []byte, epoch uint32) {
+	start := stateAnalysis.Now()
+	stateAnalysis.Inc(stateAnalysis.CAdbSnapshotStateCalls.Adapter(adb.analysisAdapter))
 	adb.snapshotsManger.SnapshotState(rootHash, epoch, adb.getMainTrie().GetStorageManager())
+	stateAnalysis.AddSince(stateAnalysis.CBlockSnapshotWait, start)
+}
+
+// sampleResidentMemory walks the resident part of the main trie and the given data tries every N blocks
+func (adb *AccountsDB) sampleResidentMemory(dataTries []common.Trie) {
+	if !stateAnalysis.ShouldSampleMemory() {
+		return
+	}
+
+	start := time.Now()
+	mainKind := stateAnalysis.KindForAdapter(adb.analysisAdapter)
+	if provider, ok := adb.mainTrie.(stateAnalysis.ResidentStatsProvider); ok {
+		stats := provider.ResidentStats()
+		stateAnalysis.SetResidentStats(mainKind, stats)
+	}
+
+	if adb.analysisAdapter != stateAnalysis.AdapterUser {
+		stateAnalysis.SetGauge(stateAnalysis.GTrieResidentWalkNs, int64(time.Since(start)))
+		return
+	}
+
+	total := stateAnalysis.ResidentStats{}
+	for _, tr := range dataTries {
+		provider, ok := tr.(stateAnalysis.ResidentStatsProvider)
+		if !ok {
+			continue
+		}
+		total.Add(provider.ResidentStats())
+	}
+	stateAnalysis.SetResidentStats(stateAnalysis.KindData, total)
+	stateAnalysis.SetGauge(stateAnalysis.GTrieResidentWalkNs, int64(time.Since(start)))
 }
 
 func (adb *AccountsDB) getTrieStorageManagerAndLatestEpoch(mainTrie common.Trie) (common.StorageManager, uint32, error) {

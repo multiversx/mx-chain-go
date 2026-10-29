@@ -18,6 +18,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
+	"github.com/multiversx/mx-chain-go/common/stateAnalysis"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	epochStartMetaCommmon "github.com/multiversx/mx-chain-go/epochStart/metachain"
 	processOutport "github.com/multiversx/mx-chain-go/outport/process"
@@ -162,6 +163,11 @@ func (mp *metaProcessor) ProcessBlock(
 		return process.ErrBlockProcessorBusy
 	}
 	defer mp.processStatusHandler.SetIdle()
+
+	if !check.IfNil(headerHandler) {
+		stateAnalysis.BeginBlock(headerHandler.GetShardID(), headerHandler.GetEpoch(), headerHandler.GetRound(), headerHandler.GetNonce(), headerHandler.GetTxCount(), headerHandler.IsStartOfEpochBlock())
+		defer stateAnalysis.AddSince(stateAnalysis.CBlockProcessNs, stateAnalysis.Now())
+	}
 
 	err := mp.checkBlockValidity(headerHandler, bodyHandler)
 	if err != nil {
@@ -1545,6 +1551,10 @@ func (mp *metaProcessor) CommitBlock(
 
 	if header.IsHeaderV3() && header.IsStartOfEpochBlock() {
 		mp.saveEpochStartEconomicsMetrics(header)
+	}
+
+	if !headerHandler.IsHeaderV3() {
+		stateAnalysis.EndBlock()
 	}
 
 	return nil

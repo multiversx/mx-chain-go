@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -15,6 +16,7 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/stateAnalysis"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
@@ -104,6 +106,20 @@ func (tr *patriciaMerkleTrie) GetWithVersion(key []byte) (value []byte, depth ui
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
+	start := stateAnalysis.Now()
+	defer func() {
+		if !stateAnalysis.Enabled() {
+			return
+		}
+		kind := stateAnalysis.TrieKind()
+		stateAnalysis.Inc(stateAnalysis.CTrieGet.Kind(kind))
+		stateAnalysis.AddSince(stateAnalysis.CTrieGetNs.Kind(kind), start)
+		if len(value) != 0 {
+			stateAnalysis.Inc(stateAnalysis.CTrieGetFound.Kind(kind))
+			stateAnalysis.Inc(stateAnalysis.CTrieGetDepth.DepthBucket(kind, depth))
+		}
+	}()
+
 	if tr.root == nil {
 		return nil, 0, 0, nil
 	}
@@ -141,6 +157,11 @@ func (tr *patriciaMerkleTrie) UpdateWithVersion(key []byte, value []byte, versio
 }
 
 func (tr *patriciaMerkleTrie) update(key []byte, value []byte, version core.TrieNodeVersion) error {
+	if stateAnalysis.Enabled() {
+		kind := stateAnalysis.TrieKind()
+		stateAnalysis.Inc(stateAnalysis.CTrieUpdate.Kind(kind))
+		defer stateAnalysis.AddSince(stateAnalysis.CTrieUpdateNs.Kind(kind), time.Now())
+	}
 	hexKey := keyBytesToHex(key)
 	if len(value) != 0 {
 		newData := core.TrieData{
@@ -193,6 +214,7 @@ func (tr *patriciaMerkleTrie) Delete(key []byte) error {
 }
 
 func (tr *patriciaMerkleTrie) delete(hexKey []byte) error {
+	stateAnalysis.Inc(stateAnalysis.CTrieDelete.Kind(stateAnalysis.TrieKind()))
 	if tr.root == nil {
 		return nil
 	}
@@ -221,6 +243,8 @@ func (tr *patriciaMerkleTrie) RootHash() ([]byte, error) {
 }
 
 func (tr *patriciaMerkleTrie) getRootHash() ([]byte, error) {
+	kind := stateAnalysis.TrieKind()
+	stateAnalysis.Inc(stateAnalysis.CTrieRootHashCalls.Kind(kind))
 	if tr.root == nil {
 		return common.EmptyTrieHash, nil
 	}
@@ -229,7 +253,10 @@ func (tr *patriciaMerkleTrie) getRootHash() ([]byte, error) {
 	if hash != nil {
 		return hash, nil
 	}
+	stateAnalysis.Inc(stateAnalysis.CTrieRootHashComputed.Kind(kind))
+	start := stateAnalysis.Now()
 	err := tr.root.setRootHash()
+	stateAnalysis.AddSince(stateAnalysis.CTrieRootHashNs.Kind(kind), start)
 	if err != nil {
 		return nil, err
 	}
@@ -245,11 +272,16 @@ func (tr *patriciaMerkleTrie) Commit() error {
 		log.Trace("trying to commit empty trie")
 		return nil
 	}
+	kind := stateAnalysis.TrieKind()
 	if !tr.root.isDirty() {
 		log.Trace("trying to commit clean trie", "root", tr.root.getHash())
+		stateAnalysis.Inc(stateAnalysis.CTrieCommitClean.Kind(kind))
 		return nil
 	}
+	stateAnalysis.Inc(stateAnalysis.CTrieCommit.Kind(kind))
+	hashStart := stateAnalysis.Now()
 	err := tr.root.setRootHash()
+	stateAnalysis.AddSince(stateAnalysis.CTrieCommitHashNs.Kind(kind), hashStart)
 	if err != nil {
 		return err
 	}
@@ -261,7 +293,9 @@ func (tr *patriciaMerkleTrie) Commit() error {
 		log.Trace("started committing trie", "trie", tr.root.getHash())
 	}
 
+	writeStart := stateAnalysis.Now()
 	err = tr.root.commitDirty(0, tr.maxTrieLevelInMemory, tr.trieStorage, tr.trieStorage)
+	stateAnalysis.AddSince(stateAnalysis.CTrieCommitWriteNs.Kind(kind), writeStart)
 	if err != nil {
 		return err
 	}
@@ -370,6 +404,11 @@ func (tr *patriciaMerkleTrie) GetDirtyHashes() (common.ModifiedHashes, error) {
 }
 
 func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, tsm common.StorageManager) (*patriciaMerkleTrie, snapshotNode, error) {
+	if stateAnalysis.Enabled() {
+		kind := stateAnalysis.TrieKind()
+		stateAnalysis.Inc(stateAnalysis.CTrieRecreate.Kind(kind))
+		defer stateAnalysis.AddSince(stateAnalysis.CTrieRecreateNs.Kind(kind), time.Now())
+	}
 	newTr, err := NewTrie(
 		tsm,
 		tr.marshalizer,
@@ -761,4 +800,43 @@ func isChannelClosed(ch chan struct{}) bool {
 	}
 
 	return false
+}
+
+// ResidentStats walks the nodes currently held in memory (without resolving collapsed children) and
+// returns their count and estimated size by node type
+func (tr *patriciaMerkleTrie) ResidentStats() stateAnalysis.ResidentStats {
+	tr.mutOperation.RLock()
+	defer tr.mutOperation.RUnlock()
+
+	stats := stateAnalysis.ResidentStats{}
+	collectResidentStats(tr.root, &stats)
+	return stats
+}
+
+func collectResidentStats(n node, stats *stateAnalysis.ResidentStats) {
+	switch nd := n.(type) {
+	case *branchNode:
+		if nd == nil {
+			return
+		}
+		stats.AddNode(stateAnalysis.NodeBranch, nd.sizeInBytes())
+		for i := range nd.children {
+			if nd.children[i] != nil {
+				collectResidentStats(nd.children[i], stats)
+			}
+		}
+	case *extensionNode:
+		if nd == nil {
+			return
+		}
+		stats.AddNode(stateAnalysis.NodeExtension, nd.sizeInBytes())
+		if nd.child != nil {
+			collectResidentStats(nd.child, stats)
+		}
+	case *leafNode:
+		if nd == nil {
+			return
+		}
+		stats.AddNode(stateAnalysis.NodeLeaf, nd.sizeInBytes())
+	}
 }

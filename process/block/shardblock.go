@@ -20,6 +20,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
+	"github.com/multiversx/mx-chain-go/common/stateAnalysis"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	processOutport "github.com/multiversx/mx-chain-go/outport/process"
 	"github.com/multiversx/mx-chain-go/process"
@@ -121,6 +122,11 @@ func (sp *shardProcessor) ProcessBlock(
 		return process.ErrBlockProcessorBusy
 	}
 	defer sp.processStatusHandler.SetIdle()
+
+	if !check.IfNil(headerHandler) {
+		stateAnalysis.BeginBlock(headerHandler.GetShardID(), headerHandler.GetEpoch(), headerHandler.GetRound(), headerHandler.GetNonce(), headerHandler.GetTxCount(), headerHandler.IsStartOfEpochBlock())
+		defer stateAnalysis.AddSince(stateAnalysis.CBlockProcessNs, stateAnalysis.Now())
+	}
 
 	err := sp.checkBlockValidity(headerHandler, bodyHandler)
 	if err != nil {
@@ -1458,6 +1464,10 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.blockProcessingCutoffHandler.HandlePauseCutoff(header)
 	sp.UpdateSupernovaTransitionReadiness(header, headerHash)
+
+	if !headerHandler.IsHeaderV3() {
+		stateAnalysis.EndBlock()
+	}
 
 	return nil
 }

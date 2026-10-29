@@ -212,6 +212,7 @@ type Config struct {
 	EvictionWaitingList          EvictionWaitingListConfig
 	StateTriesConfig             StateTriesConfig
 	StateAccessesCollectorConfig StateAccessesCollectorConfig
+	StateAnalysisConfig          StateAnalysisConfig
 	TrieStorageManagerConfig     TrieStorageManagerConfig
 	TrieLeavesRetrieverConfig    TrieLeavesRetrieverConfig
 	TrieOperations               TrieOperationsConfig
@@ -512,6 +513,22 @@ type StateTriesConfig struct {
 	MaxStateTrieLevelInMemory   uint
 	MaxPeerTrieLevelInMemory    uint
 	StateStatisticsEnabled      bool
+}
+
+// StateAnalysisConfig configures the state and trie analysis collector (import-db re-execution statistics)
+type StateAnalysisConfig struct {
+	Enabled                  bool
+	Label                    string
+	OutputDir                string
+	BlocksPerRow             int
+	MaxTrackedKeys           int
+	TopKPerEpoch             int
+	MemorySampleEveryNBlocks int
+	OutlierCommitTimeMs      int64
+	OutlierStorageReads      int64
+	OutlierJournalLen        int64
+	ProfileEveryNEpochs      int
+	ProfileNumBlocks         int
 }
 
 // StateAccessesCollectorConfig will hold information about state accesses collector

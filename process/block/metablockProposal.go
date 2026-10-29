@@ -13,6 +13,7 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/stateAnalysis"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
@@ -355,6 +356,9 @@ func (mp *metaProcessor) ProcessBlockProposal(
 	}
 	defer mp.processStatusHandler.SetIdle()
 
+	stateAnalysis.BeginBlock(headerHandler.GetShardID(), headerHandler.GetEpoch(), headerHandler.GetRound(), headerHandler.GetNonce(), headerHandler.GetTxCount(), headerHandler.IsStartOfEpochBlock())
+	defer stateAnalysis.AddSince(stateAnalysis.CBlockProcessNs, stateAnalysis.Now())
+
 	mp.roundNotifier.CheckRound(headerHandler)
 	mp.epochNotifier.CheckEpoch(headerHandler)
 	mp.requestHandler.SetEpoch(headerHandler.GetEpoch())
@@ -501,6 +505,8 @@ func (mp *metaProcessor) CommitBlockProposalState(headerHandler data.HeaderHandl
 	if ok {
 		mp.saveEpochStartEconomicsMetricsV3IfNeeded(metaHeader)
 	}
+
+	stateAnalysis.EndBlock()
 
 	return nil
 }

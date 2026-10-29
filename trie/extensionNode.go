@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/stateAnalysis"
 	"github.com/multiversx/mx-chain-go/trie/leavesRetriever/trieNodeData"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
@@ -243,6 +244,9 @@ func (en *extensionNode) commitSnapshot(
 	}
 
 	stats.AddExtensionNode(depthLevel, uint64(len(nodeBytes)))
+	if sc, ok := stats.(stateAnalysis.StructureCollector); ok {
+		sc.AddExtensionStructure(depthLevel, len(nodeBytes), len(en.Key))
+	}
 	return nil
 }
 

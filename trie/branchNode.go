@@ -14,6 +14,7 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/stateAnalysis"
 	"github.com/multiversx/mx-chain-go/trie/leavesRetriever/trieNodeData"
 )
 
@@ -247,6 +248,7 @@ func (bn *branchNode) hashNode() ([]byte, error) {
 				return nil, err
 			}
 			bn.EncodedChildren[i] = encChild
+			stateAnalysis.Inc(stateAnalysis.CTrieChildReencode.Kind(stateAnalysis.TrieKind()))
 		}
 	}
 	return encodeNodeAndGetHash(bn)
@@ -280,6 +282,7 @@ func (bn *branchNode) commitDirty(level byte, maxTrieLevelInMemory uint, originD
 	}
 	if uint(level) == maxTrieLevelInMemory {
 		log.Trace("collapse branch node on commit")
+		stateAnalysis.Inc(stateAnalysis.CTrieCollapseAtMax.Kind(stateAnalysis.TrieKind()))
 
 		var collapsedBn *branchNode
 		collapsedBn, err = bn.getCollapsedBn()
@@ -308,10 +311,12 @@ func (bn *branchNode) commitSnapshot(
 		return core.ErrContextClosing
 	}
 
+	numChildren := 0
 	for i := range bn.EncodedChildren {
 		if len(bn.EncodedChildren[i]) == 0 {
 			continue
 		}
+		numChildren++
 
 		err := commitSnapshot(
 			db,
@@ -332,6 +337,9 @@ func (bn *branchNode) commitSnapshot(
 	}
 
 	stats.AddBranchNode(depthLevel, uint64(len(nodeBytes)))
+	if sc, ok := stats.(stateAnalysis.StructureCollector); ok {
+		sc.AddBranchStructure(depthLevel, len(nodeBytes), numChildren)
+	}
 	return nil
 }
 
@@ -394,9 +402,15 @@ func (bn *branchNode) tryGetWithVersion(key []byte, currentDepth uint32, db comm
 		return nil, currentDepth, 0, ErrChildPosOutOfRange
 	}
 	key = key[1:]
+	wasCollapsed := bn.isPosCollapsed(int(childPos))
 	err = resolveIfCollapsed(bn, childPos, db)
 	if err != nil {
 		return nil, currentDepth, 0, err
+	}
+	if wasCollapsed && stateAnalysis.Enabled() {
+		kind := stateAnalysis.TrieKind()
+		stateAnalysis.Inc(stateAnalysis.CTrieLoadInGet.Kind(kind))
+		stateAnalysis.Inc(stateAnalysis.CTrieLoadGetDepth.DepthBucket(kind, currentDepth+1))
 	}
 	if bn.children[childPos] == nil {
 		return nil, currentDepth, 0, nil

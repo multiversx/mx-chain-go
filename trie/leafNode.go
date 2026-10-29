@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/stateAnalysis"
 	"github.com/multiversx/mx-chain-go/trie/leavesRetriever/trieNodeData"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
@@ -161,6 +162,9 @@ func (ln *leafNode) commitSnapshot(
 	}
 
 	stats.AddLeafNode(depthLevel, uint64(len(nodeBytes)), version)
+	if sc, ok := stats.(stateAnalysis.StructureCollector); ok {
+		sc.AddLeafStructure(depthLevel, len(nodeBytes), len(ln.Key), len(ln.Value), version)
+	}
 
 	return nil
 }

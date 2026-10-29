@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/stateAnalysis"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -90,6 +91,7 @@ type PruningStorer struct {
 	pathManager            storage.PathManagerHandler
 	dbPath                 string
 	persisterFactory       DbFactoryHandler
+	analysisUnit           int
 	mutEpochPrepareHdr     sync.RWMutex
 	epochPrepareHdr        data.HeaderHandler
 	oldDataCleanerProvider clean.OldDataCleanerProvider
@@ -145,10 +147,12 @@ func initPruningStorer(
 
 	pdb.pruningEnabled = args.PruningEnabled
 	pdb.identifier = identifier
+	pdb.analysisUnit = stateAnalysis.UnitFromIdentifier(identifier)
 	pdb.persisterFactory = args.PersisterFactory
 	pdb.shardCoordinator = args.ShardCoordinator
 	pdb.cacher = suCache
 	pdb.epochPrepareHdr = &block.MetaBlock{Epoch: epochForDefaultEpochPrepareHdr}
+	pdb.registerAnalysisProbe()
 	pdb.epochForPutOperation = args.EpochsData.StartingEpoch
 	pdb.pathManager = args.PathManager
 	pdb.dbPath = args.DbPath
@@ -361,6 +365,7 @@ func (ps *PruningStorer) onEvicted(key interface{}, value interface{}) {
 // Put adds data to both cache and persistence medium
 func (ps *PruningStorer) Put(key, data []byte) error {
 	ps.cacher.Put(key, data, len(data))
+	stateAnalysis.Inc(stateAnalysis.CStPsPut.Unit(ps.analysisUnit))
 
 	persisterToUse := ps.getPersisterToUse()
 
@@ -464,6 +469,7 @@ func (ps *PruningStorer) createAndInitPersister(pd *persisterData) (storage.Pers
 		log.Warn("createAndInitPersister()", "error", err.Error())
 		return nil, nil, err
 	}
+	persister = stateAnalysis.WrapPersister(persister, pd.path)
 
 	closeFunc := func() {
 		err = pd.Close()
@@ -482,6 +488,7 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 	v, ok := ps.cacher.Get(key)
 	if ok {
 		ps.stateStatsHandler.IncrCache()
+		stateAnalysis.Inc(stateAnalysis.CStPsCacheHit.Unit(ps.analysisUnit))
 		return v.([]byte), nil
 	}
 
@@ -505,9 +512,11 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 
 		// if found in persistence unit, add it to cache and return
 		_ = ps.cacher.Put(key, val, len(val))
+		stateAnalysis.Inc(stateAnalysis.CStPsPersisterHit.PersisterBucket(ps.analysisUnit, idx))
 
 		return val, nil
 	}
+	stateAnalysis.Inc(stateAnalysis.CStPsMiss.Unit(ps.analysisUnit))
 
 	if numClosedDbs == len(ps.activePersisters) && len(ps.activePersisters) > 0 {
 		return nil, storage.ErrDBIsClosed
@@ -890,6 +899,7 @@ func (ps *PruningStorer) changeEpoch(header data.HeaderHandler) error {
 		log.Warn("change epoch", "persister", ps.identifier, "error", err.Error())
 		return err
 	}
+	db = stateAnalysis.WrapPersister(db, filePath)
 
 	newPersister := &persisterData{
 		persister: db,
@@ -1018,6 +1028,7 @@ func (ps *PruningStorer) changeEpochWithExisting(epoch uint32) error {
 			if errCreate != nil {
 				return errCreate
 			}
+			db = stateAnalysis.WrapPersister(db, p.path)
 
 			p.setPersisterAndIsClosed(db, false)
 		}
@@ -1048,6 +1059,7 @@ func (ps *PruningStorer) extendActivePersisters(from uint32, to uint32) error {
 			if err != nil {
 				return err
 			}
+			persister = stateAnalysis.WrapPersister(persister, p.path)
 			reOpenedPersisters = append(reOpenedPersisters, p)
 			p.setPersisterAndIsClosed(persister, false)
 		}
@@ -1189,7 +1201,7 @@ func createPersisterDataForEpoch(
 	}
 
 	p := &persisterData{
-		persister: db,
+		persister: stateAnalysis.WrapPersister(db, filePath),
 		epoch:     epoch,
 		path:      filePath,
 		isClosed:  false,
@@ -1207,4 +1219,14 @@ func computeOldestEpoch(metaBlock data.MetaHeaderHandler) uint32 {
 	}
 
 	return oldestEpoch
+}
+
+func (ps *PruningStorer) registerAnalysisProbe() {
+	stateAnalysis.RegisterCacheProbe(ps.identifier, func() (int, int, int) {
+		ps.lock.RLock()
+		numPersisters := len(ps.activePersisters)
+		ps.lock.RUnlock()
+
+		return ps.cacher.Len(), int(ps.cacher.SizeInBytesContained()), numPersisters
+	})
 }
