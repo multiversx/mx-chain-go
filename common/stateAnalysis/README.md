@@ -30,6 +30,8 @@ Enable it in `config.toml`:
 | `profiles/` | sparse | CPU profile of the first `ProfileNumBlocks` blocks of every `ProfileEveryNEpochs`-th epoch and a heap profile at the end of that window |
 
 Every row carries `shard`, `label`, `epoch`, the first round and the first and last nonce of the row.
+Files are opened in append mode (header written only when the file is new), so a component restart
+inside one process appends a new gzip member instead of truncating the previous rows.
 
 ## Column families
 

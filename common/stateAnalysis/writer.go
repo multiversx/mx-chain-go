@@ -23,17 +23,26 @@ func newCsvFile(path string, header []string) (*csvFile, error) {
 	if err != nil {
 		return nil, err
 	}
-	f, err := os.Create(path)
+	// append so that a component restart (e.g. shuffle out) does not truncate the rows of the previous cycle;
+	// each cycle appends a new gzip member, which zcat and the python gzip module read as one stream
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
 	if err != nil {
+		return nil, err
+	}
+	info, err := f.Stat()
+	if err != nil {
+		_ = f.Close()
 		return nil, err
 	}
 	gz := gzip.NewWriter(f)
 	w := csv.NewWriter(gz)
 	c := &csvFile{f: f, gz: gz, csv: w, path: path}
-	err = c.write(header)
-	if err != nil {
-		_ = c.close()
-		return nil, err
+	if info.Size() == 0 {
+		err = c.write(header)
+		if err != nil {
+			_ = c.close()
+			return nil, err
+		}
 	}
 	return c, nil
 }

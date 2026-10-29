@@ -278,7 +278,7 @@ func (adb *AccountsDB) SaveAccount(account vmcommon.AccountHandler) error {
 		}()
 	}
 
-	oldAccount, oldAccountBytes, err := adb.getAccountAndBytes(account.AddressBytes(), adb.mainTrie)
+	oldAccount, oldAccountBytes, err := adb.getAccountAndBytesWithTouch(account.AddressBytes(), adb.mainTrie, false)
 	stateAnalysis.AddSince(stateAnalysis.CAdbSaveRereadNs.Adapter(adb.analysisAdapter), saveStart)
 	if err != nil {
 		return err
@@ -535,6 +535,10 @@ func (adb *AccountsDB) loadDataTrieConcurrentSafe(accountHandler baseAccountHand
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
+	if len(accountHandler.GetRootHash()) != 0 {
+		stateAnalysis.Inc(stateAnalysis.CAdbAccountsWithRootHash.Adapter(adb.analysisAdapter))
+	}
+
 	dataTrie := adb.dataTries.Get(accountHandler.AddressBytes())
 	if dataTrie != nil {
 		stateAnalysis.Inc(stateAnalysis.CAdbDataTrieHolderHit.Adapter(adb.analysisAdapter))
@@ -549,7 +553,6 @@ func (adb *AccountsDB) loadDataTrieConcurrentSafe(accountHandler baseAccountHand
 
 	recreateStart := stateAnalysis.Now()
 	if stateAnalysis.Enabled() {
-		stateAnalysis.Inc(stateAnalysis.CAdbAccountsWithRootHash.Adapter(adb.analysisAdapter))
 		stateAnalysis.Inc(stateAnalysis.CAdbDataTrieRecreate.Adapter(adb.analysisAdapter))
 		stateAnalysis.TouchDataTrie(adb.analysisAdapter, accountHandler.AddressBytes(), false)
 		defer stateAnalysis.AddSince(stateAnalysis.CAdbDataTrieRecreateNs.Adapter(adb.analysisAdapter), recreateStart)
@@ -789,13 +792,20 @@ func (adb *AccountsDB) getAccount(address []byte, mainTrie common.Trie) (vmcommo
 }
 
 func (adb *AccountsDB) getAccountAndBytes(address []byte, mainTrie common.Trie) (vmcommon.AccountHandler, []byte, error) {
+	return adb.getAccountAndBytesWithTouch(address, mainTrie, true)
+}
+
+// getAccountAndBytesWithTouch reads the account; touch=false is used by SaveAccount whose re-read is not a new access of the address
+func (adb *AccountsDB) getAccountAndBytesWithTouch(address []byte, mainTrie common.Trie, touch bool) (vmcommon.AccountHandler, []byte, error) {
 	getStart := stateAnalysis.Now()
 	prevKind := stateAnalysis.SetTrieKind(stateAnalysis.KindForAdapter(adb.analysisAdapter))
 	val, _, err := mainTrie.Get(address)
 	stateAnalysis.SetTrieKind(prevKind)
 	if stateAnalysis.Enabled() {
 		stateAnalysis.AddSince(stateAnalysis.CAdbGetAccountNs.Adapter(adb.analysisAdapter), getStart)
-		stateAnalysis.TouchAccount(adb.analysisAdapter, address, len(val), false)
+		if touch {
+			stateAnalysis.TouchAccount(adb.analysisAdapter, address, len(val), false)
+		}
 		if val != nil {
 			stateAnalysis.Inc(stateAnalysis.CAdbGetAccountFound.Adapter(adb.analysisAdapter))
 			stateAnalysis.Add(stateAnalysis.CAdbGetAccountBytes.Adapter(adb.analysisAdapter), int64(len(val)))
@@ -954,9 +964,16 @@ func (adb *AccountsDB) RevertToSnapshot(snapshot int) error {
 
 	stateAnalysis.Inc(stateAnalysis.CAdbRevertPartial.Adapter(adb.analysisAdapter))
 	stateAnalysis.Add(stateAnalysis.CAdbRevertEntries.Adapter(adb.analysisAdapter), int64(len(adb.entries)-snapshot))
-	prevKind := stateAnalysis.SetTrieKind(stateAnalysis.KindForAdapter(adb.analysisAdapter))
+	mainKind := stateAnalysis.KindForAdapter(adb.analysisAdapter)
+	prevKind := stateAnalysis.SetTrieKind(mainKind)
 	defer stateAnalysis.SetTrieKind(prevKind)
 	for i := len(adb.entries) - 1; i >= snapshot; i-- {
+		switch adb.entries[i].(type) {
+		case *journalEntryDataTrieUpdates, *journalEntryDataTrieRemove:
+			stateAnalysis.SetTrieKind(stateAnalysis.KindData)
+		default:
+			stateAnalysis.SetTrieKind(mainKind)
+		}
 		account, err := adb.entries[i].Revert()
 		if err != nil {
 			adb.entries = adb.entries[:i+1]
@@ -1053,7 +1070,10 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 		stateAnalysis.Add(stateAnalysis.CAdbCommitDataTries.Adapter(adapter), int64(len(dataTries)))
 		stateAnalysis.AddSince(stateAnalysis.CAdbCommitDataTriesNs.Adapter(adapter), commitStart)
 		stateAnalysis.SetGauge(stateAnalysis.GHolderDataTries.At(adapter), int64(len(dataTries)))
-		adb.sampleResidentMemory(dataTries)
+		walkNs := adb.sampleResidentMemory(dataTries)
+		// the walk is instrumentation cost, keep it out of the commit timers and of the outlier detection
+		stateAnalysis.Add(stateAnalysis.CAdbCommitNs.Adapter(adapter), -walkNs)
+		stateAnalysis.Add(stateAnalysis.CBlockCommitNs, -walkNs)
 	}
 	adb.dataTries.Reset()
 
@@ -1392,10 +1412,11 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte, epoch uint32) {
 	stateAnalysis.AddSince(stateAnalysis.CBlockSnapshotWait, start)
 }
 
-// sampleResidentMemory walks the resident part of the main trie and the given data tries every N blocks
-func (adb *AccountsDB) sampleResidentMemory(dataTries []common.Trie) {
+// sampleResidentMemory walks the resident part of the main trie and the given data tries every N blocks and
+// returns the duration of the walk in nanoseconds
+func (adb *AccountsDB) sampleResidentMemory(dataTries []common.Trie) int64 {
 	if !stateAnalysis.ShouldSampleMemory() {
-		return
+		return 0
 	}
 
 	start := time.Now()
@@ -1406,8 +1427,9 @@ func (adb *AccountsDB) sampleResidentMemory(dataTries []common.Trie) {
 	}
 
 	if adb.analysisAdapter != stateAnalysis.AdapterUser {
-		stateAnalysis.SetGauge(stateAnalysis.GTrieResidentWalkNs, int64(time.Since(start)))
-		return
+		walkNs := int64(time.Since(start))
+		stateAnalysis.SetGauge(stateAnalysis.GTrieResidentWalkNs, walkNs)
+		return walkNs
 	}
 
 	total := stateAnalysis.ResidentStats{}
@@ -1419,7 +1441,9 @@ func (adb *AccountsDB) sampleResidentMemory(dataTries []common.Trie) {
 		total.Add(provider.ResidentStats())
 	}
 	stateAnalysis.SetResidentStats(stateAnalysis.KindData, total)
-	stateAnalysis.SetGauge(stateAnalysis.GTrieResidentWalkNs, int64(time.Since(start)))
+	walkNs := int64(time.Since(start))
+	stateAnalysis.SetGauge(stateAnalysis.GTrieResidentWalkNs, walkNs)
+	return walkNs
 }
 
 func (adb *AccountsDB) getTrieStorageManagerAndLatestEpoch(mainTrie common.Trie) (common.StorageManager, uint32, error) {

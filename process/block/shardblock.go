@@ -123,7 +123,8 @@ func (sp *shardProcessor) ProcessBlock(
 	}
 	defer sp.processStatusHandler.SetIdle()
 
-	if !check.IfNil(headerHandler) {
+	// header V3 blocks are opened in ProcessBlockProposal and closed in CommitBlockProposalState
+	if !check.IfNil(headerHandler) && !headerHandler.IsHeaderV3() {
 		stateAnalysis.BeginBlock(headerHandler.GetShardID(), headerHandler.GetEpoch(), headerHandler.GetRound(), headerHandler.GetNonce(), headerHandler.GetTxCount(), headerHandler.IsStartOfEpochBlock())
 		defer stateAnalysis.AddSince(stateAnalysis.CBlockProcessNs, stateAnalysis.Now())
 	}

@@ -250,7 +250,9 @@ func (tdt *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]*stateChang
 
 	if check.IfNil(tdt.tr) {
 		emptyRootHash := holders.NewDefaultRootHashesHolder(make([]byte, 0))
+		prevKind := stateAnalysis.SetTrieKind(stateAnalysis.KindData)
 		newDataTrie, err := mainTrie.Recreate(emptyRootHash)
+		stateAnalysis.SetTrieKind(prevKind)
 		if err != nil {
 			return nil, nil, err
 		}

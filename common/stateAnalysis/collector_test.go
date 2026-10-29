@@ -222,7 +222,7 @@ func TestCollector_EndToEnd(t *testing.T) {
 	assert.Equal(t, "2", first[column(header, "trie_resident_nodes_main_ext")])
 	assert.Equal(t, "30", first[column(header, "trie_resident_bytes_main_leaf")])
 	assert.NotEqual(t, "0", first[column(header, "mem_heap_alloc")])
-	assert.Equal(t, "0", first[column(header, "st_db_get_ns_max")]) // reset at every block end
+	assert.Equal(t, "40", first[column(header, "st_db_get_ns_max")]) // largest per-block running max inside the row
 
 	second := rows[2]
 	assert.Equal(t, "1", second[column(header, "epoch")])
@@ -234,6 +234,7 @@ func TestCollector_EndToEnd(t *testing.T) {
 	require.Len(t, outliers, 2)
 	assert.Equal(t, "101", outliers[1][column(header, "nonce_first")])
 	assert.Equal(t, "1", outliers[1][column(header, "blocks")])
+	assert.Equal(t, "0", outliers[1][column(header, "st_db_get_ns_max")]) // running max is reset at every block
 
 	reuse := readGzipCsv(t, filepath.Join(outDir, "reuse.csv.gz"))
 	require.GreaterOrEqual(t, len(reuse), 1+2*numKinds)
@@ -254,6 +255,28 @@ func TestCollector_EndToEnd(t *testing.T) {
 	assert.Equal(t, "1", hot[1][column(hotHeader, "rank")])
 	assert.Equal(t, "3", hot[1][column(hotHeader, "count")])
 	assert.Equal(t, "6164647231", hot[1][column(hotHeader, "key")]) // hex("addr1")
+}
+
+func TestCollector_ReinitAppendsToExistingFiles(t *testing.T) {
+	dir := t.TempDir()
+	cfg := Config{Enabled: true, Label: "test", OutputDir: "out", BlocksPerRow: 1}
+	defer func() {
+		Close()
+		global = nil
+	}()
+
+	for cycle := 0; cycle < 2; cycle++ {
+		require.Nil(t, Init(cfg, 0, dir))
+		BeginBlock(0, 0, uint64(cycle), uint64(cycle), 0, false)
+		EndBlock()
+		Close()
+	}
+
+	rows := readGzipCsv(t, filepath.Join(dir, "out", "shard_0", "blocks.csv.gz"))
+	require.Len(t, rows, 3) // one header + one row per cycle
+	assert.Equal(t, "shard", rows[0][0])
+	assert.Equal(t, "0", rows[1][column(rows[0], "nonce_first")])
+	assert.Equal(t, "1", rows[2][column(rows[0], "nonce_first")])
 }
 
 func TestSnapshotStructure(t *testing.T) {

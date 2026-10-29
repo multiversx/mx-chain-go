@@ -77,7 +77,7 @@ type collector struct {
 	epoch      uint32
 	round      uint64
 	nonce      uint64
-	blockIndex uint64
+	blockIndex atomic.Uint64
 	blockStart time.Time
 	blockCPU   time.Duration
 	epochKnown bool
@@ -85,6 +85,7 @@ type collector struct {
 	prev             []int64
 	bucketSum        []int64
 	bucketMax        []int64
+	bucketRunMax     []int64
 	bucketBlocks     int64
 	bucketFirstNonce uint64
 	bucketFirstRound uint64
@@ -136,15 +137,16 @@ func Init(cfg Config, shardID uint32, workingDir string) error {
 	}
 
 	c := &collector{
-		cfg:       cfg,
-		shardID:   shardID,
-		dir:       dir,
-		counters:  make([]atomic.Int64, len(reg.counterNames)),
-		gauges:    make([]atomic.Int64, len(reg.gaugeNames)),
-		maxes:     make([]atomic.Int64, len(reg.maxNames)),
-		prev:      make([]int64, len(reg.counterNames)),
-		bucketSum: make([]int64, len(reg.counterNames)),
-		bucketMax: make([]int64, len(reg.counterNames)),
+		cfg:          cfg,
+		shardID:      shardID,
+		dir:          dir,
+		counters:     make([]atomic.Int64, len(reg.counterNames)),
+		gauges:       make([]atomic.Int64, len(reg.gaugeNames)),
+		maxes:        make([]atomic.Int64, len(reg.maxNames)),
+		prev:         make([]int64, len(reg.counterNames)),
+		bucketSum:    make([]int64, len(reg.counterNames)),
+		bucketMax:    make([]int64, len(reg.counterNames)),
+		bucketRunMax: make([]int64, len(reg.maxNames)),
 		prof: &profiler{
 			dir:          filepath.Join(dir, "profiles"),
 			everyNEpochs: cfg.ProfileEveryNEpochs,
@@ -338,9 +340,7 @@ func TouchAccount(adapter int, address []byte, size int, isWrite bool) {
 	if adapter != AdapterUser {
 		return
 	}
-	c.mut.Lock()
-	blockIndex := c.blockIndex
-	c.mut.Unlock()
+	blockIndex := c.blockIndex.Load()
 	c.reuse[KindMain].touch(address, size, blockIndex)
 	c.hot[KindMain].touch(address)
 }
@@ -355,9 +355,7 @@ func TouchDataTrie(adapter int, address []byte, isWrite bool) {
 	if adapter != AdapterUser {
 		return
 	}
-	c.mut.Lock()
-	blockIndex := c.blockIndex
-	c.mut.Unlock()
+	blockIndex := c.blockIndex.Load()
 	c.reuse[KindPeer].touch(address, 0, blockIndex)
 	c.hot[KindPeer].touch(address)
 }
@@ -371,9 +369,7 @@ func TouchDataTrieKey(address []byte, key []byte, size int) {
 	full := make([]byte, 0, len(address)+len(key))
 	full = append(full, address...)
 	full = append(full, key...)
-	c.mut.Lock()
-	blockIndex := c.blockIndex
-	c.mut.Unlock()
+	blockIndex := c.blockIndex.Load()
 	c.reuse[KindData].touch(full, size, blockIndex)
 	c.hot[KindData].touch(full)
 }
@@ -394,10 +390,7 @@ func ShouldSampleMemory() bool {
 	if !enabled.Load() {
 		return false
 	}
-	c := global
-	c.mut.Lock()
-	defer c.mut.Unlock()
-	return c.blockIndex%uint64(c.cfg.MemorySampleEveryNBlocks) == 0
+	return global.blockIndex.Load()%uint64(global.cfg.MemorySampleEveryNBlocks) == 0
 }
 
 // Block lifecycle ------------------------------------------------------------
@@ -470,7 +463,7 @@ func (c *collector) endBlockUnprotected() {
 		Add(CAdbUniqueDataTriesPrev.adapter(a), seenPrev)
 	}
 
-	if c.blockIndex%uint64(c.cfg.MemorySampleEveryNBlocks) == 0 {
+	if c.blockIndex.Load()%uint64(c.cfg.MemorySampleEveryNBlocks) == 0 {
 		c.sampleMemory()
 		c.sampleProbes()
 	}
@@ -488,17 +481,22 @@ func (c *collector) endBlockUnprotected() {
 	}
 	c.bucketBlocks++
 
+	// running maxima are reset at every block; the bucket keeps the largest per-block value seen in the row
+	runMax := make([]int64, len(c.maxes))
+	for i := range c.maxes {
+		runMax[i] = c.maxes[i].Swap(0)
+		if runMax[i] > c.bucketRunMax[i] {
+			c.bucketRunMax[i] = runMax[i]
+		}
+	}
+
 	if c.isOutlier(delta) {
-		row := c.buildRow(delta, delta, 1, c.nonce, c.nonce, c.round, int64(time.Since(c.blockStart)))
+		row := c.buildRow(delta, delta, runMax, 1, c.nonce, c.nonce, c.round, int64(time.Since(c.blockStart)))
 		_ = c.outliersFile.write(row)
 	}
 
-	for i := range c.maxes {
-		c.maxes[i].Store(0)
-	}
-
 	c.prof.blockDone(c.epoch, c.nonce)
-	c.blockIndex++
+	c.blockIndex.Add(1)
 
 	if c.bucketBlocks >= int64(c.cfg.BlocksPerRow) {
 		c.flushBucketUnprotected()
@@ -541,7 +539,7 @@ func (c *collector) sampleProbes() {
 	}
 }
 
-func (c *collector) buildRow(sum []int64, maxes []int64, blocks int64, nonceFirst, nonceLast, roundFirst uint64, elapsedNs int64) []string {
+func (c *collector) buildRow(sum []int64, maxes []int64, runMax []int64, blocks int64, nonceFirst, nonceLast, roundFirst uint64, elapsedNs int64) []string {
 	row := make([]string, 0, 8+2*len(sum)+len(c.maxes)+len(c.gauges))
 	row = append(row,
 		itoa(int(c.shardID)), c.cfg.Label, itoa(int(c.epoch)),
@@ -554,8 +552,8 @@ func (c *collector) buildRow(sum []int64, maxes []int64, blocks int64, nonceFirs
 			row = append(row, i64s(v))
 		}
 	}
-	for i := range c.maxes {
-		row = append(row, i64s(c.maxes[i].Load()))
+	for _, v := range runMax {
+		row = append(row, i64s(v))
 	}
 	for i := range c.gauges {
 		row = append(row, i64s(c.gauges[i].Load()))
@@ -567,7 +565,7 @@ func (c *collector) flushBucketUnprotected() {
 	if c.bucketBlocks == 0 {
 		return
 	}
-	row := c.buildRow(c.bucketSum, c.bucketMax, c.bucketBlocks, c.bucketFirstNonce, c.nonce, c.bucketFirstRound, int64(time.Since(c.bucketWallStart)))
+	row := c.buildRow(c.bucketSum, c.bucketMax, c.bucketRunMax, c.bucketBlocks, c.bucketFirstNonce, c.nonce, c.bucketFirstRound, int64(time.Since(c.bucketWallStart)))
 	err := c.blocksFile.write(row)
 	if err != nil {
 		log.Warn("stateAnalysis: cannot write blocks row", "err", err)
@@ -575,6 +573,9 @@ func (c *collector) flushBucketUnprotected() {
 	for i := range c.bucketSum {
 		c.bucketSum[i] = 0
 		c.bucketMax[i] = 0
+	}
+	for i := range c.bucketRunMax {
+		c.bucketRunMax[i] = 0
 	}
 	c.bucketBlocks = 0
 }
