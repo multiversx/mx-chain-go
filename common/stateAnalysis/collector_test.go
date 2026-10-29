@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime/pprof"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -62,11 +63,11 @@ func TestDistanceBucket(t *testing.T) {
 
 func TestReuseTracker(t *testing.T) {
 	rt := newReuseTracker(2)
-	rt.touch([]byte("a"), 10, 0)
-	rt.touch([]byte("a"), 10, 0)
-	rt.touch([]byte("a"), 10, 3)
-	rt.touch([]byte("b"), 5, 3)
-	rt.touch([]byte("c"), 1, 4) // map is full -> reset, c is new
+	rt.touch("a", 10, 0)
+	rt.touch("a", 10, 0)
+	rt.touch("a", 10, 3)
+	rt.touch("b", 5, 3)
+	rt.touch("c", 1, 4) // map is full -> reset, c is new
 
 	counts, bytes, tracked, resets, touches := rt.flush()
 	assert.Equal(t, int64(5), touches)
@@ -84,10 +85,10 @@ func TestReuseTracker(t *testing.T) {
 
 func TestHotSet(t *testing.T) {
 	hs := newHotSet(2)
-	hs.touch([]byte("a"))
-	hs.touch([]byte("a"))
-	hs.touch([]byte("b"))
-	hs.touch([]byte("c")) // dropped
+	hs.touch("a")
+	hs.touch("a")
+	hs.touch("b")
+	hs.touch("c") // dropped
 
 	top, distinct, total, dropped := hs.flush(1)
 	require.Len(t, top, 1)
@@ -237,7 +238,7 @@ func TestCollector_EndToEnd(t *testing.T) {
 	assert.Equal(t, "0", outliers[1][column(header, "st_db_get_ns_max")]) // running max is reset at every block
 
 	reuse := readGzipCsv(t, filepath.Join(outDir, "reuse.csv.gz"))
-	require.GreaterOrEqual(t, len(reuse), 1+2*numKinds)
+	require.GreaterOrEqual(t, len(reuse), 1+2*numReuse)
 	reuseHeader := reuse[0]
 	accountRow := reuse[1]
 	assert.Equal(t, "0", accountRow[column(reuseHeader, "epoch")])
@@ -380,7 +381,73 @@ func TestUnitFromIdentifier(t *testing.T) {
 func TestWrapPersister(t *testing.T) {
 	assert.Nil(t, WrapPersister(nil, "AccountsTrie"))
 	var _ common.TrieStatisticsHandler = &snapshotStats{}
+
+	p := &persisterStub{}
+	assert.Equal(t, p, WrapPersister(p, "AccountsTrie")) // disabled: unchanged
+
+	require.Nil(t, Init(Config{Enabled: true, OutputDir: "out"}, 0, t.TempDir()))
+	defer func() {
+		Close()
+		global = nil
+	}()
+	assert.Equal(t, p, WrapPersister(p, "/db/1/Epoch_3/Shard_0/MiniBlocks")) // other units are not timed
+	wrapped := WrapPersister(p, "/db/1/Epoch_3/Shard_0/AccountsTrie")
+	assert.NotEqual(t, p, wrapped)
+	_, _ = wrapped.Get([]byte("k"))
+	assert.Equal(t, int64(1), global.counters[CStDbGet.Unit(UnitAccounts)].Load())
+
+	// commit time exclusion only applies while a block is open
+	ExcludeFromBlockCommit(10)
+	assert.Equal(t, int64(0), global.counters[CBlockCommitNs].Load())
+	BeginBlock(0, 0, 1, 1, 0, false)
+	Add(CBlockCommitNs, 100)
+	ExcludeFromBlockCommit(10)
+	assert.Equal(t, int64(90), global.counters[CBlockCommitNs].Load())
+	EndBlock()
 }
+
+func TestProfiler_EpochZeroAndNoRetry(t *testing.T) {
+	dir := t.TempDir()
+	p := &profiler{dir: dir, everyNEpochs: 50, numBlocks: 1, lastEpoch: -1}
+
+	p.maybeStart(0, 1)
+	require.NotNil(t, p.cpuFile, "epoch 0 must be profiled")
+	p.blockDone(0, 1)
+	assert.Nil(t, p.cpuFile)
+	p.maybeStart(0, 2)
+	assert.Nil(t, p.cpuFile, "epoch 0 must not be profiled twice")
+	p.maybeStart(1, 3)
+	assert.Nil(t, p.cpuFile)
+
+	// a failed start (profiler already running elsewhere) is not retried and leaves no empty file
+	other, err := os.CreateTemp(dir, "other")
+	require.Nil(t, err)
+	require.Nil(t, pprof.StartCPUProfile(other))
+	p.maybeStart(50, 4)
+	assert.Nil(t, p.cpuFile)
+	assert.Equal(t, int64(50), p.lastEpoch)
+	pprof.StopCPUProfile()
+	_ = other.Close()
+	p.maybeStart(50, 5)
+	assert.Nil(t, p.cpuFile)
+	entries, err := os.ReadDir(dir)
+	require.Nil(t, err)
+	for _, e := range entries {
+		assert.NotContains(t, e.Name(), "cpu_epoch_50")
+	}
+}
+
+type persisterStub struct{}
+
+func (p *persisterStub) Put(_, _ []byte) error                         { return nil }
+func (p *persisterStub) Get(_ []byte) ([]byte, error)                  { return nil, nil }
+func (p *persisterStub) Has(_ []byte) error                            { return nil }
+func (p *persisterStub) Close() error                                  { return nil }
+func (p *persisterStub) Remove(_ []byte) error                         { return nil }
+func (p *persisterStub) Destroy() error                                { return nil }
+func (p *persisterStub) DestroyClosed() error                          { return nil }
+func (p *persisterStub) RangeKeys(_ func(key []byte, val []byte) bool) {}
+func (p *persisterStub) IsInterfaceNil() bool                          { return p == nil }
 
 type statsStub struct {
 	common.TrieStatisticsHandler

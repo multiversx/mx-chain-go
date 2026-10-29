@@ -1073,7 +1073,7 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 		walkNs := adb.sampleResidentMemory(dataTries)
 		// the walk is instrumentation cost, keep it out of the commit timers and of the outlier detection
 		stateAnalysis.Add(stateAnalysis.CAdbCommitNs.Adapter(adapter), -walkNs)
-		stateAnalysis.Add(stateAnalysis.CBlockCommitNs, -walkNs)
+		stateAnalysis.ExcludeFromBlockCommit(walkNs)
 	}
 	adb.dataTries.Reset()
 

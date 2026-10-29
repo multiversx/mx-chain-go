@@ -42,12 +42,12 @@ func distanceBucket(d uint64) int {
 	return b
 }
 
-func (rt *reuseTracker) touch(key []byte, size int, currentBlock uint64) {
+func (rt *reuseTracker) touch(key string, size int, currentBlock uint64) {
 	rt.mut.Lock()
 	defer rt.mut.Unlock()
 
 	rt.touches++
-	lastBlock, found := rt.last[string(key)]
+	lastBlock, found := rt.last[key]
 	bucket := reuseBucketNew
 	if found {
 		bucket = distanceBucket(currentBlock - lastBlock)
@@ -59,7 +59,7 @@ func (rt *reuseTracker) touch(key []byte, size int, currentBlock uint64) {
 		rt.last = make(map[string]uint64)
 		rt.resets++
 	}
-	rt.last[string(key)] = currentBlock
+	rt.last[key] = currentBlock
 }
 
 func (rt *reuseTracker) flush() (counts, bytes [numReuseBuckets]int64, tracked int, resets int64, touches int64) {
@@ -99,16 +99,16 @@ func newHotSet(maxKeys int) *hotSet {
 	}
 }
 
-func (hs *hotSet) touch(key []byte) {
+func (hs *hotSet) touch(key string) {
 	hs.mut.Lock()
 	defer hs.mut.Unlock()
 
-	cnt, found := hs.counts[string(key)]
+	cnt, found := hs.counts[key]
 	if !found && len(hs.counts) >= hs.maxKeys {
 		hs.dropped++
 		return
 	}
-	hs.counts[string(key)] = cnt + 1
+	hs.counts[key] = cnt + 1
 }
 
 type hotEntry struct {

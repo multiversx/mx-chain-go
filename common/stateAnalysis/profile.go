@@ -14,7 +14,7 @@ type profiler struct {
 	numBlocks    int
 	cpuFile      *os.File
 	blocksLeft   int
-	activeEpoch  uint32
+	lastEpoch    int64 // last epoch for which a profile was attempted, -1 when none
 }
 
 func (p *profiler) maybeStart(epoch uint32, nonce uint64) {
@@ -24,9 +24,10 @@ func (p *profiler) maybeStart(epoch uint32, nonce uint64) {
 	if int(epoch)%p.everyNEpochs != 0 {
 		return
 	}
-	if p.activeEpoch == epoch && p.blocksLeft == 0 {
-		return // already profiled this epoch
+	if int64(epoch) == p.lastEpoch {
+		return // already attempted for this epoch
 	}
+	p.lastEpoch = int64(epoch)
 
 	err := os.MkdirAll(p.dir, 0o755)
 	if err != nil {
@@ -43,11 +44,11 @@ func (p *profiler) maybeStart(epoch uint32, nonce uint64) {
 	if err != nil {
 		log.Warn("stateAnalysis: cannot start cpu profile", "err", err)
 		_ = f.Close()
+		_ = os.Remove(name)
 		return
 	}
 	p.cpuFile = f
 	p.blocksLeft = p.numBlocks
-	p.activeEpoch = epoch
 }
 
 func (p *profiler) blockDone(epoch uint32, nonce uint64) {

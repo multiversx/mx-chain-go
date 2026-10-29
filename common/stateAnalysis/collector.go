@@ -73,7 +73,7 @@ type collector struct {
 	trieKind atomic.Int32
 
 	mut        sync.Mutex
-	blockOpen  bool
+	blockOpen  atomic.Bool
 	epoch      uint32
 	round      uint64
 	nonce      uint64
@@ -99,8 +99,8 @@ type collector struct {
 
 	accounts  [numAdapters]*blockSet
 	dataTries [numAdapters]*blockSet
-	reuse     [numKinds]*reuseTracker
-	hot       [numKinds]*hotSet
+	reuse     [numReuse]*reuseTracker
+	hot       [numReuse]*hotSet
 
 	cacheProbes [numUnits]func() (entries int, bytes int, persisters int)
 	probesMut   sync.RWMutex
@@ -151,6 +151,7 @@ func Init(cfg Config, shardID uint32, workingDir string) error {
 			dir:          filepath.Join(dir, "profiles"),
 			everyNEpochs: cfg.ProfileEveryNEpochs,
 			numBlocks:    cfg.ProfileNumBlocks,
+			lastEpoch:    -1,
 		},
 	}
 	for i := range c.accounts {
@@ -341,8 +342,9 @@ func TouchAccount(adapter int, address []byte, size int, isWrite bool) {
 		return
 	}
 	blockIndex := c.blockIndex.Load()
-	c.reuse[KindMain].touch(address, size, blockIndex)
-	c.hot[KindMain].touch(address)
+	key := string(address)
+	c.reuse[ReuseAccount].touch(key, size, blockIndex)
+	c.hot[ReuseAccount].touch(key)
 }
 
 // TouchDataTrie records an access to a data trie
@@ -356,8 +358,9 @@ func TouchDataTrie(adapter int, address []byte, isWrite bool) {
 		return
 	}
 	blockIndex := c.blockIndex.Load()
-	c.reuse[KindPeer].touch(address, 0, blockIndex)
-	c.hot[KindPeer].touch(address)
+	key := string(address)
+	c.reuse[ReuseDataTrie].touch(key, 0, blockIndex)
+	c.hot[ReuseDataTrie].touch(key)
 }
 
 // TouchDataTrieKey records an access to a data trie leaf
@@ -366,12 +369,10 @@ func TouchDataTrieKey(address []byte, key []byte, size int) {
 		return
 	}
 	c := global
-	full := make([]byte, 0, len(address)+len(key))
-	full = append(full, address...)
-	full = append(full, key...)
+	full := string(address) + string(key)
 	blockIndex := c.blockIndex.Load()
-	c.reuse[KindData].touch(full, size, blockIndex)
-	c.hot[KindData].touch(full)
+	c.reuse[ReuseDataTrieKey].touch(full, size, blockIndex)
+	c.hot[ReuseDataTrieKey].touch(full)
 }
 
 // RegisterCacheProbe registers a function reporting cache size for the given storage unit
@@ -379,10 +380,23 @@ func RegisterCacheProbe(identifier string, probe func() (entries int, bytes int,
 	if !enabled.Load() {
 		return
 	}
+	unit := UnitFromIdentifier(identifier)
+	if unit == UnitOther {
+		return // only the trie storers are probed, every other storer would overwrite the same slot
+	}
 	c := global
 	c.probesMut.Lock()
-	c.cacheProbes[UnitFromIdentifier(identifier)] = probe
+	c.cacheProbes[unit] = probe
 	c.probesMut.Unlock()
+}
+
+// ExcludeFromBlockCommit subtracts instrumentation time from the block commit timer, only while a block is open
+// (commits done outside block processing, e.g. genesis, have no matching addition)
+func ExcludeFromBlockCommit(ns int64) {
+	if !enabled.Load() || !global.blockOpen.Load() {
+		return
+	}
+	Add(CBlockCommitNs, -ns)
 }
 
 // ShouldSampleMemory returns true when the current block is a memory sampling block
@@ -404,7 +418,7 @@ func BeginBlock(shardID uint32, epoch uint32, round uint64, nonce uint64, numTxs
 	c.mut.Lock()
 	defer c.mut.Unlock()
 
-	if c.blockOpen {
+	if c.blockOpen.Load() {
 		Inc(CBlocksAborted)
 		c.endBlockUnprotected()
 	}
@@ -417,7 +431,7 @@ func BeginBlock(shardID uint32, epoch uint32, round uint64, nonce uint64, numTxs
 	c.epoch = epoch
 	c.round = round
 	c.nonce = nonce
-	c.blockOpen = true
+	c.blockOpen.Store(true)
 	c.blockStart = time.Now()
 	c.blockCPU = processCPUTime()
 	if c.bucketBlocks == 0 {
@@ -441,14 +455,14 @@ func EndBlock() {
 	c.mut.Lock()
 	defer c.mut.Unlock()
 
-	if !c.blockOpen {
+	if !c.blockOpen.Load() {
 		return
 	}
 	c.endBlockUnprotected()
 }
 
 func (c *collector) endBlockUnprotected() {
-	c.blockOpen = false
+	c.blockOpen.Store(false)
 	Inc(CBlocks)
 	Add(CBlockWallNs, int64(time.Since(c.blockStart)))
 	Add(CBlockCPUNs, int64(processCPUTime()-c.blockCPU))
@@ -507,10 +521,8 @@ func (c *collector) isOutlier(delta []int64) bool {
 	if delta[CBlockCommitNs] > c.cfg.OutlierCommitTimeMs*int64(time.Millisecond) {
 		return true
 	}
-	var dbGets int64
-	for u := 0; u < numUnits; u++ {
-		dbGets += delta[CStDbGet.unit(u)]
-	}
+	// only the trie units count: import-db reads headers, mini blocks and transactions from other storers
+	dbGets := delta[CStDbGet.unit(UnitAccounts)] + delta[CStDbGet.unit(UnitPeer)]
 	if dbGets > c.cfg.OutlierStorageReads {
 		return true
 	}
@@ -534,7 +546,7 @@ func (c *collector) sampleProbes() {
 		c.SetGauge(GStCacheBytes.at(u), int64(bytes))
 		c.SetGauge(GStActivePersisters.at(u), int64(persisters))
 	}
-	for k := 0; k < numKinds; k++ {
+	for k := 0; k < numReuse; k++ {
 		c.SetGauge(GTrackedKeys.at(k), int64(c.reuse[k].size()))
 	}
 }
@@ -581,7 +593,7 @@ func (c *collector) flushBucketUnprotected() {
 }
 
 func (c *collector) flushEpochUnprotected(epoch uint32) {
-	for k := 0; k < numKinds; k++ {
+	for k := 0; k < numReuse; k++ {
 		counts, bytes, tracked, resets, touches := c.reuse[k].flush()
 		row := []string{itoa(int(c.shardID)), c.cfg.Label, itoa(int(epoch)), reuseKindNames[k], i64s(touches), itoa(tracked), i64s(resets)}
 		for _, v := range counts {
@@ -603,7 +615,6 @@ func (c *collector) flushEpochUnprotected(epoch uint32) {
 }
 
 // the reuse trackers are indexed by kind but hold different entities: main trie leaves, data trie leaves, data tries
-var reuseKindNames = [numKinds]string{"account", "datatrie_key", "datatrie"}
 
 func (bs *blockSet) touchRotate() (int64, int64, int64) {
 	return bs.rotate()

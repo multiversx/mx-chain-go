@@ -34,7 +34,11 @@ func WrapPersister(p types.Persister, identifier string) types.Persister {
 	if !Enabled() || p == nil {
 		return p
 	}
-	return &timedPersister{Persister: p, unit: UnitFromIdentifier(identifier)}
+	unit := UnitFromIdentifier(identifier)
+	if unit == UnitOther {
+		return p // only the trie storers are timed, the other units keep the plain persister
+	}
+	return &timedPersister{Persister: p, unit: unit}
 }
 
 // Get times the underlying Get

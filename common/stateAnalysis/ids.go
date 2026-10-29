@@ -1,6 +1,9 @@
 package stateAnalysis
 
-import "strings"
+import (
+	"strconv"
+	"strings"
+)
 
 // CounterID identifies a monotonically increasing counter. Per-block deltas are exported.
 type CounterID int32
@@ -27,6 +30,14 @@ const (
 	numUnits
 )
 
+// reuse-distance / hot-set families, independent of the trie kinds
+const (
+	ReuseAccount = iota
+	ReuseDataTrieKey
+	ReuseDataTrie
+	numReuse
+)
+
 // Adapters used to attribute accountsDB-level counters
 const (
 	AdapterUser = iota
@@ -48,10 +59,11 @@ const (
 )
 
 var (
-	kindNames    = [numKinds]string{"main", "data", "peer"}
-	unitNames    = [numUnits]string{"accounts", "peer", "other"}
-	adapterNames = [numAdapters]string{"user", "peer"}
-	nodeNames    = [numNodeTypes]string{"branch", "ext", "leaf"}
+	kindNames      = [numKinds]string{"main", "data", "peer"}
+	unitNames      = [numUnits]string{"accounts", "peer", "other"}
+	reuseKindNames = [numReuse]string{"account", "datatrie_key", "datatrie"}
+	adapterNames   = [numAdapters]string{"user", "peer"}
+	nodeNames      = [numNodeTypes]string{"branch", "ext", "leaf"}
 )
 
 type registry struct {
@@ -111,17 +123,7 @@ func gaugeSeq(prefix string, labels []string) GaugeID {
 }
 
 func itoa(i int) string {
-	if i == 0 {
-		return "0"
-	}
-	var b [20]byte
-	pos := len(b)
-	for i > 0 {
-		pos--
-		b[pos] = byte('0' + i%10)
-		i /= 10
-	}
-	return string(b[pos:])
+	return strconv.Itoa(i)
 }
 
 // ---------------------------------------------------------------------------
@@ -407,7 +409,7 @@ var (
 	GStActivePersisters = gaugeSeq("st_active_persisters", unitNames[:])
 	GPruneEwlLen        = gauge("prune_ewl_len")
 	GPruneBufferLen     = gauge("prune_buffer_len")
-	GTrackedKeys        = gaugeSeq("tracked_keys", kindNames[:])
+	GTrackedKeys        = gaugeSeq("tracked_keys", reuseKindNames[:])
 )
 
 // ---------------------------------------------------------------------------
