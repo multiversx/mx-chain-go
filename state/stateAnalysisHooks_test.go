@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -21,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state/trackableDataTrie"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
@@ -402,6 +404,59 @@ func TestStateAnalysisHooks_NewLeafInsertions(t *testing.T) {
 					want = "4"
 				}
 				assert.Equal(t, want, row[columns["trie_insert_new_leaf_"+name]], name)
+			}
+		})
+	}
+}
+
+func TestStateAnalysisHooks_MigrationTraversalLoads(t *testing.T) {
+	for _, fail := range []bool{false, true} {
+		t.Run("migration_error_"+strconv.FormatBool(fail), func(t *testing.T) {
+			enableEpochs := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool { return flag == common.AutoBalanceDataTriesFlag },
+			}
+			tr, _ := getDefaultStateComponentsWithCustomEnableEpochs(enableEpochs)
+			for _, key := range []string{"key-a", "key-b"} {
+				require.NoError(t, tr.Update([]byte(key), []byte("value"+key+"address")))
+			}
+			require.NoError(t, tr.Commit())
+			root, err := tr.RootHash()
+			require.NoError(t, err)
+			collapsed, err := tr.Recreate(holders.NewDefaultRootHashesHolder(root))
+			require.NoError(t, err)
+			tdt, err := trackableDataTrie.NewTrackableDataTrie([]byte("address"), &hashingMocks.HasherMock{},
+				&marshallerMock.MarshalizerMock{}, enableEpochs, &stateMock.StateAccessesCollectorStub{})
+			require.NoError(t, err)
+			tdt.SetDataTrie(collapsed)
+			var wantErr error
+			if fail {
+				wantErr = errors.New("migration failed")
+			}
+			dir := t.TempDir()
+			require.NoError(t, stateAnalysis.Init(stateAnalysis.Config{Enabled: true}, 0, dir))
+			t.Cleanup(stateAnalysis.Close)
+			stateAnalysis.BeginBlock(0, 0, 1, 1, 0, false)
+			stateAnalysis.SetTrieKind(stateAnalysis.KindMain)
+			err = tdt.MigrateDataTrieLeaves(vmcommon.ArgsMigrateDataTrieLeaves{
+				OldVersion: core.NotSpecified, NewVersion: core.AutoBalanceEnabled,
+				TrieMigrator: &trieMock.DataTrieMigratorStub{AddLeafToMigrationQueueCalled: func(_ core.TrieData, _ core.TrieNodeVersion) (bool, error) {
+					return true, wantErr
+				}},
+			})
+			assert.Equal(t, wantErr, err)
+			assert.Equal(t, stateAnalysis.KindMain, stateAnalysis.TrieKind())
+			stateAnalysis.EndBlock()
+			stateAnalysis.Close()
+			columns, row := readBlocksCsv(t, filepath.Join(dir, "state-analysis", "shard_0", "blocks.csv.gz"))
+			for _, names := range [][2]string{
+				{"trie_node_load_data_leaf", "trie_node_load_main_leaf"},
+				{"trie_node_load_bytes_data", "trie_node_load_bytes_main"},
+				{"trie_node_load_ns_data", "trie_node_load_ns_main"},
+			} {
+				loaded, parseErr := strconv.ParseInt(row[columns[names[0]]], 10, 64)
+				require.NoError(t, parseErr)
+				assert.Greater(t, loaded, int64(0), names[0])
+				assert.Equal(t, "0", row[columns[names[1]]], names[1])
 			}
 		})
 	}

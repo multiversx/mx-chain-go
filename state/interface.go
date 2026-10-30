@@ -131,6 +131,7 @@ type AccountsAdapterWithClean interface {
 // AccountsDBSyncer defines the methods for the accounts db syncer
 type AccountsDBSyncer interface {
 	SyncAccounts(rootHash []byte, storageMarker common.StorageMarker) error
+	SyncAccountsWithContext(ctx context.Context, rootHash []byte, storageMarker common.StorageMarker) error
 	IsInterfaceNil() bool
 }
 

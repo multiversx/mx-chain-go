@@ -1,6 +1,7 @@
 package storageEpochChange
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -17,6 +18,15 @@ func getDefaultArgs() StorageEpochChangeWaitArgs {
 		SnapshotWaitTimeout:           time.Second,
 		TrieStorageManager:            &storageManager.StorageManagerStub{},
 	}
+}
+
+func TestWaitForStorageEpochChange_Cancellation(t *testing.T) {
+	args := getDefaultArgs()
+	ctx, cancel := context.WithCancel(context.Background())
+	args.Context = ctx
+	args.SnapshotWaitTimeout = time.Hour
+	cancel()
+	assert.ErrorIs(t, WaitForStorageEpochChange(args), core.ErrContextClosing)
 }
 
 func TestSnapshotsManager_WaitForStorageEpochChange(t *testing.T) {

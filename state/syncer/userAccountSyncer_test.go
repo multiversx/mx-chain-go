@@ -1,12 +1,23 @@
 package syncer
 
 import (
+	"context"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -18,6 +29,87 @@ import (
 )
 
 // TODO add more tests
+
+func TestSnapshotSyncCancellationWhileWaitingForAnotherSync(t *testing.T) {
+	for _, peer := range []bool{false, true} {
+		base := &baseAccountsSyncer{}
+		var run func(context.Context) error
+		if peer {
+			s := &validatorAccountsSyncer{baseAccountsSyncer: base}
+			run = func(ctx context.Context) error {
+				return s.SyncAccountsWithContext(ctx, []byte("root"), storageMarker.NewDisabledStorageMarker())
+			}
+		} else {
+			s := &userAccountsSyncer{baseAccountsSyncer: base}
+			run = func(ctx context.Context) error {
+				return s.SyncAccountsWithContext(ctx, []byte("root"), storageMarker.NewDisabledStorageMarker())
+			}
+		}
+		base.mutex.Lock()
+		ctx, cancel := context.WithCancel(context.Background())
+		done := make(chan error, 1)
+		go func() { done <- run(ctx) }()
+		cancel()
+		select {
+		case err := <-done:
+			require.ErrorIs(t, err, core.ErrContextClosing)
+		case <-time.After(time.Second):
+			base.mutex.Unlock()
+			t.Fatal("snapshot cancellation waited for the foreground sync lock")
+		}
+		base.mutex.Unlock()
+	}
+}
+
+func TestUserAccountsSyncer_CancellationJoinsDataTrieWorkers(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	started, release := make(chan struct{}), make(chan struct{})
+	var startedOnce, releaseOnce sync.Once
+	t.Cleanup(func() { cancel(); releaseOnce.Do(func() { close(release) }) })
+	var admissions atomic.Int32
+	args := ArgsNewUserAccountsSyncer{
+		ArgsNewBaseAccountsSyncer: getDefaultBaseAccSyncerArgs(),
+		Throttler:                 &mock.ThrottlerStub{CanProcessCalled: func() bool { return admissions.Add(1) == 1 }},
+		AddressPubKeyConverter:    &testscommon.PubkeyConverterStub{},
+	}
+	args.Timeout = time.Minute
+	args.RequestHandler = &testscommon.RequestHandlerStub{RequestTrieNodesCalled: func(_ uint32, _ [][]byte, _ string) {
+		startedOnce.Do(func() { close(started) })
+		<-release
+	}}
+	s, err := NewUserAccountsSyncer(args)
+	require.NoError(t, err)
+	leaves := make(chan core.KeyValueHolder, 2)
+	for _, root := range []string{"missing-a", "missing-b"} {
+		value, marshalErr := args.Marshalizer.Marshal(&accounts.UserAccountData{RootHash: []byte(root), Address: []byte(root)})
+		require.NoError(t, marshalErr)
+		leaves <- keyValStorage.NewKeyValStorage([]byte(root), value)
+	}
+	close(leaves)
+	done := make(chan error, 1)
+	go func() {
+		done <- s.syncAccountDataTries(&common.TrieIteratorChannels{LeavesChan: leaves, ErrChan: errChan.NewErrChanWrapper()}, ctx, false, args.RequestHandler)
+	}()
+	select {
+	case <-started:
+	case <-time.After(time.Second):
+		t.Fatal("data trie synchronization did not start")
+	}
+	cancel()
+	select {
+	case <-done:
+		t.Fatal("sync returned before its active worker finished")
+	case <-time.After(20 * time.Millisecond):
+	}
+	releaseOnce.Do(func() { close(release) })
+	select {
+	case err = <-done:
+		require.ErrorIs(t, err, data.ErrTimeIsOut)
+		require.True(t, args.Throttler.(*mock.ThrottlerStub).EndWasCalled())
+	case <-time.After(time.Second):
+		t.Fatal("data trie worker did not drain after cancellation")
+	}
+}
 
 func getDefaultBaseAccSyncerArgs() ArgsNewBaseAccountsSyncer {
 	return ArgsNewBaseAccountsSyncer{

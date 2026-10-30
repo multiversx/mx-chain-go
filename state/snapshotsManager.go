@@ -2,6 +2,7 @@ package state
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"sync"
 
@@ -188,10 +189,15 @@ func (sm *snapshotsManager) SnapshotState(
 
 	log.Info("starting snapshot", "type", sm.stateMetrics.GetSnapshotMessage(), "rootHash", rootHash, "epoch", epoch)
 
-	snapshotDone := stateAnalysis.TrackSnapshot()
+	ctx, cancel := context.WithCancel(context.Background())
+	snapshotDone := stateAnalysis.TrackSnapshot(func() {
+		cancel()
+		trieStorageManager.CancelSnapshots()
+	})
 	go func() {
 		defer snapshotDone()
-		sm.snapshotState(rootHash, epoch, trieStorageManager, stats)
+		defer cancel()
+		sm.snapshotState(ctx, rootHash, epoch, trieStorageManager, stats)
 	}()
 
 	sm.waitForCompletionIfAppropriate(stats)
@@ -223,13 +229,19 @@ func (sm *snapshotsManager) prepareSnapshot(rootHash []byte, epoch uint32, trieS
 }
 
 func (sm *snapshotsManager) snapshotState(
+	ctx context.Context,
 	rootHash []byte,
 	epoch uint32,
 	trieStorageManager common.StorageManager,
 	stats *snapshotStatistics,
 ) {
+	if ctx.Err() != nil {
+		sm.earlySnapshotCompletion(stats, trieStorageManager)
+		return
+	}
 	if sm.processingMode != common.ImportDb {
 		err := storageEpochChange.WaitForStorageEpochChange(storageEpochChange.StorageEpochChangeWaitArgs{
+			Context:                       ctx,
 			TrieStorageManager:            trieStorageManager,
 			Epoch:                         epoch,
 			WaitTimeForSnapshotEpochCheck: storageEpochChange.WaitTimeForSnapshotEpochCheck,
@@ -267,9 +279,9 @@ func (sm *snapshotsManager) snapshotState(
 		stats.SnapshotFinished()
 	}()
 
-	go sm.syncMissingNodes(missingNodesChannel, iteratorChannels.ErrChan, stats, sm.getTrieSyncer())
+	go sm.syncMissingNodes(ctx, missingNodesChannel, iteratorChannels.ErrChan, stats, sm.getTrieSyncer())
 
-	sm.processSnapshotCompletion(stats, trieStorageManager, missingNodesChannel, iteratorChannels.ErrChan, rootHash, epoch)
+	sm.processSnapshotCompletion(ctx, stats, trieStorageManager, missingNodesChannel, iteratorChannels.ErrChan, rootHash, epoch)
 }
 
 func (sm *snapshotsManager) earlySnapshotCompletion(stats *snapshotStatistics, trieStorageManager common.StorageManager) {
@@ -322,7 +334,7 @@ func (sm *snapshotsManager) snapshotUserAccountDataTrie(
 	}
 }
 
-func (sm *snapshotsManager) syncMissingNodes(missingNodesChan chan []byte, errChan common.BufferedErrChan, stats *snapshotStatistics, syncer AccountsDBSyncer) {
+func (sm *snapshotsManager) syncMissingNodes(ctx context.Context, missingNodesChan chan []byte, errChan common.BufferedErrChan, stats *snapshotStatistics, syncer AccountsDBSyncer) {
 	defer stats.SyncFinished()
 
 	if check.IfNil(syncer) {
@@ -335,7 +347,11 @@ func (sm *snapshotsManager) syncMissingNodes(missingNodesChan chan []byte, errCh
 	}
 
 	for missingNode := range missingNodesChan {
-		err := syncer.SyncAccounts(missingNode, storageMarker.NewDisabledStorageMarker())
+		if ctx.Err() != nil {
+			errChan.WriteInChanNonBlocking(core.ErrContextClosing)
+			continue // Drain the channel so canceled traversal cannot block on a send.
+		}
+		err := syncer.SyncAccountsWithContext(ctx, missingNode, storageMarker.NewDisabledStorageMarker())
 		if err != nil {
 			log.Error("could not sync missing node",
 				"missing node hash", missingNode,
@@ -347,6 +363,7 @@ func (sm *snapshotsManager) syncMissingNodes(missingNodesChan chan []byte, errCh
 }
 
 func (sm *snapshotsManager) processSnapshotCompletion(
+	ctx context.Context,
 	stats *snapshotStatistics,
 	trieStorageManager common.StorageManager,
 	missingNodesCh chan []byte,
@@ -363,6 +380,9 @@ func (sm *snapshotsManager) processSnapshotCompletion(
 		errChan.Close()
 	}()
 
+	if ctx.Err() != nil {
+		errChan.WriteInChanNonBlocking(core.ErrContextClosing)
+	}
 	errorDuringSnapshot := errChan.ReadFromChanNonBlocking()
 	stateAnalysis.SnapshotCompleted(
 		trieStorageManager.GetIdentifier(),

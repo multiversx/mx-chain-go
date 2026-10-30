@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	storageMx "github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
@@ -303,6 +304,59 @@ func TestTrieStorageManager_TakeSnapshotNilErrorChan(t *testing.T) {
 	assert.False(t, ok)
 
 	_ = ts.Close()
+}
+
+func TestTrieStorageManager_CancelSnapshotsKeepsForegroundStorageOpen(t *testing.T) {
+	args := trie.GetDefaultTrieStorageManagerParameters()
+	started := make(chan struct{})
+	var once sync.Once
+	args.IdleProvider = &testscommon.ProcessStatusHandlerStub{IsIdleCalled: func() bool {
+		once.Do(func() { close(started) })
+		return false
+	}}
+	ts, err := trie.NewTrieStorageManager(args)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = ts.Close() })
+	tr, err := trie.NewTrie(ts, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
+	require.NoError(t, err)
+	require.NoError(t, tr.Update([]byte("key"), []byte("value")))
+	require.NoError(t, tr.Commit())
+	root, err := tr.RootHash()
+	require.NoError(t, err)
+	first := &common.TrieIteratorChannels{LeavesChan: make(chan core.KeyValueHolder), ErrChan: errChan.NewErrChanWrapper()}
+	ts.TakeSnapshot("", root, root, first, make(chan []byte, 1), &trieMock.MockStatistics{}, 0)
+	select {
+	case <-started:
+	case <-time.After(time.Second):
+		t.Fatal("snapshot did not reach its idle wait")
+	}
+	channels := []*common.TrieIteratorChannels{first}
+	var queued sync.WaitGroup
+	for i := 0; i < 20; i++ {
+		ch := &common.TrieIteratorChannels{LeavesChan: make(chan core.KeyValueHolder), ErrChan: errChan.NewErrChanWrapper()}
+		channels = append(channels, ch)
+		queued.Add(1)
+		go func() {
+			defer queued.Done()
+			ts.TakeSnapshot("", root, root, ch, make(chan []byte, 1), &trieMock.MockStatistics{}, 0)
+		}()
+	}
+	ts.CancelSnapshots()
+	queued.Wait()
+	for _, ch := range channels {
+		select {
+		case _, ok := <-ch.LeavesChan:
+			require.False(t, ok)
+		case <-time.After(time.Second):
+			t.Fatal("canceled snapshot did not drain")
+		}
+	}
+	require.False(t, ts.IsClosed())
+	_, err = ts.Get(root)
+	require.NoError(t, err)
+	require.NoError(t, tr.Update([]byte("key"), []byte("updated")))
+	require.NoError(t, tr.Commit())
+	require.Eventually(t, func() bool { return !ts.IsPruningBlocked() }, time.Second, time.Millisecond)
 }
 
 func TestTrieStorageManager_TakeSnapshotClosedDb(t *testing.T) {

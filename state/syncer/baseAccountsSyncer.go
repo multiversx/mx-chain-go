@@ -22,7 +22,7 @@ type baseAccountsSyncer struct {
 	hasher                            hashing.Hasher
 	marshalizer                       marshal.Marshalizer
 	dataTries                         map[string]struct{}
-	mutex                             sync.Mutex
+	mutex                             contextMutex
 	trieStorageManager                common.StorageManager
 	requestHandler                    trie.RequestHandler
 	timeoutHandler                    trie.TimeoutHandler
@@ -40,6 +40,28 @@ type baseAccountsSyncer struct {
 	numTriesSynced    int32
 	numMaxTries       int32
 }
+
+// contextMutex preserves exclusive sync sessions while allowing queued snapshot syncs to cancel.
+type contextMutex struct {
+	once sync.Once
+	gate chan struct{}
+}
+
+func (m *contextMutex) LockContext(ctx context.Context) error {
+	m.once.Do(func() { m.gate = make(chan struct{}, 1) })
+	if ctx.Err() != nil {
+		return core.ErrContextClosing
+	}
+	select {
+	case m.gate <- struct{}{}:
+		return nil
+	case <-ctx.Done():
+		return core.ErrContextClosing
+	}
+}
+
+func (m *contextMutex) Lock()   { _ = m.LockContext(context.Background()) }
+func (m *contextMutex) Unlock() { <-m.gate }
 
 const timeBetweenStatisticsPrints = time.Second * 2
 

@@ -64,7 +64,12 @@ func NewValidatorAccountsSyncer(args ArgsNewValidatorAccountsSyncer) (*validator
 // SyncAccounts will launch the syncing method to gather all the data needed for validatorAccounts - it is a blocking method
 // TODO: handle trie storage statistics here
 func (v *validatorAccountsSyncer) SyncAccounts(rootHash []byte, storageMarker common.StorageMarker) error {
-	return v.syncAccounts(rootHash, storageMarker, v.checkNodesOnDisk, v.requestHandler)
+	return v.SyncAccountsWithContext(context.Background(), rootHash, storageMarker)
+}
+
+// SyncAccountsWithContext synchronizes accounts until completion or cancellation.
+func (v *validatorAccountsSyncer) SyncAccountsWithContext(ctx context.Context, rootHash []byte, storageMarker common.StorageMarker) error {
+	return v.syncAccounts(ctx, rootHash, storageMarker, v.checkNodesOnDisk, v.requestHandler)
 }
 
 // SyncAccountsWithDiskCheck completes local state and requests missing nodes for the given epoch.
@@ -73,10 +78,11 @@ func (v *validatorAccountsSyncer) SyncAccountsWithDiskCheck(rootHash []byte, sto
 	if err != nil {
 		return err
 	}
-	return v.syncAccounts(rootHash, storageMarker, true, requestHandler)
+	return v.syncAccounts(context.Background(), rootHash, storageMarker, true, requestHandler)
 }
 
 func (v *validatorAccountsSyncer) syncAccounts(
+	parent context.Context,
 	rootHash []byte,
 	storageMarker common.StorageMarker,
 	checkNodesOnDisk bool,
@@ -86,12 +92,17 @@ func (v *validatorAccountsSyncer) syncAccounts(
 		return ErrNilStorageMarker
 	}
 
-	v.mutex.Lock()
+	if err := v.mutex.LockContext(parent); err != nil {
+		return err
+	}
 	defer v.mutex.Unlock()
+	if parent.Err() != nil {
+		return core.ErrContextClosing
+	}
 
 	v.timeoutHandler.ResetWatchdog()
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(parent)
 	defer func() {
 		v.cacher.Clear()
 		cancel()

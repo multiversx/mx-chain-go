@@ -7,6 +7,7 @@ import (
 	"math"
 	"runtime"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -30,10 +31,12 @@ type trieStorageManager struct {
 	mainStorer            common.BaseStorer
 	pruningBlockingOps    uint32
 	snapshotReq           chan *snapshotsQueueEntry
+	snapshotAdmissionMut  sync.RWMutex
 	storageOperationMutex sync.RWMutex
 	cancelFunc            context.CancelFunc
 	closer                core.SafeCloser
 	closed                bool
+	snapshotsCanceled     atomic.Bool
 	idleProvider          IdleNodeProvider
 	identifier            string
 	statsCollector        common.StateStatisticsHandler
@@ -176,6 +179,8 @@ func (tsm *trieStorageManager) checkGoRoutinesThrottler(
 
 func (tsm *trieStorageManager) cleanupChans() {
 	<-tsm.closer.ChanClose()
+	tsm.snapshotAdmissionMut.Lock()
+	defer tsm.snapshotAdmissionMut.Unlock()
 	// at this point we can not add new entries in the snapshot/checkpoint chans
 	for {
 		select {
@@ -313,7 +318,13 @@ func (tsm *trieStorageManager) TakeSnapshot(
 		stats.SnapshotFinished()
 		return
 	}
-	if tsm.IsClosed() {
+	tsm.snapshotAdmissionMut.RLock()
+	defer tsm.snapshotAdmissionMut.RUnlock()
+	closed := tsm.IsClosed()
+	if tsm.snapshotsCanceled.Load() || closed {
+		if !closed {
+			iteratorChannels.ErrChan.WriteInChanNonBlocking(core.ErrContextClosing)
+		}
 		common.CloseKeyValueHolderChan(iteratorChannels.LeavesChan)
 		stats.SnapshotFinished()
 		return
@@ -494,15 +505,11 @@ func (tsm *trieStorageManager) IsClosed() bool {
 
 // Close - closes all underlying components
 func (tsm *trieStorageManager) Close() error {
+	tsm.CancelSnapshots()
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
 
-	tsm.cancelFunc()
 	tsm.closed = true
-
-	// calling close on the SafeCloser instance should be the last instruction called
-	// (just to close some go routines started as edge cases that would otherwise hang)
-	defer tsm.closer.Close()
 
 	var err error
 
@@ -517,6 +524,13 @@ func (tsm *trieStorageManager) Close() error {
 	}
 
 	return nil
+}
+
+// CancelSnapshots stops snapshot traversal and queueing without closing foreground storage.
+func (tsm *trieStorageManager) CancelSnapshots() {
+	tsm.snapshotsCanceled.Store(true)
+	tsm.cancelFunc()
+	tsm.closer.Close()
 }
 
 // SetEpochForPutOperation will set the storer for the given epoch as the current storer

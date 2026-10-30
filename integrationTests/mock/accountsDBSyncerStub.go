@@ -1,13 +1,23 @@
 package mock
 
 import (
+	"context"
 	"github.com/multiversx/mx-chain-go/common"
 )
 
 // AccountsDBSyncerStub -
 type AccountsDBSyncerStub struct {
-	GetSyncedTriesCalled func() map[string]common.Trie
-	SyncAccountsCalled   func(rootHash []byte, storageMarker common.StorageMarker) error
+	SyncAccountsWithContextCalled func(context.Context, []byte, common.StorageMarker) error
+	GetSyncedTriesCalled          func() map[string]common.Trie
+	SyncAccountsCalled            func(rootHash []byte, storageMarker common.StorageMarker) error
+}
+
+// SyncAccountsWithContext -
+func (a *AccountsDBSyncerStub) SyncAccountsWithContext(ctx context.Context, rootHash []byte, marker common.StorageMarker) error {
+	if a.SyncAccountsWithContextCalled != nil {
+		return a.SyncAccountsWithContextCalled(ctx, rootHash, marker)
+	}
+	return a.SyncAccounts(rootHash, marker)
 }
 
 // GetSyncedTries -

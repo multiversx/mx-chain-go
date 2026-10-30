@@ -7,6 +7,7 @@ import (
 
 // StorageManagerStub -
 type StorageManagerStub struct {
+	CancelSnapshotsCalled           func()
 	GetForRecoveryCalled            func([]byte, uint32) ([]byte, error)
 	PutCalled                       func([]byte, []byte) error
 	PutInEpochCalled                func([]byte, []byte, uint32) error
@@ -32,6 +33,13 @@ type StorageManagerStub struct {
 	RemoveFromAllActiveEpochsCalled func(hash []byte) error
 	IsSnapshotSupportedCalled       func() bool
 	GetStateStatsHandlerCalled      func() common.StateStatisticsHandler
+}
+
+// CancelSnapshots cancels background snapshots while preserving foreground storage.
+func (sms *StorageManagerStub) CancelSnapshots() {
+	if sms.CancelSnapshotsCalled != nil {
+		sms.CancelSnapshotsCalled()
+	}
 }
 
 func (sms *StorageManagerStub) GetForRecovery(key []byte, epoch uint32) ([]byte, error) {

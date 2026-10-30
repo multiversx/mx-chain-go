@@ -31,6 +31,13 @@ func TestCloseAllComponents_WaitsForExecutionBeforeClosingAnalysis(t *testing.T)
 	require.NoError(t, stateAnalysis.Init(stateAnalysis.Config{Enabled: true}, 0, dir))
 	t.Cleanup(stateAnalysis.Close)
 	stateAnalysis.BeginBlock(0, 0, 1, 1, 0, false)
+	snapshotCanceled := make(chan struct{})
+	snapshotDone := stateAnalysis.TrackSnapshot(func() { close(snapshotCanceled) })
+	go func() {
+		<-snapshotCanceled
+		stateAnalysis.SnapshotCompleted("AccountsTrie", 1, []byte("root"), 0, 0, 0, true)
+		snapshotDone()
+	}()
 	releaseExecution, executionFinished := make(chan struct{}), make(chan struct{})
 	go func() {
 		<-releaseExecution
@@ -44,6 +51,11 @@ func TestCloseAllComponents_WaitsForExecutionBeforeClosingAnalysis(t *testing.T)
 	}}
 	execution := &mock.CloserStub{CloseCalled: func() error {
 		assert.True(t, stateAnalysis.Enabled())
+		select {
+		case <-snapshotCanceled:
+		default:
+			t.Error("snapshot work must be canceled before waiting for execution")
+		}
 		close(releaseExecution)
 		<-executionFinished
 		return nil
@@ -74,6 +86,8 @@ func TestCloseAllComponents_WaitsForExecutionBeforeClosingAnalysis(t *testing.T)
 	assert.Equal(t, "1", values["blk_count"])
 	assert.Equal(t, "0", values["blk_aborted"])
 	assert.Equal(t, "9", values["st_db_get_accounts"])
+	_, err = os.Stat(filepath.Join(dir, "state-analysis", "shard_0", "structure", "epoch_1_accounts.json"))
+	require.NoError(t, err)
 }
 
 func TestNewNodeRunner(t *testing.T) {

@@ -1657,6 +1657,9 @@ func closeAllComponents(
 	log.Debug("stopping consensus...")
 	log.LogIfError(consensusComponentsCloser.Close())
 
+	// A serialized snapshot can hold up the execution being drained below.
+	stateAnalysis.CancelSnapshots()
+
 	log.Debug("stopping async execution...")
 	log.LogIfError(executionManagerCloser.Close())
 

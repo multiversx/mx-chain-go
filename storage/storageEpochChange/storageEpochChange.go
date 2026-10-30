@@ -22,6 +22,7 @@ const (
 
 // StorageEpochChangeWaitArgs are the args needed for calling the WaitForStorageEpochChange function
 type StorageEpochChangeWaitArgs struct {
+	Context                       context.Context
 	TrieStorageManager            common.StorageManager
 	Epoch                         uint32
 	WaitTimeForSnapshotEpochCheck time.Duration
@@ -36,7 +37,11 @@ func WaitForStorageEpochChange(args StorageEpochChangeWaitArgs) error {
 		return fmt.Errorf("timeout (%s) must be greater than wait time between snapshot epoch check (%s)", args.SnapshotWaitTimeout, args.WaitTimeForSnapshotEpochCheck)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), args.SnapshotWaitTimeout)
+	parent := args.Context
+	if parent == nil {
+		parent = context.Background()
+	}
+	ctx, cancel := context.WithTimeout(parent, args.SnapshotWaitTimeout)
 	defer cancel()
 
 	timer := time.NewTimer(args.WaitTimeForSnapshotEpochCheck)
@@ -61,6 +66,9 @@ func WaitForStorageEpochChange(args StorageEpochChangeWaitArgs) error {
 		select {
 		case <-timer.C:
 		case <-ctx.Done():
+			if parent.Err() != nil {
+				return core.ErrContextClosing
+			}
 			return fmt.Errorf("timeout waiting for storage epoch change, snapshot epoch %d", args.Epoch)
 		}
 	}

@@ -72,6 +72,8 @@ type collector struct {
 	snapshotsMut     sync.Mutex
 	snapshotsClosing bool
 	snapshots        sync.WaitGroup
+	snapshotCancels  map[uint64]func()
+	nextSnapshotID   uint64
 
 	// trie kind context, set by the processing goroutine around trie operations
 	trieKind atomic.Int32
@@ -214,19 +216,52 @@ func Close() {
 
 // TrackSnapshot registers snapshot work before it is launched. The returned function
 // must be called after traversal, missing-node synchronization and completion reporting.
+// cancel must stop that work without closing storage used by foreground execution.
 // Close waits for all registered snapshots before disabling hooks and closing files.
-func TrackSnapshot() func() {
+func TrackSnapshot(cancel func()) func() {
 	if !enabled.Load() {
 		return func() {}
 	}
 	c := global
 	c.snapshotsMut.Lock()
-	defer c.snapshotsMut.Unlock()
 	if c.snapshotsClosing {
+		c.snapshotsMut.Unlock()
+		cancel()
 		return func() {}
 	}
+	if c.snapshotCancels == nil {
+		c.snapshotCancels = make(map[uint64]func())
+	}
+	c.nextSnapshotID++
+	id := c.nextSnapshotID
+	c.snapshotCancels[id] = cancel
 	c.snapshots.Add(1)
-	return c.snapshots.Done
+	c.snapshotsMut.Unlock()
+	return func() {
+		c.snapshotsMut.Lock()
+		delete(c.snapshotCancels, id)
+		c.snapshotsMut.Unlock()
+		c.snapshots.Done()
+	}
+}
+
+// CancelSnapshots stops admission and cancels scheduled snapshots before execution is drained.
+// Reporting remains enabled until Close has drained their completion callbacks.
+func CancelSnapshots() {
+	if !enabled.Load() {
+		return
+	}
+	c := global
+	c.snapshotsMut.Lock()
+	c.snapshotsClosing = true
+	cancels := make([]func(), 0, len(c.snapshotCancels))
+	for _, cancel := range c.snapshotCancels {
+		cancels = append(cancels, cancel)
+	}
+	c.snapshotsMut.Unlock()
+	for _, cancel := range cancels {
+		cancel()
+	}
 }
 
 func (c *collector) rowHeader() []string {

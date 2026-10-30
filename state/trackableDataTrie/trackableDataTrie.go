@@ -149,6 +149,9 @@ func (tdt *trackableDataTrie) MigrateDataTrieLeaves(args vmcommon.ArgsMigrateDat
 		return fmt.Errorf("invalid trie, type is %T", tdt.tr)
 	}
 
+	prevKind := stateAnalysis.SetTrieKind(stateAnalysis.KindData)
+	defer stateAnalysis.SetTrieKind(prevKind)
+
 	err := dtr.CollectLeavesForMigration(args)
 	if err != nil {
 		return err

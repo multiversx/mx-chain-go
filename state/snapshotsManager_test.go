@@ -2,6 +2,7 @@ package state_test
 
 import (
 	"compress/gzip"
+	"context"
 	"encoding/csv"
 	"encoding/json"
 	"errors"
@@ -12,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -156,6 +158,83 @@ func TestSnapshotsManager_AnalysisCloseWaitsForCompletion(t *testing.T) {
 			var structure struct{ Accounts map[string]int64 }
 			require.NoError(t, json.Unmarshal(data, &structure))
 			assert.Equal(t, int64(1), structure.Accounts["accounts"])
+		})
+	}
+}
+
+func TestSnapshotsManager_CancelAnalysisSnapshotsBeforeDrain(t *testing.T) {
+	for _, serialize := range []bool{false, true} {
+		t.Run(fmt.Sprintf("serialized_%t", serialize), func(t *testing.T) {
+			dir := t.TempDir()
+			require.NoError(t, stateAnalysis.Init(stateAnalysis.Config{Enabled: true}, 0, dir))
+			t.Cleanup(func() { stateAnalysis.CancelSnapshots(); stateAnalysis.Close() })
+			args := getDefaultSnapshotManagerArgs()
+			args.ProcessingMode = common.Normal
+			args.ShouldSerializeSnapshots = serialize
+			sm, err := state.NewSnapshotsManager(args)
+			require.NoError(t, err)
+			syncStarted, canceled := make(chan struct{}), make(chan struct{})
+			var cancelOnce sync.Once
+			require.NoError(t, sm.SetSyncer(&mock.AccountsDBSyncerStub{
+				SyncAccountsWithContextCalled: func(ctx context.Context, _ []byte, _ common.StorageMarker) error {
+					close(syncStarted)
+					<-ctx.Done()
+					return core.ErrContextClosing
+				},
+			}))
+			tsm := &storageManager.StorageManagerStub{
+				GetIdentifierCalled:         func() string { return "AccountsTrie" },
+				GetLatestStorageEpochCalled: func() (uint32, error) { return 7, nil },
+				ShouldTakeSnapshotCalled:    func() bool { return true },
+				CancelSnapshotsCalled:       func() { cancelOnce.Do(func() { close(canceled) }) },
+				PutInEpochWithoutCacheCalled: func(_ []byte, _ []byte, _ uint32) error {
+					t.Error("canceled snapshot must not mark the database active")
+					return nil
+				},
+				TakeSnapshotCalled: func(_ string, _ []byte, _ []byte, channels *common.TrieIteratorChannels, missing chan []byte, stats common.SnapshotStatisticsHandler, _ uint32) {
+					missing <- []byte("missing")
+					go func() {
+						<-canceled
+						channels.ErrChan.WriteInChanNonBlocking(core.ErrContextClosing)
+						close(channels.LeavesChan)
+						stats.SnapshotFinished()
+					}()
+				},
+			}
+			returned := make(chan struct{})
+			go func() { sm.SnapshotState([]byte("root"), 7, tsm); close(returned) }()
+			select {
+			case <-syncStarted:
+			case <-time.After(time.Second):
+				t.Fatal("snapshot synchronization did not start")
+			}
+			stateAnalysis.CancelSnapshots()
+			select {
+			case <-returned:
+			case <-time.After(time.Second):
+				t.Fatal("serialized snapshot did not respond to cancellation")
+			}
+			closed := make(chan struct{})
+			go func() { stateAnalysis.Close(); close(closed) }()
+			select {
+			case <-closed:
+			case <-time.After(time.Second):
+				t.Fatal("collector did not drain the canceled snapshot")
+			}
+			f, err := os.Open(filepath.Join(dir, "state-analysis", "shard_0", "snapshots.csv.gz"))
+			require.NoError(t, err)
+			defer f.Close()
+			gz, err := gzip.NewReader(f)
+			require.NoError(t, err)
+			defer gz.Close()
+			rows, err := csv.NewReader(gz).ReadAll()
+			require.NoError(t, err)
+			require.Len(t, rows, 2)
+			for i, name := range rows[0] {
+				if name == "had_error" {
+					assert.Equal(t, "true", rows[1][i])
+				}
+			}
 		})
 	}
 }

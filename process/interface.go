@@ -1,6 +1,7 @@
 package process
 
 import (
+	"context"
 	"math/big"
 	"time"
 
@@ -1500,6 +1501,7 @@ type InterceptedChunksProcessor interface {
 
 // AccountsDBSyncer defines the methods for the accounts db syncer
 type AccountsDBSyncer interface {
+	SyncAccountsWithContext(ctx context.Context, rootHash []byte, storageMarker common.StorageMarker) error
 	SyncAccounts(rootHash []byte, storageMarker common.StorageMarker) error
 	IsInterfaceNil() bool
 }

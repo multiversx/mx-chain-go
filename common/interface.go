@@ -107,6 +107,7 @@ type StorageManager interface {
 	PutInEpoch(key []byte, val []byte, epoch uint32) error
 	PutInEpochWithoutCache(key []byte, val []byte, epoch uint32) error
 	TakeSnapshot(address string, rootHash []byte, mainTrieRootHash []byte, iteratorChannels *TrieIteratorChannels, missingNodesChan chan []byte, stats SnapshotStatisticsHandler, epoch uint32)
+	CancelSnapshots()
 	GetLatestStorageEpoch() (uint32, error)
 	IsPruningEnabled() bool
 	IsPruningBlocked() bool

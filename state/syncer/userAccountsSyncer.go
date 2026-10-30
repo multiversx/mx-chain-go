@@ -107,7 +107,12 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 
 // SyncAccounts will launch the syncing method to gather all the data needed for userAccounts - it is a blocking method
 func (u *userAccountsSyncer) SyncAccounts(rootHash []byte, storageMarker common.StorageMarker) error {
-	return u.syncAccounts(rootHash, storageMarker, u.checkNodesOnDisk, false, u.requestHandler)
+	return u.SyncAccountsWithContext(context.Background(), rootHash, storageMarker)
+}
+
+// SyncAccountsWithContext synchronizes accounts until completion or cancellation.
+func (u *userAccountsSyncer) SyncAccountsWithContext(ctx context.Context, rootHash []byte, storageMarker common.StorageMarker) error {
+	return u.syncAccounts(ctx, rootHash, storageMarker, u.checkNodesOnDisk, false, u.requestHandler)
 }
 
 // SyncAccountsWithDiskCheck completes local state and requests missing nodes for the given epoch.
@@ -116,10 +121,11 @@ func (u *userAccountsSyncer) SyncAccountsWithDiskCheck(rootHash []byte, storageM
 	if err != nil {
 		return err
 	}
-	return u.syncAccounts(rootHash, storageMarker, true, true, requestHandler)
+	return u.syncAccounts(context.Background(), rootHash, storageMarker, true, true, requestHandler)
 }
 
 func (u *userAccountsSyncer) syncAccounts(
+	parent context.Context,
 	rootHash []byte,
 	storageMarker common.StorageMarker,
 	checkNodesOnDisk bool,
@@ -130,8 +136,13 @@ func (u *userAccountsSyncer) syncAccounts(
 		return ErrNilStorageMarker
 	}
 
-	u.mutex.Lock()
+	if err := u.mutex.LockContext(parent); err != nil {
+		return err
+	}
 	defer u.mutex.Unlock()
+	if parent.Err() != nil {
+		return core.ErrContextClosing
+	}
 	if resetDataTries {
 		u.syncerMutex.Lock()
 		u.dataTries = make(map[string]struct{})
@@ -140,7 +151,7 @@ func (u *userAccountsSyncer) syncAccounts(
 
 	u.timeoutHandler.ResetWatchdog()
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(parent)
 	defer func() {
 		u.cacher.Clear()
 		cancel()
@@ -165,6 +176,10 @@ func (u *userAccountsSyncer) syncAccounts(
 		common.CloseKeyValueHolderChan(leavesChannels.LeavesChan)
 
 		wgSyncMainTrie.Done()
+	}()
+	defer func() {
+		cancel()
+		wgSyncMainTrie.Wait()
 	}()
 
 	err := u.syncAccountDataTries(leavesChannels, ctx, checkNodesOnDisk, requestHandler)
@@ -281,6 +296,7 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 	defer u.printDataTrieStatistics()
 
 	wg := sync.WaitGroup{}
+	defer wg.Wait()
 	for leaf := range leavesChannels.LeavesChan {
 		u.resetTimeoutHandlerWatchdog()
 
@@ -305,6 +321,7 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 		atomic.AddInt32(&u.numMaxTries, 1)
 
 		go func(trieRootHash []byte, address []byte) {
+			defer wg.Done()
 			defer u.throttler.EndProcessing()
 
 			log.Trace("sync data trie", "roothash", trieRootHash)
@@ -314,11 +331,8 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 			}
 			atomic.AddInt32(&u.numTriesSynced, 1)
 			log.Trace("finished sync data trie", "roothash", trieRootHash)
-			wg.Done()
 		}(accountData.RootHash, accountData.Address)
 	}
-
-	wg.Wait()
 
 	return nil
 }
