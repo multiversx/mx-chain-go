@@ -454,8 +454,6 @@ func (sp *shardProcessor) CommitBlockProposalState(headerHandler data.HeaderHand
 		sp.saveEpochStartEconomicsIfNeeded(header)
 	}
 
-	stateAnalysis.EndBlock()
-
 	return nil
 }
 

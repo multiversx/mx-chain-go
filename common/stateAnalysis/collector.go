@@ -69,6 +69,10 @@ type collector struct {
 	gauges   []atomic.Int64
 	maxes    []atomic.Int64
 
+	snapshotsMut     sync.Mutex
+	snapshotsClosing bool
+	snapshots        sync.WaitGroup
+
 	// trie kind context, set by the processing goroutine around trie operations
 	trieKind atomic.Int32
 
@@ -177,12 +181,18 @@ func Init(cfg Config, shardID uint32, workingDir string) error {
 	return nil
 }
 
-// Close finalizes any open block as aborted, flushes the open bucket and closes all files.
+// Close drains snapshot reporting, finalizes any open block as aborted, and closes all files.
 func Close() {
 	if !enabled.Load() {
 		return
 	}
 	c := global
+	// Drain snapshots while hooks and output files are still available.
+	c.snapshotsMut.Lock()
+	c.snapshotsClosing = true
+	c.snapshotsMut.Unlock()
+	c.snapshots.Wait()
+
 	c.mut.Lock()
 	defer c.mut.Unlock()
 
@@ -200,6 +210,23 @@ func Close() {
 		}
 	}
 	log.Info("state analysis collector closed")
+}
+
+// TrackSnapshot registers snapshot work before it is launched. The returned function
+// must be called after traversal, missing-node synchronization and completion reporting.
+// Close waits for all registered snapshots before disabling hooks and closing files.
+func TrackSnapshot() func() {
+	if !enabled.Load() {
+		return func() {}
+	}
+	c := global
+	c.snapshotsMut.Lock()
+	defer c.snapshotsMut.Unlock()
+	if c.snapshotsClosing {
+		return func() {}
+	}
+	c.snapshots.Add(1)
+	return c.snapshots.Done
 }
 
 func (c *collector) rowHeader() []string {

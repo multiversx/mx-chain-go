@@ -1,8 +1,13 @@
 package asyncExecution
 
 import (
+	"compress/gzip"
 	"context"
+	"encoding/csv"
 	"errors"
+	"os"
+	"path/filepath"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -15,6 +20,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/config"
 
+	"github.com/multiversx/mx-chain-go/common/stateAnalysis"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -22,6 +28,81 @@ import (
 )
 
 var errExpected = errors.New("expected error")
+
+func TestHeadersExecutor_AnalysisIncludesPostCommitPruning(t *testing.T) {
+	// The collector is global, so these cases must not run in parallel.
+	for _, meta := range []bool{false, true} {
+		t.Run("metachain_"+strconv.FormatBool(meta), func(t *testing.T) {
+			dir := t.TempDir()
+			require.NoError(t, stateAnalysis.Init(stateAnalysis.Config{
+				Enabled: true, BlocksPerRow: 1, OutlierStorageReads: 1,
+			}, 0, dir))
+			t.Cleanup(stateAnalysis.Close)
+			args := createMockArgs()
+			args.BlockChain = &testscommon.ChainHandlerStub{}
+			var nonce uint64
+			args.BlockProcessor = &processMocks.BlockProcessorStub{
+				ProcessBlockProposalCalled: func(header data.HeaderHandler, hash []byte, _ data.BodyHandler) (data.BaseExecutionResultHandler, error) {
+					nonce = header.GetNonce()
+					stateAnalysis.BeginBlock(header.GetShardID(), header.GetEpoch(), header.GetRound(), nonce, 0, false)
+					return &block.BaseExecutionResult{HeaderHash: hash, HeaderNonce: nonce}, nil
+				},
+				PruneTrieAsyncHeaderCalled: func() {
+					start := time.Now()
+					time.Sleep(2 * time.Millisecond)
+					stateAnalysis.Inc(stateAnalysis.CPruneCalls)
+					stateAnalysis.Add(stateAnalysis.CPruneNodesRemoved, int64(nonce))
+					stateAnalysis.Add(stateAnalysis.CStDbGet.Unit(stateAnalysis.UnitAccounts), int64(10*nonce))
+					stateAnalysis.AddSince(stateAnalysis.CPruneRemoveNs, start)
+				},
+			}
+			args.ExecutionTracker = &processMocks.ExecutionTrackerStub{
+				AddExecutionResultCalled: func(_ data.BaseExecutionResultHandler) (bool, error) { return true, nil },
+			}
+			executor, err := NewHeadersExecutor(args)
+			require.NoError(t, err)
+			for n := uint64(1); n <= 2; n++ {
+				var header data.HeaderHandler = &block.HeaderV3{Nonce: n}
+				if meta {
+					header = &block.MetaBlockV3{Nonce: n}
+				}
+				require.NoError(t, executor.process(cache.HeaderBodyPair{
+					Header: header, HeaderHash: []byte{byte(n)}, Body: &block.Body{},
+				}))
+			}
+			stateAnalysis.Close() // The final block's pruning must already be finalized.
+			for _, filename := range []string{"blocks.csv.gz", "outliers.csv.gz"} {
+				f, openErr := os.Open(filepath.Join(dir, "state-analysis", "shard_0", filename))
+				require.NoError(t, openErr)
+				defer f.Close()
+				gz, gzipErr := gzip.NewReader(f)
+				require.NoError(t, gzipErr)
+				defer gz.Close()
+				rows, readErr := csv.NewReader(gz).ReadAll()
+				require.NoError(t, readErr)
+				require.Len(t, rows, 3, filename)
+				columns := make(map[string]int)
+				for i, name := range rows[0] {
+					columns[name] = i
+				}
+				for n, row := range rows[1:] {
+					require.Equal(t, strconv.Itoa(n+1), row[columns["nonce_first"]])
+					require.Equal(t, "0", row[columns["blk_aborted"]])
+					require.Equal(t, "1", row[columns["blk_count"]])
+					require.Equal(t, "1", row[columns["prune_calls"]])
+					require.Equal(t, strconv.Itoa(n+1), row[columns["prune_nodes_removed"]])
+					require.Equal(t, strconv.Itoa(10*(n+1)), row[columns["st_db_get_accounts"]])
+					pruneNs, parseErr := strconv.ParseInt(row[columns["prune_remove_ns"]], 10, 64)
+					require.NoError(t, parseErr)
+					wallNs, parseErr := strconv.ParseInt(row[columns["blk_wall_ns"]], 10, 64)
+					require.NoError(t, parseErr)
+					require.Greater(t, pruneNs, int64(0))
+					require.GreaterOrEqual(t, wallNs, pruneNs)
+				}
+			}
+		})
+	}
+}
 
 func createMockArgs() ArgsHeadersExecutor {
 	headerCache := cache.NewHeaderBodyCache(config.HeaderBodyCacheConfig{})

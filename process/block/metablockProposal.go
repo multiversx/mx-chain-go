@@ -506,8 +506,6 @@ func (mp *metaProcessor) CommitBlockProposalState(headerHandler data.HeaderHandl
 		mp.saveEpochStartEconomicsMetricsV3IfNeeded(metaHeader)
 	}
 
-	stateAnalysis.EndBlock()
-
 	return nil
 }
 

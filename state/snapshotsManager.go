@@ -188,7 +188,11 @@ func (sm *snapshotsManager) SnapshotState(
 
 	log.Info("starting snapshot", "type", sm.stateMetrics.GetSnapshotMessage(), "rootHash", rootHash, "epoch", epoch)
 
-	go sm.snapshotState(rootHash, epoch, trieStorageManager, stats)
+	snapshotDone := stateAnalysis.TrackSnapshot()
+	go func() {
+		defer snapshotDone()
+		sm.snapshotState(rootHash, epoch, trieStorageManager, stats)
+	}()
 
 	sm.waitForCompletionIfAppropriate(stats)
 }
@@ -265,7 +269,7 @@ func (sm *snapshotsManager) snapshotState(
 
 	go sm.syncMissingNodes(missingNodesChannel, iteratorChannels.ErrChan, stats, sm.getTrieSyncer())
 
-	go sm.processSnapshotCompletion(stats, trieStorageManager, missingNodesChannel, iteratorChannels.ErrChan, rootHash, epoch)
+	sm.processSnapshotCompletion(stats, trieStorageManager, missingNodesChannel, iteratorChannels.ErrChan, rootHash, epoch)
 }
 
 func (sm *snapshotsManager) earlySnapshotCompletion(stats *snapshotStatistics, trieStorageManager common.StorageManager) {

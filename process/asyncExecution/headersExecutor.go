@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
+	"github.com/multiversx/mx-chain-go/common/stateAnalysis"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 )
@@ -371,6 +372,10 @@ func (he *headersExecutor) process(pair cache.HeaderBodyPair) error {
 		he.blockProcessor.RevertBlockProposalState()
 		return err
 	}
+
+	// Include post-commit bookkeeping and pruning in the committed block's measurements,
+	// also when the execution tracker rejects the result or returns an error.
+	defer stateAnalysis.EndBlock()
 
 	// Add to execution tracker only after state is committed, so the tracker never
 	// holds a result whose state was not persisted.

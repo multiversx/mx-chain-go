@@ -1,16 +1,23 @@
 package state_test
 
 import (
+	"compress/gzip"
+	"encoding/csv"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/stateAnalysis"
 	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
@@ -35,6 +42,121 @@ func getDefaultSnapshotManagerArgs() state.ArgsNewSnapshotsManager {
 		ChannelsProvider:         iteratorChannelsProvider.NewUserStateIteratorChannelsProvider(),
 		StateStatsHandler:        disabled.NewStateStatistics(),
 		LastSnapshotMarker:       lastSnapshotMarker.NewLastSnapshotMarker(),
+	}
+}
+
+func TestSnapshotsManager_AnalysisCloseWaitsForCompletion(t *testing.T) {
+	for _, mode := range []common.NodeProcessingMode{common.Normal, common.ImportDb} {
+		t.Run(fmt.Sprint(mode), func(t *testing.T) {
+			dir := t.TempDir()
+			require.NoError(t, stateAnalysis.Init(stateAnalysis.Config{Enabled: true}, 0, dir))
+			t.Cleanup(stateAnalysis.Close)
+			syncStarted, releaseSync := make(chan struct{}), make(chan struct{})
+			callbackStarted, releaseCallback := make(chan struct{}), make(chan struct{})
+			var syncOnce, callbackOnce sync.Once
+			var closeDone chan struct{}
+			defer func() {
+				syncOnce.Do(func() { close(releaseSync) })
+				callbackOnce.Do(func() { close(releaseCallback) })
+				if closeDone != nil {
+					select {
+					case <-closeDone:
+					case <-time.After(2 * time.Second):
+						t.Error("analysis shutdown did not finish")
+					}
+				}
+			}()
+			args := getDefaultSnapshotManagerArgs()
+			args.ProcessingMode = mode
+			args.StateMetrics = &stateTest.StateMetricsStub{
+				UpdateMetricsOnSnapshotCompletionCalled: func(_ common.SnapshotStatisticsHandler) {
+					close(callbackStarted)
+					<-releaseCallback
+				},
+			}
+			sm, err := state.NewSnapshotsManager(args)
+			require.NoError(t, err)
+			require.NoError(t, sm.SetSyncer(&mock.AccountsDBSyncerStub{
+				SyncAccountsCalled: func(_ []byte, _ common.StorageMarker) error {
+					close(syncStarted)
+					<-releaseSync
+					return nil
+				},
+			}))
+			traversed := make(chan struct{})
+			tsm := &storageManager.StorageManagerStub{
+				GetIdentifierCalled:         func() string { return "AccountsTrie" },
+				GetLatestStorageEpochCalled: func() (uint32, error) { return 7, nil },
+				ShouldTakeSnapshotCalled:    func() bool { return true },
+				TakeSnapshotCalled: func(_ string, _ []byte, _ []byte, channels *common.TrieIteratorChannels, missing chan []byte, stats common.SnapshotStatisticsHandler, _ uint32) {
+					stateAnalysis.ObserveSnapshotAccount("AccountsTrie", 50, true, false, false)
+					missing <- []byte("missing-node")
+					close(channels.LeavesChan)
+					stats.SnapshotFinished()
+					close(traversed)
+				},
+			}
+			snapshotReturned := make(chan struct{})
+			go func() {
+				sm.SnapshotState([]byte{1, 2}, 7, tsm)
+				close(snapshotReturned)
+			}()
+			for _, ready := range []chan struct{}{traversed, syncStarted, snapshotReturned} {
+				select {
+				case <-ready:
+				case <-time.After(2 * time.Second):
+					t.Fatal("snapshot traversal or scheduling did not finish")
+				}
+			}
+			closeDone = make(chan struct{})
+			go func() { stateAnalysis.Close(); close(closeDone) }()
+			select {
+			case <-closeDone:
+				t.Fatal("analysis closed while snapshot synchronization was still running")
+			case <-time.After(20 * time.Millisecond):
+			}
+			require.True(t, stateAnalysis.Enabled())
+			syncOnce.Do(func() { close(releaseSync) })
+			select {
+			case <-callbackStarted:
+			case <-time.After(2 * time.Second):
+				t.Fatal("snapshot completion callback did not run")
+			}
+			select {
+			case <-closeDone:
+				t.Fatal("analysis closed before the completion callback returned")
+			case <-time.After(20 * time.Millisecond):
+			}
+			callbackOnce.Do(func() { close(releaseCallback) })
+			select {
+			case <-closeDone:
+			case <-time.After(2 * time.Second):
+				t.Fatal("analysis did not close after snapshot completion")
+			}
+			require.False(t, stateAnalysis.Enabled())
+			outDir := filepath.Join(dir, "state-analysis", "shard_0")
+			f, err := os.Open(filepath.Join(outDir, "snapshots.csv.gz"))
+			require.NoError(t, err)
+			defer f.Close()
+			gz, err := gzip.NewReader(f)
+			require.NoError(t, err)
+			defer gz.Close()
+			rows, err := csv.NewReader(gz).ReadAll()
+			require.NoError(t, err)
+			require.Len(t, rows, 2)
+			columns := make(map[string]int)
+			for i, name := range rows[0] {
+				columns[name] = i
+			}
+			assert.Equal(t, "7", rows[1][columns["epoch"]])
+			assert.Equal(t, "0102", rows[1][columns["root_hash"]])
+			assert.Equal(t, "1", rows[1][columns["accounts"]])
+			data, err := os.ReadFile(filepath.Join(outDir, "structure", "epoch_7_accounts.json"))
+			require.NoError(t, err)
+			var structure struct{ Accounts map[string]int64 }
+			require.NoError(t, json.Unmarshal(data, &structure))
+			assert.Equal(t, int64(1), structure.Accounts["accounts"])
+		})
 	}
 }
 
