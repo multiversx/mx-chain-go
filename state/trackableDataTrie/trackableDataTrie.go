@@ -205,10 +205,16 @@ func (tdt *trackableDataTrie) getOriginalKeyFromTrieData(trieData core.TrieData)
 
 func (tdt *trackableDataTrie) getKeyForVersion(key []byte, version core.TrieNodeVersion) []byte {
 	if version == core.AutoBalanceEnabled {
-		return tdt.hasher.Compute(string(key))
+		return tdt.hashKey(key)
 	}
 
 	return key
+}
+
+func (tdt *trackableDataTrie) hashKey(key []byte) []byte {
+	hashedKey := tdt.hasher.Compute(string(key))
+	stateAnalysis.Inc(stateAnalysis.CDtKeyHashComputed)
+	return hashedKey
 }
 
 func (tdt *trackableDataTrie) getValueForVersion(key []byte, value []byte, version core.TrieNodeVersion) ([]byte, error) {
@@ -446,8 +452,7 @@ func (tdt *trackableDataTrie) retrieveValueFromTrie(key []byte, writesHashedKey 
 
 	legacyAtHashedKey := false
 	if tdt.enableEpochsHandler.IsFlagEnabled(common.AutoBalanceDataTriesFlag) {
-		hashedKey := tdt.hasher.Compute(string(key))
-		stateAnalysis.Inc(stateAnalysis.CDtKeyHashComputed)
+		hashedKey := tdt.hashKey(key)
 		stateAnalysis.Inc(stateAnalysis.CDtLookupHashed)
 		valWithMetadata, depth, version, err := tdt.tr.GetWithVersion(hashedKey)
 		if err != nil {
@@ -611,7 +616,7 @@ func (tdt *trackableDataTrie) deleteFromTrie(oldVal core.TrieData, key []byte, d
 	}
 
 	if oldVal.Version == core.AutoBalanceEnabled {
-		keyForTrie := tdt.hasher.Compute(string(key))
+		keyForTrie := tdt.hashKey(key)
 		return keyForTrie, dtr.Delete(keyForTrie)
 	}
 

@@ -3,16 +3,27 @@ package state_test
 import (
 	"compress/gzip"
 	"encoding/csv"
+	"errors"
 	"os"
 	"path/filepath"
 	"strconv"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/common/stateAnalysis"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/dataTrieValue"
+	"github.com/multiversx/mx-chain-go/state/trackableDataTrie"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 )
 
 func readBlocksCsv(t *testing.T, path string) (map[string]int, []string) {
@@ -108,4 +119,162 @@ func TestStateAnalysisHooks_AccountsDBFlow(t *testing.T) {
 	assert.Greater(t, get("trie_resident_nodes_main_leaf"), int64(0))
 	assert.Greater(t, get("adb_holder_datatries_user"), int64(0))
 
+}
+
+func TestStateAnalysisHooks_PeerRootHashCosts(t *testing.T) {
+	tr, _ := getDefaultTrieAndAccountsDb()
+	require.NoError(t, tr.Update([]byte("peer-key"), []byte("peer-value")))
+	args := createMockAccountsDBArgs()
+	args.Trie = tr
+	adb, err := state.NewPeerAccountsDB(args)
+	require.NoError(t, err)
+
+	dir := t.TempDir()
+	require.NoError(t, stateAnalysis.Init(stateAnalysis.Config{Enabled: true}, 0, dir))
+	t.Cleanup(stateAnalysis.Close)
+	stateAnalysis.BeginBlock(0, 0, 1, 1, 0, false)
+	stateAnalysis.SetTrieKind(stateAnalysis.KindMain)
+	root, err := adb.RootHash()
+	require.NoError(t, err)
+	assert.NotEmpty(t, root)
+	assert.Equal(t, stateAnalysis.KindMain, stateAnalysis.TrieKind())
+	stateAnalysis.EndBlock()
+	stateAnalysis.Close()
+
+	columns, row := readBlocksCsv(t, filepath.Join(dir, "state-analysis", "shard_0", "blocks.csv.gz"))
+	for _, names := range [][2]string{
+		{"trie_roothash_calls_peer", "trie_roothash_calls_main"},
+		{"trie_roothash_computed_peer", "trie_roothash_computed_main"},
+		{"trie_encode_peer_leaf", "trie_encode_main_leaf"},
+		{"trie_hash_compute_peer", "trie_hash_compute_main"},
+	} {
+		require.Contains(t, columns, names[0])
+		require.Contains(t, columns, names[1])
+		assert.Equal(t, "1", row[columns[names[0]]], names[0])
+		assert.Equal(t, "0", row[columns[names[1]]], names[1])
+	}
+}
+
+func TestStateAnalysisHooks_RootHashContextRestored(t *testing.T) {
+	// These calls share a helper so commit can hash while holding mutOp without relocking it.
+	for _, peer := range []bool{false, true} {
+		for _, entrypoint := range []string{"root", "commit", "recreate"} {
+			for _, fail := range []bool{false, true} {
+				name := strconv.FormatBool(peer) + "/" + entrypoint + "/error_" + strconv.FormatBool(fail)
+				t.Run(name, func(t *testing.T) {
+					dir := t.TempDir()
+					require.NoError(t, stateAnalysis.Init(stateAnalysis.Config{Enabled: true}, 0, dir))
+					t.Cleanup(stateAnalysis.Close)
+					wantKind := stateAnalysis.KindMain
+					if peer {
+						wantKind = stateAnalysis.KindPeer
+					}
+					var wantErr error
+					if fail {
+						wantErr = errors.New("root hash failed")
+					}
+					args := createMockAccountsDBArgs()
+					called := false
+					args.Trie.(*trieMock.TrieStub).CommitCalled = func() error { return nil }
+					args.Trie.(*trieMock.TrieStub).RootCalled = func() ([]byte, error) {
+						called = true
+						assert.Equal(t, wantKind, stateAnalysis.TrieKind())
+						return []byte("root"), wantErr
+					}
+					var adb state.AccountsAdapter
+					var err error
+					if peer {
+						adb, err = state.NewPeerAccountsDB(args)
+					} else {
+						adb, err = state.NewAccountsDB(args)
+					}
+					require.NoError(t, err)
+					stateAnalysis.SetTrieKind(stateAnalysis.KindData)
+					switch entrypoint {
+					case "root":
+						_, err = adb.RootHash()
+					case "commit":
+						_, err = adb.Commit()
+					case "recreate":
+						err = adb.RecreateTrieIfNeeded(holders.NewDefaultRootHashesHolder([]byte("root")))
+					}
+					assert.Equal(t, wantErr, err)
+					assert.True(t, called)
+					assert.Equal(t, stateAnalysis.KindData, stateAnalysis.TrieKind())
+				})
+			}
+		}
+	}
+}
+
+func TestStateAnalysisHooks_DataTrieKeyHashes(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		balanced   bool
+		present    bool
+		version    core.TrieNodeVersion
+		read       bool
+		value      string
+		wantHashes int
+	}{
+		{name: "legacy write", present: true, value: "new-value", wantHashes: 0},
+		{name: "balanced write", balanced: true, present: true, version: core.AutoBalanceEnabled, value: "new-value", wantHashes: 2},
+		{name: "balanced insert", balanced: true, value: "new-value", wantHashes: 3},
+		{name: "balanced delete", balanced: true, present: true, version: core.AutoBalanceEnabled, wantHashes: 3},
+		{name: "migration", balanced: true, present: true, value: "new-value", wantHashes: 2},
+		{name: "balanced read", balanced: true, present: true, version: core.AutoBalanceEnabled, read: true, wantHashes: 1},
+		{name: "balanced missing read", balanced: true, read: true, wantHashes: 2},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			key, identifier := []byte("key"), []byte("address")
+			hashCalls := 0
+			hasher := &testscommon.HasherStub{ComputeCalled: func(input string) []byte {
+				assert.Equal(t, string(key), input)
+				hashCalls++
+				return []byte("hashed-key")
+			}}
+			marshaller := &marshallerMock.MarshalizerMock{}
+			tdt, err := trackableDataTrie.NewTrackableDataTrie(identifier, hasher, marshaller,
+				&enableEpochsHandlerMock.EnableEpochsHandlerStub{IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+					return tc.balanced && flag == common.AutoBalanceDataTriesFlag
+				}}, &stateMock.StateAccessesCollectorStub{})
+			require.NoError(t, err)
+			storedKey, storedValue := "key", []byte("old-valuekeyaddress")
+			if tc.version == core.AutoBalanceEnabled {
+				storedKey = "hashed-key"
+				storedValue, err = marshaller.Marshal(&dataTrieValue.TrieLeafData{
+					Key: key, Address: identifier, Value: []byte("old-value"),
+				})
+				require.NoError(t, err)
+			}
+			tr := &trieMock.TrieStub{
+				GetWithVersionCalled: func(k []byte) ([]byte, uint32, uint32, error) {
+					if tc.present && string(k) == storedKey {
+						return storedValue, 0, uint32(tc.version), nil
+					}
+					return nil, 0, 0, nil
+				},
+				UpdateWithVersionCalled: func(_ []byte, _ []byte, _ core.TrieNodeVersion) error { return nil },
+				DeleteCalled:            func(_ []byte) error { return nil },
+			}
+			tdt.SetDataTrie(tr)
+			dir := t.TempDir()
+			require.NoError(t, stateAnalysis.Init(stateAnalysis.Config{Enabled: true}, 0, dir))
+			t.Cleanup(stateAnalysis.Close)
+			stateAnalysis.BeginBlock(0, 0, 1, 1, 0, false)
+			if tc.read {
+				_, _, err = tdt.RetrieveValue(key)
+			} else {
+				require.NoError(t, tdt.SaveKeyValue(key, []byte(tc.value)))
+				_, _, err = tdt.SaveDirtyData(tr)
+			}
+			require.NoError(t, err)
+			stateAnalysis.EndBlock()
+			stateAnalysis.Close()
+			assert.Equal(t, tc.wantHashes, hashCalls)
+			columns, row := readBlocksCsv(t, filepath.Join(dir, "state-analysis", "shard_0", "blocks.csv.gz"))
+			require.Contains(t, columns, "dt_key_hash_computed")
+			assert.Equal(t, strconv.Itoa(hashCalls), row[columns["dt_key_hash_computed"]])
+		})
+	}
 }

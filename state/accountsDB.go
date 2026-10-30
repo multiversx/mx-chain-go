@@ -1089,7 +1089,7 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 		return nil, err
 	}
 
-	newRoot, err := adb.mainTrie.RootHash()
+	newRoot, err := adb.rootHash(adb.mainTrie)
 	if err != nil {
 		log.Trace("accountsDB.Commit ended", "error", err.Error())
 		return nil, err
@@ -1164,13 +1164,20 @@ func (adb *AccountsDB) commitTrie(tr common.Trie, oldHashes common.ModifiedHashe
 
 // RootHash returns the main trie's root hash
 func (adb *AccountsDB) RootHash() ([]byte, error) {
-	rootHash, err := adb.getMainTrie().RootHash()
+	rootHash, err := adb.rootHash(adb.getMainTrie())
 	log.Trace("accountsDB.RootHash",
 		"root hash", rootHash,
 		"err", err,
 	)
 
 	return rootHash, err
+}
+
+func (adb *AccountsDB) rootHash(tr common.Trie) ([]byte, error) {
+	prevKind := stateAnalysis.SetTrieKind(stateAnalysis.KindForAdapter(adb.analysisAdapter))
+	defer stateAnalysis.SetTrieKind(prevKind)
+
+	return tr.RootHash()
 }
 
 // RecreateTrie is used to reload the trie based on the provided options
@@ -1228,7 +1235,7 @@ func (adb *AccountsDB) recreateTrie(options common.RootHashHolder) error {
 }
 
 func (adb *AccountsDB) recreateTrieIfNeeded(options common.RootHashHolder) error {
-	currentRootHash, err := adb.getMainTrie().RootHash()
+	currentRootHash, err := adb.rootHash(adb.getMainTrie())
 	if err != nil {
 		return err
 	}
