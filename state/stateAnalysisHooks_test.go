@@ -278,3 +278,131 @@ func TestStateAnalysisHooks_DataTrieKeyHashes(t *testing.T) {
 		})
 	}
 }
+
+func TestStateAnalysisHooks_DataTrieMigrationAndRollbackContext(t *testing.T) {
+	for _, fail := range []bool{false, true} {
+		t.Run("write_error_"+strconv.FormatBool(fail), func(t *testing.T) {
+			dir := t.TempDir()
+			require.NoError(t, stateAnalysis.Init(stateAnalysis.Config{Enabled: true}, 0, dir))
+			t.Cleanup(stateAnalysis.Close)
+			stateAnalysis.SetTrieKind(stateAnalysis.KindPeer)
+			tdt, err := trackableDataTrie.NewTrackableDataTrie([]byte("address"),
+				&testscommon.HasherStub{ComputeCalled: func(_ string) []byte { return []byte("hashed-key") }},
+				&marshallerMock.MarshalizerMock{},
+				&enableEpochsHandlerMock.EnableEpochsHandlerStub{IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+					return flag == common.AutoBalanceDataTriesFlag
+				}}, &stateMock.StateAccessesCollectorStub{})
+			require.NoError(t, err)
+			var operations []string
+			var wantErr error
+			if fail {
+				wantErr = errors.New("write failed")
+			}
+			tr := &trieMock.TrieStub{
+				GetWithVersionCalled: func(key []byte) ([]byte, uint32, uint32, error) {
+					assert.Equal(t, stateAnalysis.KindData, stateAnalysis.TrieKind())
+					if string(key) == "key" {
+						return []byte("old-valuekeyaddress"), 0, uint32(core.NotSpecified), nil
+					}
+					return nil, 0, 0, nil
+				},
+				DeleteCalled: func(key []byte) error {
+					assert.Equal(t, "key", string(key))
+					assert.Equal(t, stateAnalysis.KindData, stateAnalysis.TrieKind())
+					operations = append(operations, "delete legacy")
+					return nil
+				},
+				UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) error {
+					assert.Equal(t, stateAnalysis.KindData, stateAnalysis.TrieKind())
+					if version == core.NotSpecified {
+						assert.Equal(t, "key", string(key))
+						assert.Equal(t, "old-valuekeyaddress", string(value))
+						operations = append(operations, "rollback")
+						return nil
+					}
+					assert.Equal(t, "hashed-key", string(key))
+					operations = append(operations, "write balanced")
+					return wantErr
+				},
+			}
+			tdt.SetDataTrie(tr)
+			require.NoError(t, tdt.SaveKeyValue([]byte("key"), []byte("new-value")))
+			_, _, err = tdt.SaveDirtyData(tr)
+			assert.Equal(t, wantErr, err)
+			wantOperations := []string{"delete legacy", "write balanced"}
+			if fail {
+				wantOperations = append(wantOperations, "rollback")
+			}
+			assert.Equal(t, wantOperations, operations)
+			assert.Equal(t, stateAnalysis.KindPeer, stateAnalysis.TrieKind())
+		})
+	}
+}
+
+func TestStateAnalysisHooks_CodeEntrySaves(t *testing.T) {
+	_, adb := getDefaultTrieAndAccountsDb()
+	dir := t.TempDir()
+	require.NoError(t, stateAnalysis.Init(stateAnalysis.Config{Enabled: true}, 0, dir))
+	t.Cleanup(stateAnalysis.Close)
+	stateAnalysis.BeginBlock(0, 0, 1, 1, 0, false)
+	for _, operation := range []struct{ address, code string }{
+		{"contract-1", "code-a"}, // deployment
+		{"contract-2", "code-a"}, // increment code-a's reference count
+		{"contract-1", "code-b"}, // decrement code-a's reference count and save code-b
+		{"contract-1", "code-b"}, // unchanged code
+		{"contract-2", ""},       // remove the last reference to code-a
+		{"contract-1", ""},       // remove the last reference to code-b
+	} {
+		acc, err := adb.LoadAccount([]byte(operation.address))
+		require.NoError(t, err)
+		acc.(state.UserAccountHandler).SetCode([]byte(operation.code))
+		require.NoError(t, adb.SaveAccount(acc))
+	}
+	stateAnalysis.EndBlock()
+	stateAnalysis.Close()
+	columns, row := readBlocksCsv(t, filepath.Join(dir, "state-analysis", "shard_0", "blocks.csv.gz"))
+	assert.Equal(t, "4", row[columns["adb_code_entry_save_user"]])
+	assert.Equal(t, "0", row[columns["adb_code_entry_save_peer"]])
+}
+
+func TestStateAnalysisHooks_NewLeafInsertions(t *testing.T) {
+	for _, kind := range []struct {
+		id   int
+		name string
+	}{
+		{stateAnalysis.KindMain, "main"},
+		{stateAnalysis.KindData, "data"},
+		{stateAnalysis.KindPeer, "peer"},
+	} {
+		t.Run(kind.name, func(t *testing.T) {
+			tr, _ := getDefaultTrieAndAccountsDb()
+			dir := t.TempDir()
+			require.NoError(t, stateAnalysis.Init(stateAnalysis.Config{Enabled: true}, 0, dir))
+			t.Cleanup(stateAnalysis.Close)
+			stateAnalysis.BeginBlock(0, 0, 1, 1, 0, false)
+			stateAnalysis.SetTrieKind(kind.id)
+			// Reversed nibbles exercise an empty root, a leaf split, an empty
+			// branch child, and an extension split, respectively.
+			keys := [][]byte{{0x01, 0x11}, {0x02, 0x11}, {0x03, 0x11}, {0x04, 0x21}}
+			for _, key := range keys {
+				require.NoError(t, tr.Update(key, []byte("value")))
+			}
+			require.NoError(t, tr.Update(keys[0], []byte("changed")))
+			require.NoError(t, tr.Update(keys[0], []byte("changed")))
+			// Deletion can rebuild leaves while collapsing branches/extensions.
+			for _, key := range keys[1:] {
+				require.NoError(t, tr.Delete(key))
+			}
+			stateAnalysis.EndBlock()
+			stateAnalysis.Close()
+			columns, row := readBlocksCsv(t, filepath.Join(dir, "state-analysis", "shard_0", "blocks.csv.gz"))
+			for _, name := range []string{"main", "data", "peer"} {
+				want := "0"
+				if name == kind.name {
+					want = "4"
+				}
+				assert.Equal(t, want, row[columns["trie_insert_new_leaf_"+name]], name)
+			}
+		})
+	}
+}

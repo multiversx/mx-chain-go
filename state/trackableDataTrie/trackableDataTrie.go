@@ -289,6 +289,9 @@ func (tdt *trackableDataTrie) rollbackAppliedUpdates(dtr state.DataTrie, oldValu
 }
 
 func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]*stateChange.DataTrieChange, []core.TrieData, error) {
+	prevKind := stateAnalysis.SetTrieKind(stateAnalysis.KindData)
+	defer stateAnalysis.SetTrieKind(prevKind)
+
 	if stateAnalysis.Enabled() {
 		stateAnalysis.Inc(stateAnalysis.CDtUpdateTrieCalls)
 		stateAnalysis.Add(stateAnalysis.CDtUpdateDirtyKeys, int64(len(tdt.dirtyData)))

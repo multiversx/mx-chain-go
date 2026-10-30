@@ -451,15 +451,14 @@ func TestExecutionManager_AddPairForExecution(t *testing.T) {
 		}
 
 		em, _ := executionManager.NewExecutionManager(args)
-		executor := &processMocks.HeadersExecutorMock{
-			PauseExecutionCalled: func() {
-				require.Fail(t, "executor should not be paused")
-			},
-		}
+		executor := &processMocks.HeadersExecutorMock{}
 		err := em.SetHeadersExecutor(executor)
 		require.NoError(t, err)
 		err = em.Close()
 		require.NoError(t, err)
+		executor.PauseExecutionCalled = func() {
+			require.Fail(t, "executor should not be paused after the manager is closed")
+		}
 
 		err = em.AddPairForExecution(cache.HeaderBodyPair{
 			Header: &block.HeaderV3{Nonce: 9},
@@ -2641,10 +2640,15 @@ func TestExecutionManager_Close(t *testing.T) {
 
 		args := createMockArgs()
 		executorCloseCalls := 0
+		var calls []string
 
 		mockExecutor := &processMocks.HeadersExecutorMock{
+			PauseExecutionCalled: func() {
+				calls = append(calls, "pause and wait")
+			},
 			CloseCalled: func() error {
 				executorCloseCalls++
+				calls = append(calls, "close")
 				return nil
 			},
 		}
@@ -2656,6 +2660,7 @@ func TestExecutionManager_Close(t *testing.T) {
 		err = em.Close()
 		require.NoError(t, err)
 		require.Equal(t, 1, executorCloseCalls)
+		require.Equal(t, []string{"pause and wait", "close"}, calls)
 	})
 
 	t.Run("error closing headers executor", func(t *testing.T) {

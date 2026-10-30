@@ -450,6 +450,7 @@ func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte, oldCodeEntry *Code
 	}
 
 	codeEntryClone.NumReferences--
+	stateAnalysis.Inc(stateAnalysis.CAdbCodeEntrySave.Adapter(adb.analysisAdapter))
 	codeEntryBytes, err := saveCodeEntry(oldCodeHash, codeEntryClone, adb.mainTrie, adb.marshaller)
 	if err != nil {
 		return err
@@ -479,6 +480,7 @@ func (adb *AccountsDB) updateNewCodeEntry(newCodeHash []byte, newCodeEntry *Code
 	}
 	codeEntry.NumReferences++
 
+	stateAnalysis.Inc(stateAnalysis.CAdbCodeEntrySave.Adapter(adb.analysisAdapter))
 	codeEntryBytes, err := saveCodeEntry(newCodeHash, codeEntry, adb.mainTrie, adb.marshaller)
 	if err != nil {
 		return err

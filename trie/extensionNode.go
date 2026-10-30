@@ -448,6 +448,7 @@ func (en *extensionNode) insertNewChildInBn(bn *branchNode, newData core.TrieDat
 
 	bn.children[newChildPos] = newLeaf
 	bn.setVersionForChild(newData.Version, newChildPos)
+	stateAnalysis.Inc(stateAnalysis.CTrieInsertNewLeaf.Kind(stateAnalysis.TrieKind()))
 	return nil
 }
 

@@ -316,6 +316,7 @@ func (ln *leafNode) insertInNewBn(newData core.TrieData, keyMatchLen int) (node,
 	bn.children[newChildPos] = newLnNewChildPos
 	bn.setVersionForChild(newData.Version, newChildPos)
 
+	stateAnalysis.Inc(stateAnalysis.CTrieInsertNewLeaf.Kind(stateAnalysis.TrieKind()))
 	return bn, nil
 }
 

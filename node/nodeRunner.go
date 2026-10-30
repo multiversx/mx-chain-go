@@ -1657,10 +1657,10 @@ func closeAllComponents(
 	log.Debug("stopping consensus...")
 	log.LogIfError(consensusComponentsCloser.Close())
 
-	stateAnalysis.Close()
-
 	log.Debug("stopping async execution...")
 	log.LogIfError(executionManagerCloser.Close())
+
+	stateAnalysis.Close()
 
 	log.Debug("closing health service...")
 	err := healthService.Close()

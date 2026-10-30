@@ -177,6 +177,7 @@ func (tr *patriciaMerkleTrie) update(key []byte, value []byte, version core.Trie
 			}
 
 			tr.root = newRoot
+			stateAnalysis.Inc(stateAnalysis.CTrieInsertNewLeaf.Kind(stateAnalysis.TrieKind()))
 			return nil
 		}
 

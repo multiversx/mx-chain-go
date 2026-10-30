@@ -1,8 +1,11 @@
 package node
 
 import (
+	"compress/gzip"
+	"encoding/csv"
 	"os"
 	"path"
+	"path/filepath"
 	"sync/atomic"
 	"syscall"
 	"testing"
@@ -14,12 +17,64 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/stateAnalysis"
 	"github.com/multiversx/mx-chain-go/node/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/api"
 )
 
 const originalConfigsPath = "../cmd/node/config"
+
+func TestCloseAllComponents_WaitsForExecutionBeforeClosingAnalysis(t *testing.T) {
+	// The global collector must remain enabled until the last proposal finishes.
+	dir := t.TempDir()
+	require.NoError(t, stateAnalysis.Init(stateAnalysis.Config{Enabled: true}, 0, dir))
+	t.Cleanup(stateAnalysis.Close)
+	stateAnalysis.BeginBlock(0, 0, 1, 1, 0, false)
+	releaseExecution, executionFinished := make(chan struct{}), make(chan struct{})
+	go func() {
+		<-releaseExecution
+		stateAnalysis.Add(stateAnalysis.CStDbGet.Unit(stateAnalysis.UnitAccounts), 9)
+		stateAnalysis.EndBlock()
+		close(executionFinished)
+	}()
+	consensus := &mock.CloserStub{CloseCalled: func() error {
+		assert.True(t, stateAnalysis.Enabled())
+		return nil
+	}}
+	execution := &mock.CloserStub{CloseCalled: func() error {
+		assert.True(t, stateAnalysis.Enabled())
+		close(releaseExecution)
+		<-executionFinished
+		return nil
+	}}
+	health := &mock.CloserStub{CloseCalled: func() error {
+		assert.False(t, stateAnalysis.Enabled())
+		return nil
+	}}
+	closed, closingStarted := make(chan struct{}, 1), &atomic.Bool{}
+	closeAllComponents(health, &mock.CloserStub{}, &api.UpgradeableHttpServerHandlerStub{},
+		&Node{}, closed, closingStarted, 0, consensus, execution)
+	assert.True(t, closingStarted.Load())
+	assert.Len(t, closed, 1)
+
+	f, err := os.Open(filepath.Join(dir, "state-analysis", "shard_0", "blocks.csv.gz"))
+	require.NoError(t, err)
+	defer f.Close()
+	gz, err := gzip.NewReader(f)
+	require.NoError(t, err)
+	defer gz.Close()
+	rows, err := csv.NewReader(gz).ReadAll()
+	require.NoError(t, err)
+	require.Len(t, rows, 2)
+	values := make(map[string]string)
+	for i, name := range rows[0] {
+		values[name] = rows[1][i]
+	}
+	assert.Equal(t, "1", values["blk_count"])
+	assert.Equal(t, "0", values["blk_aborted"])
+	assert.Equal(t, "9", values["st_db_get_accounts"])
+}
 
 func TestNewNodeRunner(t *testing.T) {
 	if testing.Short() {

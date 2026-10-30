@@ -574,6 +574,9 @@ func (em *executionManager) Close() error {
 	}
 	em.closed = true
 
+	// Wait for any in-flight proposal and prevent another one from starting
+	// before cancellation. The executor's Close only cancels its loop.
+	em.headersExecutor.PauseExecution()
 	err := em.headersExecutor.Close()
 	if err != nil {
 		log.Warn("executionManager.Close - failed to close headers executor", "error", err)

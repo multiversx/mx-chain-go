@@ -483,6 +483,7 @@ func (bn *branchNode) insertOnNilChild(newData core.TrieData, childPos byte) (no
 		return nil, [][]byte{}, err
 	}
 
+	stateAnalysis.Inc(stateAnalysis.CTrieInsertNewLeaf.Kind(stateAnalysis.TrieKind()))
 	return bn, modifiedHashes, nil
 }
 
