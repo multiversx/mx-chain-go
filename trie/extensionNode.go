@@ -299,9 +299,15 @@ func (en *extensionNode) tryGetWithVersion(key []byte, currentDepth uint32, db c
 		return nil, currentDepth, 0, nil
 	}
 	key = key[len(en.Key):]
+	wasCollapsed := en.isCollapsed()
 	err = resolveIfCollapsed(en, 0, db)
 	if err != nil {
 		return nil, currentDepth, 0, err
+	}
+	if wasCollapsed && stateAnalysis.Enabled() {
+		kind := stateAnalysis.TrieKind()
+		stateAnalysis.Inc(stateAnalysis.CTrieLoadInGet.Kind(kind))
+		stateAnalysis.Inc(stateAnalysis.CTrieLoadGetDepth.DepthBucket(kind, currentDepth+1))
 	}
 
 	return en.child.tryGetWithVersion(key, currentDepth+1, db)

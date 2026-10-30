@@ -99,9 +99,13 @@ func maxID(name string) MaxID {
 
 // consecutive counters, addressed as base+i
 func counterSeq(prefix string, labels []string) CounterID {
-	base := counter(prefix + "_" + labels[0])
+	register := counter
+	if strings.HasSuffix(prefix, "_ns") {
+		register = counterWithMax
+	}
+	base := register(prefix + "_" + labels[0])
 	for i := 1; i < len(labels); i++ {
-		counter(prefix + "_" + labels[i])
+		register(prefix + "_" + labels[i])
 	}
 	return base
 }

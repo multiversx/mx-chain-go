@@ -2,14 +2,20 @@ package trie
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
+	"encoding/csv"
 	"errors"
 	"math"
+	"os"
+	"path/filepath"
+	"strconv"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
+	"github.com/multiversx/mx-chain-go/common/stateAnalysis"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
@@ -18,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-go/trie/mock"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func getEnAndCollapsedEn() (*extensionNode, *extensionNode) {
@@ -432,6 +439,73 @@ func TestExtensionNode_tryGetCollapsedNode(t *testing.T) {
 	assert.Equal(t, []byte("dog"), val)
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(2), maxDepth)
+}
+
+func TestExtensionNode_tryGetCollapsedLoadStatistics(t *testing.T) {
+	// Keep the global collector isolated from the parallel trie tests.
+	for _, tc := range []struct {
+		kind  int
+		name  string
+		depth uint32
+	}{
+		{stateAnalysis.KindMain, "main", 0},
+		{stateAnalysis.KindData, "data", 4},
+		{stateAnalysis.KindPeer, "peer", 20},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			db := testscommon.NewMemDbMock()
+			en, collapsedEn := getEnAndCollapsedEn()
+			require.NoError(t, en.setHash())
+			require.NoError(t, en.commitDirty(0, 5, db, db))
+			dir := t.TempDir()
+			require.NoError(t, stateAnalysis.Init(stateAnalysis.Config{Enabled: true}, 0, dir))
+			t.Cleanup(stateAnalysis.Close)
+			stateAnalysis.SetTrieKind(tc.kind)
+			stateAnalysis.BeginBlock(0, 0, 1, 1, 0, false)
+
+			// A mismatching key and a failed load must not count as loaded nodes.
+			_, _, _, err := collapsedEn.tryGetWithVersion([]byte("wrong"), tc.depth, db)
+			require.NoError(t, err)
+			key := append([]byte{'d', 2}, []byte("dog")...)
+			_, _, _, err = collapsedEn.tryGetWithVersion(key, tc.depth, testscommon.NewMemDbMock())
+			require.Error(t, err)
+			for attempt := 0; attempt < 2; attempt++ {
+				value, depth, _, getErr := collapsedEn.tryGetWithVersion(key, tc.depth, db)
+				require.NoError(t, getErr)
+				assert.Equal(t, []byte("dog"), value)
+				assert.Equal(t, tc.depth+2, depth)
+			}
+			stateAnalysis.EndBlock()
+			stateAnalysis.Close()
+
+			f, err := os.Open(filepath.Join(dir, "state-analysis", "shard_0", "blocks.csv.gz"))
+			require.NoError(t, err)
+			defer f.Close()
+			gz, err := gzip.NewReader(f)
+			require.NoError(t, err)
+			defer gz.Close()
+			rows, err := csv.NewReader(gz).ReadAll()
+			require.NoError(t, err)
+			require.Len(t, rows, 2)
+			values := make(map[string]string)
+			for i, name := range rows[0] {
+				values[name] = rows[1][i]
+			}
+			// The first Get loads the extension's branch child and the branch's leaf child.
+			// The second Get uses resident children and must not add any loads.
+			assert.Equal(t, "2", values["trie_node_load_in_get_"+tc.name])
+			for bucket := uint32(0); bucket < 16; bucket++ {
+				want := 0
+				for _, depth := range []uint32{tc.depth + 1, tc.depth + 2} {
+					if min(depth, 15) == bucket {
+						want++
+					}
+				}
+				name := "trie_node_load_get_depth_" + tc.name + "_b" + strconv.Itoa(int(bucket))
+				assert.Equal(t, strconv.Itoa(want), values[name], name)
+			}
+		})
+	}
 }
 
 func TestExtensionNode_tryGetEmptyNode(t *testing.T) {

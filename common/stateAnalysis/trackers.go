@@ -31,6 +31,17 @@ func newReuseTracker(maxKeys int) *reuseTracker {
 	}
 }
 
+func (rt *reuseTracker) reset() {
+	rt.mut.Lock()
+	defer rt.mut.Unlock()
+
+	clear(rt.last)
+	rt.resets = 0
+	rt.counts = [numReuseBuckets]int64{}
+	rt.bytes = [numReuseBuckets]int64{}
+	rt.touches = 0
+}
+
 func distanceBucket(d uint64) int {
 	if d == 0 {
 		return 0
@@ -99,6 +110,14 @@ func newHotSet(maxKeys int) *hotSet {
 	}
 }
 
+func (hs *hotSet) reset() {
+	hs.mut.Lock()
+	defer hs.mut.Unlock()
+
+	clear(hs.counts)
+	hs.dropped = 0
+}
+
 func (hs *hotSet) touch(key string) {
 	hs.mut.Lock()
 	defer hs.mut.Unlock()
@@ -158,6 +177,14 @@ func newBlockSet() *blockSet {
 		cur:  make(map[string]int32),
 		prev: make(map[string]int32),
 	}
+}
+
+func (bs *blockSet) reset() {
+	bs.mut.Lock()
+	defer bs.mut.Unlock()
+
+	clear(bs.cur)
+	clear(bs.prev)
 }
 
 func (bs *blockSet) touch(key []byte, isWrite bool) {

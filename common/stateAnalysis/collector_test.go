@@ -280,6 +280,158 @@ func TestCollector_ReinitAppendsToExistingFiles(t *testing.T) {
 	assert.Equal(t, "1", rows[2][column(rows[0], "nonce_first")])
 }
 
+func TestCollector_FirstBlockExcludesStartup(t *testing.T) {
+	dir := t.TempDir()
+	require.NoError(t, Init(Config{
+		Enabled: true, BlocksPerRow: 1, OutlierCommitTimeMs: 1, OutlierStorageReads: 4,
+	}, 0, dir))
+	t.Cleanup(func() { Close(); global = nil })
+
+	touch := func(address string) {
+		for a := 0; a < numAdapters; a++ {
+			TouchAccount(a, []byte(address), 10, true)
+			TouchDataTrie(a, []byte(address), true)
+		}
+		TouchDataTrieKey([]byte(address), []byte("key"), 10)
+	}
+	Add(CBlockCommitNs, 10_000_000)
+	Add(CStDbGet.Unit(UnitAccounts), 100)
+	Max(MStDbGetNs, 999)
+	touch("startup-only")
+	touch("shared")
+	touch("shared")
+	SetGauge(GHolderDataTries.At(AdapterUser), 23)
+
+	for block := uint64(1); block <= 2; block++ {
+		BeginBlock(0, 7, block, block, 3, false)
+		Add(CStDbGet.Unit(UnitAccounts), int64(block))
+		Max(MStDbGetNs, 10)
+		touch("shared")
+		EndBlock()
+	}
+	Close()
+
+	outDir := filepath.Join(dir, "state-analysis", "shard_0")
+	rows := readGzipCsv(t, filepath.Join(outDir, "blocks.csv.gz"))
+	require.Len(t, rows, 3)
+	header := rows[0]
+	for block, row := range rows[1:] {
+		assert.Equal(t, itoa(block+1), row[column(header, "st_db_get_accounts")])
+		assert.Equal(t, "0", row[column(header, "blk_commit_state_ns")])
+		assert.Equal(t, "3", row[column(header, "blk_txs")])
+		assert.Equal(t, "10", row[column(header, "st_db_get_ns_max")])
+		assert.Equal(t, "23", row[column(header, "adb_holder_datatries_user")])
+		for _, adapter := range adapterNames {
+			assert.Equal(t, "1", row[column(header, "adb_unique_accounts_block_"+adapter)])
+			assert.Equal(t, "1", row[column(header, "adb_unique_datatries_block_"+adapter)])
+			assert.Equal(t, itoa(block), row[column(header, "adb_unique_accounts_seen_prev_block_"+adapter)])
+			assert.Equal(t, itoa(block), row[column(header, "adb_unique_datatries_seen_prev_block_"+adapter)])
+			assert.Equal(t, "0", row[column(header, "adb_save_repeat_addr_"+adapter)])
+		}
+	}
+	assert.Len(t, readGzipCsv(t, filepath.Join(outDir, "outliers.csv.gz")), 1)
+
+	reuse := readGzipCsv(t, filepath.Join(outDir, "reuse.csv.gz"))
+	require.Len(t, reuse, 1+numReuse)
+	for _, row := range reuse[1:] {
+		assert.Equal(t, "2", row[column(reuse[0], "touches")])
+		assert.Equal(t, "1", row[column(reuse[0], "tracked_keys")])
+		assert.Equal(t, "1", row[column(reuse[0], "count_b"+itoa(reuseBucketNew))])
+		assert.Equal(t, "0", row[column(reuse[0], "count_b0")])
+		assert.Equal(t, "1", row[column(reuse[0], "count_b1")])
+	}
+	hot := readGzipCsv(t, filepath.Join(outDir, "hotset.csv.gz"))
+	require.Len(t, hot, 1+numReuse)
+	for _, row := range hot[1:] {
+		assert.Equal(t, "1", row[column(hot[0], "distinct_keys")])
+		assert.Equal(t, "2", row[column(hot[0], "count")])
+		assert.Equal(t, "2", row[column(hot[0], "total_touches")])
+	}
+}
+
+func TestCollector_CloseFinalizesOpenBlock(t *testing.T) {
+	for _, blocksPerRow := range []int{1, 100} {
+		for _, completed := range []int{0, 1} {
+			t.Run(itoa(blocksPerRow)+"_completed_"+itoa(completed), func(t *testing.T) {
+				dir := t.TempDir()
+				require.NoError(t, Init(Config{
+					Enabled: true, BlocksPerRow: blocksPerRow, OutlierCommitTimeMs: 1,
+				}, 0, dir))
+				t.Cleanup(func() { Close(); global = nil })
+				if completed != 0 {
+					BeginBlock(0, 7, 10, 100, 0, false)
+					EndBlock()
+				}
+				BeginBlock(0, 7, 11, 101, 3, false)
+				Add(CBlockCommitNs, 5_000_000)
+				Add(CStDbGet.Unit(UnitAccounts), 9)
+				Max(MStDbGetNs, 40)
+				TouchAccount(AdapterUser, []byte("address"), 10, true)
+				Close()
+				Close() // finalization must be idempotent
+				EndBlock()
+				assert.False(t, Enabled())
+				assert.False(t, global.blockOpen.Load())
+
+				outDir := filepath.Join(dir, "state-analysis", "shard_0")
+				rows := readGzipCsv(t, filepath.Join(outDir, "blocks.csv.gz"))
+				wantRows, wantBlocks := 2, completed+1
+				if blocksPerRow == 1 {
+					wantRows += completed
+					wantBlocks = 1
+				}
+				require.Len(t, rows, wantRows)
+				header, last := rows[0], rows[len(rows)-1]
+				assert.Equal(t, itoa(wantBlocks), last[column(header, "blocks")])
+				assert.Equal(t, itoa(wantBlocks), last[column(header, "blk_count")])
+				assert.Equal(t, "1", last[column(header, "blk_aborted")])
+				assert.Equal(t, "101", last[column(header, "nonce_last")])
+				assert.Equal(t, "3", last[column(header, "blk_txs")])
+				assert.Equal(t, "9", last[column(header, "st_db_get_accounts")])
+				assert.Equal(t, "40", last[column(header, "st_db_get_ns_max")])
+				assert.Equal(t, "1", last[column(header, "adb_unique_accounts_block_user")])
+				outliers := readGzipCsv(t, filepath.Join(outDir, "outliers.csv.gz"))
+				require.Len(t, outliers, 2)
+				assert.Equal(t, "101", outliers[1][column(header, "nonce_first")])
+				assert.Equal(t, "1", outliers[1][column(header, "blk_aborted")])
+				assert.Equal(t, "5000000", outliers[1][column(header, "blk_commit_state_ns")])
+			})
+		}
+	}
+}
+
+func TestCollector_FamilyTimerPeaks(t *testing.T) {
+	timers := []struct {
+		id   CounterID
+		name string
+	}{
+		{CAdbCommitNs.Adapter(AdapterUser), "adb_commit_ns_user"},
+		{CAdbCommitNs.Adapter(AdapterPeer), "adb_commit_ns_peer"},
+		{CTrieGetNs.Kind(KindData), "trie_get_ns_data"},
+		{CStDbGetNs.Unit(UnitAccounts), "st_db_get_ns_accounts"},
+	}
+	dir := t.TempDir()
+	require.NoError(t, Init(Config{Enabled: true, BlocksPerRow: 2}, 0, dir))
+	t.Cleanup(func() { Close(); global = nil })
+	for block, ns := range []int64{10, 30} {
+		BeginBlock(0, 0, uint64(block), uint64(block), 0, false)
+		for _, timer := range timers {
+			Add(timer.id, ns)
+		}
+		EndBlock()
+	}
+	Close()
+	rows := readGzipCsv(t, filepath.Join(dir, "state-analysis", "shard_0", "blocks.csv.gz"))
+	require.Len(t, rows, 2)
+	for _, timer := range timers {
+		maxCol := column(rows[0], "max_"+timer.name)
+		require.NotEqual(t, -1, maxCol, timer.name)
+		assert.Equal(t, "30", rows[1][maxCol], timer.name)
+		assert.Equal(t, "40", rows[1][column(rows[0], timer.name)], timer.name)
+	}
+	assert.Equal(t, -1, column(rows[0], "max_adb_load_account_user"))
+}
+
 func TestSnapshotStructure(t *testing.T) {
 	dir := t.TempDir()
 	require.Nil(t, Init(Config{Enabled: true, Label: "s"}, 0, dir))

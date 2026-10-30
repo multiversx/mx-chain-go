@@ -177,7 +177,7 @@ func Init(cfg Config, shardID uint32, workingDir string) error {
 	return nil
 }
 
-// Close flushes the open bucket and closes all files
+// Close finalizes any open block as aborted, flushes the open bucket and closes all files.
 func Close() {
 	if !enabled.Load() {
 		return
@@ -186,6 +186,10 @@ func Close() {
 	c.mut.Lock()
 	defer c.mut.Unlock()
 
+	if c.blockOpen.Load() {
+		Inc(CBlocksAborted)
+		c.endBlockUnprotected()
+	}
 	enabled.Store(false)
 	c.prof.stop()
 	c.flushBucketUnprotected()
@@ -423,6 +427,10 @@ func BeginBlock(shardID uint32, epoch uint32, round uint64, nonce uint64, numTxs
 		c.endBlockUnprotected()
 	}
 
+	if !c.epochKnown {
+		c.baselineUnprotected()
+	}
+
 	if c.epochKnown && epoch != c.epoch {
 		c.flushBucketUnprotected()
 		c.flushEpochUnprotected(c.epoch)
@@ -444,6 +452,24 @@ func BeginBlock(shardID uint32, epoch uint32, round uint64, nonce uint64, numTxs
 		Inc(CBlockStartOfEpoch)
 	}
 	c.prof.maybeStart(epoch, nonce)
+}
+
+// Exclude initialization and genesis work from the first imported block.
+func (c *collector) baselineUnprotected() {
+	for i := range c.counters {
+		c.prev[i] = c.counters[i].Load()
+	}
+	for i := range c.maxes {
+		c.maxes[i].Store(0)
+	}
+	for a := range c.accounts {
+		c.accounts[a].reset()
+		c.dataTries[a].reset()
+	}
+	for k := range c.reuse {
+		c.reuse[k].reset()
+		c.hot[k].reset()
+	}
 }
 
 // EndBlock marks the end of the commit of the current block
