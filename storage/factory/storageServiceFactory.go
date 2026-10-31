@@ -642,7 +642,19 @@ func (psf *StorageServiceFactory) createTriePersister(
 	storageConfig config.StorageConfig,
 ) (storage.Storer, error) {
 	shardID := core.GetShardIDString(psf.shardCoordinator.SelfId())
-	return psf.createStaticStorageUnit(storageConfig, shardID, emptyDBPathSuffix)
+	storageUnitDBConf := GetDBFromConfig(storageConfig.DB)
+	storageUnitDBConf.FilePath = psf.pathManager.PathForStatic(shardID, storageConfig.DB.FilePath)
+
+	persisterCreator, err := NewPersisterFactory(storageConfig.DB)
+	if err != nil {
+		return nil, err
+	}
+
+	return storageunit.NewTrieStorageUnitFromConf(
+		GetCacherFromConfig(storageConfig.Cache),
+		storageUnitDBConf,
+		persisterCreator,
+	)
 }
 
 func (psf *StorageServiceFactory) createTriePruningPersister(arg pruning.StorerArgs) (storage.Storer, error) {
