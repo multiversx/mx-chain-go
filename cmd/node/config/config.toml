@@ -959,7 +959,7 @@
     # writes, decode, goroutine parking and utilization, queue and channel waits, storage lock waits,
     # duplicated work, pruning backlog, processing activity alongside) and writes gzipped csv files under
     # <OutputDir>/shard_<id>/ (snapshots.csv.gz, timeline.csv.gz, tries.csv.gz). See common/snapshotAnalysis/README.md
-    Enabled = false
+    Enabled = true
     # Label tags every row (e.g. the git branch under test) so that runs can be compared
     Label = "master"
     # OutputDir is relative to the working directory unless absolute

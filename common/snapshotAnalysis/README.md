@@ -3,13 +3,14 @@
 Measurements of the state snapshot process: what a snapshot does, where its goroutines spend their time,
 how it interacts with block processing, storage and pruning, and which work is duplicated.
 
-The package holds one global collector. When `SnapshotAnalysisConfig.Enabled` is false (the default) every
-hook is an atomic load (or a nil check) and returns; no file is created. When enabled, the hooks in
+The package holds one global collector. When `SnapshotAnalysisConfig.Enabled` is false every
+hook is an atomic load (or a nil check) and returns; no file is created. On this branch the shipped
+`cmd/node/config/config.toml` enables it by default. When enabled, the hooks in
 `state`, `trie`, `storage/pruning`, `statusHandler` and `process/block` feed one `Snapshot` object per
 snapshot in progress (one per trie storage manager: `UserAccountsUnit`, `PeerAccountsUnit`) and write
 gzipped csv files under `<OutputDir>/shard_<id>/`.
 
-Enable it in `config.toml`:
+The section in `config.toml` (enabled by default on this branch; set `Enabled = false` to turn it off):
 
 ```toml
 [SnapshotAnalysisConfig]
