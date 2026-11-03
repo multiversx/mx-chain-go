@@ -7,12 +7,14 @@ import (
 	"math"
 	"runtime/debug"
 	"sync"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/snapshotAnalysis"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -100,6 +102,8 @@ type PruningStorer struct {
 	epochForPutOperation   uint32
 	pruningEnabled         bool
 	stateStatsHandler      common.StateStatisticsHandler
+	// analysis is set only for trie storers; every hook is a no-op on a nil meter
+	analysis *snapshotAnalysis.StorerMeter
 }
 
 // NewPruningStorer will return a new instance of PruningStorer without sharded directories' naming scheme
@@ -400,7 +404,15 @@ func (ps *PruningStorer) getPersisterToUse() *persisterData {
 }
 
 func (ps *PruningStorer) doPutInPersister(key, data []byte, persister storage.Persister, epoch uint32) error {
+	metered := ps.analysis.Active()
+	var start time.Time
+	if metered {
+		start = time.Now()
+	}
 	err := persister.Put(key, data)
+	if metered {
+		ps.analysis.ProcPut(time.Since(start), len(data))
+	}
 	if err != nil {
 		ps.cacher.Remove(key)
 		return err
@@ -482,11 +494,18 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 	v, ok := ps.cacher.Get(key)
 	if ok {
 		ps.stateStatsHandler.IncrCache()
+		ps.analysis.ProcCacheHit()
 		return v.([]byte), nil
 	}
 
 	// not found in cache
 	// search it in active persisters
+	if ps.analysis.Active() {
+		start := time.Now()
+		defer func() {
+			ps.analysis.ProcGet(time.Since(start))
+		}()
+	}
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 
@@ -723,7 +742,14 @@ func (ps *PruningStorer) RemoveFromCurrentEpoch(key []byte) error {
 	persisterToUse := ps.activePersisters[0]
 
 	ps.stateStatsHandler.IncrWritePersister(persisterToUse.epoch)
-	return persisterToUse.getPersister().Remove(key)
+	if !ps.analysis.Active() {
+		return persisterToUse.getPersister().Remove(key)
+	}
+
+	start := time.Now()
+	err := persisterToUse.getPersister().Remove(key)
+	ps.analysis.ProcRemove(time.Since(start))
+	return err
 }
 
 // Remove removes the data associated to the given key from both cache and persistence medium
@@ -859,7 +885,17 @@ func (ps *PruningStorer) saveHeaderForEpochStartPrepare(header data.HeaderHandle
 
 // changeEpoch will handle creating a new persister and removing of the older ones
 func (ps *PruningStorer) changeEpoch(header data.HeaderHandler) error {
-	ps.lock.Lock()
+	if ps.analysis.Active() {
+		lockStart := time.Now()
+		var lockWait time.Duration
+		defer func() {
+			ps.analysis.EpochChange(lockWait, time.Since(lockStart))
+		}()
+		ps.lock.Lock()
+		lockWait = time.Since(lockStart)
+	} else {
+		ps.lock.Lock()
+	}
 	defer ps.lock.Unlock()
 
 	epoch := header.GetEpoch()

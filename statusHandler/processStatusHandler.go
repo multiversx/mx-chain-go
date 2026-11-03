@@ -4,6 +4,8 @@ import (
 	"sync"
 
 	logger "github.com/multiversx/mx-chain-logger-go"
+
+	"github.com/multiversx/mx-chain-go/common/snapshotAnalysis"
 )
 
 var log = logger.GetOrCreate("statusHandler")
@@ -30,6 +32,7 @@ func (psh *processStatusHandler) SetBusy(reason string) {
 
 	psh.mutStatus.Lock()
 	psh.isIdle = false
+	psh.notifyIdleChangeUnprotected()
 	psh.mutStatus.Unlock()
 }
 
@@ -46,6 +49,7 @@ func (psh *processStatusHandler) TrySetBusy(reason string) bool {
 
 	log.Debug("processStatusHandler.TrySetBusy", "reason", reason)
 	psh.isIdle = false
+	psh.notifyIdleChangeUnprotected()
 	return true
 }
 
@@ -55,6 +59,7 @@ func (psh *processStatusHandler) SetIdle() {
 
 	psh.mutStatus.Lock()
 	psh.isIdle = true
+	psh.notifyIdleChangeUnprotected()
 	psh.mutStatus.Unlock()
 }
 
@@ -65,6 +70,7 @@ func (psh *processStatusHandler) BlockBackgroundJobs(reason string) {
 
 	psh.mutStatus.Lock()
 	psh.numBackgroundJobBlockers++
+	psh.notifyIdleChangeUnprotected()
 	psh.mutStatus.Unlock()
 }
 
@@ -75,6 +81,7 @@ func (psh *processStatusHandler) UnblockBackgroundJobs() {
 	if !isUnmatched {
 		psh.numBackgroundJobBlockers--
 	}
+	psh.notifyIdleChangeUnprotected()
 	psh.mutStatus.Unlock()
 
 	// logged outside the lock: a commit holds this mutex and the trie snapshot polls it every ms
@@ -90,6 +97,7 @@ func (psh *processStatusHandler) SuspendBackgroundJobBlocking(reason string) {
 
 	psh.mutStatus.Lock()
 	psh.numBlockingSuspensions++
+	psh.notifyIdleChangeUnprotected()
 	psh.mutStatus.Unlock()
 }
 
@@ -100,6 +108,7 @@ func (psh *processStatusHandler) ResumeBackgroundJobBlocking() {
 	if !isUnmatched {
 		psh.numBlockingSuspensions--
 	}
+	psh.notifyIdleChangeUnprotected()
 	psh.mutStatus.Unlock()
 
 	// logged outside the lock: a commit holds this mutex and the trie snapshot polls it every ms
@@ -113,8 +122,21 @@ func (psh *processStatusHandler) IsIdle() bool {
 	psh.mutStatus.RLock()
 	defer psh.mutStatus.RUnlock()
 
-	// idle only when every active blocker is covered by a suspension from its own waiting chain
+	return psh.isIdleUnprotected()
+}
+
+// isIdleUnprotected is idle only when every active blocker is covered by a suspension from its own waiting chain
+func (psh *processStatusHandler) isIdleUnprotected() bool {
 	return psh.isIdle && psh.numBackgroundJobBlockers <= psh.numBlockingSuspensions
+}
+
+// notifyIdleChangeUnprotected reports the effective idle state to the snapshot analysis, which measures how
+// long snapshots are parked behind block processing; must be called under mutex protection
+func (psh *processStatusHandler) notifyIdleChangeUnprotected() {
+	if !snapshotAnalysis.Enabled() {
+		return
+	}
+	snapshotAnalysis.NodeIdleChanged(psh.isIdleUnprotected())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

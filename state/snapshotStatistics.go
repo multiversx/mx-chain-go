@@ -6,11 +6,14 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/snapshotAnalysis"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 )
 
 type snapshotStatistics struct {
 	trieStatisticsCollector common.TriesStatisticsCollector
+	// analysis is the snapshot analysis measurement of this snapshot; nil when the analysis is disabled
+	analysis *snapshotAnalysis.Snapshot
 
 	startTime time.Time
 

@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/snapshotAnalysis"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
@@ -36,6 +37,7 @@ type trieStorageManager struct {
 	idleProvider          IdleNodeProvider
 	identifier            string
 	statsCollector        common.StateStatisticsHandler
+	analysisStorer        *snapshotAnalysis.StorerMeter
 }
 
 type snapshotsQueueEntry struct {
@@ -46,6 +48,12 @@ type snapshotsQueueEntry struct {
 	missingNodesChan chan []byte
 	stats            common.SnapshotStatisticsHandler
 	epoch            uint32
+	enqueuedAt       time.Time
+}
+
+// snapshotAnalysisStorer is implemented by the trie pruning storer to expose its storage meter
+type snapshotAnalysisStorer interface {
+	SnapshotAnalysisMeter() *snapshotAnalysis.StorerMeter
 }
 
 // NewTrieStorageManagerArgs holds the arguments needed for creating a new trieStorageManager
@@ -94,6 +102,10 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 		idleProvider:       args.IdleProvider,
 		identifier:         args.Identifier,
 		statsCollector:     args.StatsCollector,
+	}
+	if meteredStorer, ok := args.MainStorer.(snapshotAnalysisStorer); ok {
+		tsm.analysisStorer = meteredStorer.SnapshotAnalysisMeter()
+		snapshotAnalysis.LinkStorer(args.Identifier, tsm.analysisStorer)
 	}
 	numSnapshotGoroutines := snapshotsGoroutineNum(args.GeneralConfig.SnapshotsGoroutinesPerCore)
 	log.Debug("trieStorageManager: snapshot goroutines",
@@ -154,9 +166,13 @@ func (tsm *trieStorageManager) checkGoRoutinesThrottler(
 	goRoutinesThrottler core.Throttler,
 	snapshotRequest *snapshotsQueueEntry,
 ) error {
+	var waitStart time.Time
 	for {
 		if goRoutinesThrottler.CanProcess() {
 			break
+		}
+		if waitStart.IsZero() {
+			waitStart = time.Now()
 		}
 		snapshotRequest.stats.IncrementThrottlerWaits()
 		select {
@@ -166,6 +182,9 @@ func (tsm *trieStorageManager) checkGoRoutinesThrottler(
 			tsm.finishOperation(snapshotRequest, "did not start snapshot, goroutione is closing")
 			return ErrTimeIsOut
 		}
+	}
+	if !waitStart.IsZero() {
+		snapshotAnalysis.Current(tsm.identifier).ThrottlerWait(time.Since(waitStart))
 	}
 
 	return nil
@@ -300,8 +319,10 @@ func (tsm *trieStorageManager) TakeSnapshot(
 		return
 	}
 
+	analysis := snapshotAnalysis.Current(tsm.identifier)
 	if bytes.Equal(rootHash, common.EmptyTrieHash) {
 		log.Trace("should not snapshot an empty trie")
+		analysis.EmptyTrieSkipped()
 		common.CloseKeyValueHolderChan(iteratorChannels.LeavesChan)
 		stats.SnapshotFinished()
 		return
@@ -318,8 +339,18 @@ func (tsm *trieStorageManager) TakeSnapshot(
 		stats:            stats,
 		epoch:            epoch,
 	}
+	if analysis != nil {
+		if len(address) == 0 {
+			analysis.AttachStorer(tsm.analysisStorer)
+			analysis.SetQueueProbe(func() int { return len(tsm.snapshotReq) })
+		}
+		snapshotEntry.enqueuedAt = time.Now()
+	}
 	select {
 	case tsm.snapshotReq <- snapshotEntry:
+		if analysis != nil {
+			analysis.EnqueueWait(time.Since(snapshotEntry.enqueuedAt))
+		}
 	case <-tsm.closer.ChanClose():
 		tsm.ExitPruningBufferingMode()
 		common.CloseKeyValueHolderChan(iteratorChannels.LeavesChan)
@@ -335,9 +366,19 @@ func (tsm *trieStorageManager) finishOperation(snapshotEntry *snapshotsQueueEntr
 }
 
 func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, msh marshal.Marshalizer, hsh hashing.Hasher, ctx context.Context, goRoutinesThrottler core.Throttler) {
+	var meter *snapshotAnalysis.GoroutineMeter
+	analysis := snapshotAnalysis.Current(tsm.identifier)
+	if analysis != nil {
+		queueLatency := time.Duration(0)
+		if !snapshotEntry.enqueuedAt.IsZero() {
+			queueLatency = time.Since(snapshotEntry.enqueuedAt)
+		}
+		meter = analysis.GoroutineStarted(snapshotEntry.address, queueLatency)
+	}
 	defer func() {
 		tsm.finishOperation(snapshotEntry, "trie snapshot finished")
 		goRoutinesThrottler.EndProcessing()
+		meter.Finish(snapshotEntry.rootHash)
 	}()
 
 	log.Trace("trie snapshot started", "rootHash", snapshotEntry.rootHash)
@@ -352,6 +393,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 		return
 	}
 
+	stsm.meter = meter
 	newRoot, encodedRoot, foundInEpoch, err := newSnapshotNode(stsm, msh, hsh, snapshotEntry.rootHash, snapshotEntry.epoch, snapshotEntry.missingNodesChan)
 	if err != nil {
 		snapshotEntry.iteratorChannels.ErrChan.WriteInChanNonBlocking(err)
@@ -418,7 +460,7 @@ func newSnapshotNode(
 		return nil, nil, 0, err
 	}
 
-	n, err := decodeNode(encodedNode, msh, hsh)
+	n, err := decodeNodeMetered(db, encodedNode, msh, hsh)
 	if err != nil {
 		return nil, nil, 0, err
 	}
@@ -427,6 +469,7 @@ func newSnapshotNode(
 	if err != nil {
 		return nil, nil, 0, err
 	}
+	meterOf(db).Node(rootHash, nodeTypeOf(n), len(encodedNode), rootDepthLevel)
 
 	return n, encodedNode, foundInEpoch, nil
 }

@@ -14,6 +14,7 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/snapshotAnalysis"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 )
 
@@ -283,8 +284,19 @@ func prefixLen(a, b []byte) int {
 }
 
 func shouldStopIfContextDoneBlockingIfBusy(ctx context.Context, idleProvider IdleNodeProvider) bool {
+	return shouldStopIfContextDoneBlockingIfBusyMetered(ctx, idleProvider, nil)
+}
+
+// shouldStopIfContextDoneBlockingIfBusyMetered is shouldStopIfContextDoneBlockingIfBusy that also reports to the
+// snapshot analysis how long the goroutine stayed parked behind node operations
+func shouldStopIfContextDoneBlockingIfBusyMetered(ctx context.Context, idleProvider IdleNodeProvider, meter *snapshotAnalysis.GoroutineMeter) bool {
 	var parkedSince time.Time
 	hasReportedParking := false
+	defer func() {
+		if !parkedSince.IsZero() {
+			meter.ParkExit(time.Since(parkedSince))
+		}
+	}()
 	for {
 		select {
 		case <-ctx.Done():
@@ -298,6 +310,7 @@ func shouldStopIfContextDoneBlockingIfBusy(ctx context.Context, idleProvider Idl
 
 		if parkedSince.IsZero() {
 			parkedSince = time.Now()
+			meter.ParkEnter()
 		} else if !hasReportedParking && time.Since(parkedSince) >= maxUnreportedParkedTime {
 			hasReportedParking = true
 			log.Warn("snapshot goroutine parked behind node operations", "parked time", time.Since(parkedSince))
@@ -308,6 +321,46 @@ func shouldStopIfContextDoneBlockingIfBusy(ctx context.Context, idleProvider Idl
 			return true
 		case <-time.After(pollingIdleNode):
 		}
+	}
+}
+
+// snapshotMeterProvider is implemented by the snapshot storage manager that carries the analysis meter of
+// the traversal goroutine
+type snapshotMeterProvider interface {
+	analysisMeter() *snapshotAnalysis.GoroutineMeter
+}
+
+// meterOf returns the analysis meter of the traversal goroutine, nil when the analysis is disabled
+func meterOf(db snapshotDb) *snapshotAnalysis.GoroutineMeter {
+	provider, ok := db.(snapshotMeterProvider)
+	if !ok {
+		return nil
+	}
+	return provider.analysisMeter()
+}
+
+// decodeNodeMetered decodes a node and reports the decode time to the snapshot analysis
+func decodeNodeMetered(db snapshotDb, encNode []byte, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
+	meter := meterOf(db)
+	if meter == nil {
+		return decodeNode(encNode, marshalizer, hasher)
+	}
+
+	start := time.Now()
+	n, err := decodeNode(encNode, marshalizer, hasher)
+	meter.Decode(time.Since(start))
+	return n, err
+}
+
+// nodeTypeOf maps a node to its snapshot analysis node type
+func nodeTypeOf(n node) int {
+	switch n.(type) {
+	case *branchNode:
+		return snapshotAnalysis.NodeBranch
+	case *extensionNode:
+		return snapshotAnalysis.NodeExtension
+	default:
+		return snapshotAnalysis.NodeLeaf
 	}
 }
 
@@ -371,7 +424,7 @@ func commitSnapshot(
 		return nil
 	}
 
-	child, err := decodeNode(encChild, marshaller, hasher)
+	child, err := decodeNodeMetered(db, encChild, marshaller, hasher)
 	if err != nil {
 		return err
 	}
@@ -381,5 +434,6 @@ func commitSnapshot(
 		return err
 	}
 
+	meterOf(db).Node(hash, nodeTypeOf(child), len(encChild), depthLevel+1)
 	return db.PutInEpochWithoutCache(hash, encChild)
 }

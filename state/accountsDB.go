@@ -22,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/holders"
+	"github.com/multiversx/mx-chain-go/common/snapshotAnalysis"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
@@ -938,6 +939,7 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 
 func (adb *AccountsDB) commit() ([]byte, error) {
 	log.Trace("accountsDB.Commit started")
+	commitStart := time.Now()
 	adb.entries = make([]JournalEntry, 0)
 
 	oldHashes := make(common.ModifiedHashes)
@@ -982,6 +984,9 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 	log.Trace("accountsDB.Commit ended", "root hash", newRoot)
 
 	adb.printTrieStorageStatistics()
+	if snapshotAnalysis.Enabled() {
+		snapshotAnalysis.AccountsCommitted(adb.mainTrie.GetStorageManager().GetIdentifier(), time.Since(commitStart))
+	}
 
 	return newRoot, nil
 }

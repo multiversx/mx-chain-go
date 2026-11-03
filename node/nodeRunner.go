@@ -30,6 +30,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/common/goroutines"
 	"github.com/multiversx/mx-chain-go/common/ordering"
+	"github.com/multiversx/mx-chain-go/common/snapshotAnalysis"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -342,6 +343,15 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	nr.logInformation(managedCoreComponents, managedCryptoComponents, managedBootstrapComponents)
+
+	err = snapshotAnalysis.Init(
+		snapshotAnalysisConfig(configs.GeneralConfig.SnapshotAnalysisConfig),
+		managedBootstrapComponents.ShardCoordinator().SelfId(),
+		configs.FlagsConfig.WorkingDir,
+	)
+	if err != nil {
+		return true, err
+	}
 
 	log.Debug("creating data components")
 	managedDataComponents, err := nr.CreateManagedDataComponents(
@@ -1650,6 +1660,8 @@ func closeAllComponents(
 	log.Debug("stopping async execution...")
 	log.LogIfError(executionManagerCloser.Close())
 
+	snapshotAnalysis.Close()
+
 	log.Debug("closing health service...")
 	err := healthService.Close()
 	log.LogIfError(err)
@@ -1820,4 +1832,16 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 	}
 	// the entries only record that a transaction's signatures were already verified, which does not become stale
 	return interceptors.NewWhiteListDataVerifier(whiteListCacheVerified, 0)
+}
+
+func snapshotAnalysisConfig(cfg config.SnapshotAnalysisConfig) snapshotAnalysis.Config {
+	return snapshotAnalysis.Config{
+		Enabled:                 cfg.Enabled,
+		Label:                   cfg.Label,
+		OutputDir:               cfg.OutputDir,
+		SampleIntervalMs:        cfg.SampleIntervalMs,
+		AfterSnapshotSeconds:    cfg.AfterSnapshotSeconds,
+		NodeHashSampleShift:     cfg.NodeHashSampleShift,
+		MaxTrackedDataTrieRoots: cfg.MaxTrackedDataTrieRoots,
+	}
 }

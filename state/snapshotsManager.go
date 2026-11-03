@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
@@ -11,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/snapshotAnalysis"
 	"github.com/multiversx/mx-chain-go/storage/storageEpochChange"
 	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 )
@@ -211,6 +213,12 @@ func (sm *snapshotsManager) prepareSnapshot(rootHash []byte, epoch uint32, trieS
 	sm.lastSnapshot.epoch = epoch
 	trieStorageManager.EnterPruningBufferingMode()
 	stats := newSnapshotStatistics(1, 1)
+	stats.analysis = snapshotAnalysis.SnapshotRequested(
+		trieStorageManager.GetIdentifier(),
+		epoch,
+		rootHash,
+		sm.processingMode == common.ImportDb,
+	)
 
 	sm.stateStatsHandler.ResetSnapshot()
 
@@ -232,22 +240,31 @@ func (sm *snapshotsManager) snapshotState(
 		})
 		if err != nil {
 			log.Error("error waiting for storage epoch change", "err", err)
+			stats.analysis.Skipped("storage epoch change: " + err.Error())
 			sm.earlySnapshotCompletion(stats, trieStorageManager)
 			return
 		}
 	}
+	stats.analysis.EpochReady()
 
 	if !trieStorageManager.ShouldTakeSnapshot() {
 		log.Debug("skipping snapshot", "rootHash", rootHash, "epoch", epoch)
 
+		stats.analysis.Skipped("trie already synced")
 		sm.earlySnapshotCompletion(stats, trieStorageManager)
 		return
 	}
+	stats.analysis.Checked()
 
 	missingNodesChannel := make(chan []byte, missingNodesChannelSize)
 	iteratorChannels := sm.channelsProvider.GetIteratorChannels()
+	stats.analysis.SetChannelProbes(
+		func() int { return len(iteratorChannels.LeavesChan) },
+		func() int { return len(missingNodesChannel) },
+	)
 
 	sm.stateMetrics.UpdateMetricsOnSnapshotStart()
+	stats.analysis.Started()
 
 	go func() {
 		stats.NewSnapshotStarted()
@@ -257,6 +274,7 @@ func (sm *snapshotsManager) snapshotState(
 		// TODO if the leaf was retrieved from epoch db n-2, the data trie should start retrieving from
 		// epoch n-2 and checking only older dbs
 		sm.snapshotUserAccountDataTrie(rootHash, iteratorChannels, missingNodesChannel, stats, epoch, trieStorageManager)
+		stats.analysis.LeavesConsumed()
 
 		stats.SnapshotFinished()
 	}()
@@ -279,7 +297,7 @@ func (sm *snapshotsManager) snapshotUserAccountDataTrie(
 	mainTrieRootHash []byte,
 	iteratorChannels *common.TrieIteratorChannels,
 	missingNodesChannel chan []byte,
-	stats common.SnapshotStatisticsHandler,
+	stats *snapshotStatistics,
 	epoch uint32,
 	trieStorageManager common.StorageManager,
 ) {
@@ -287,30 +305,72 @@ func (sm *snapshotsManager) snapshotUserAccountDataTrie(
 		return
 	}
 
+	analysis := stats.analysis
+	metered := analysis != nil
+	var waitStart time.Time
+	if metered {
+		waitStart = time.Now()
+	}
 	for leaf := range iteratorChannels.LeavesChan {
+		var recvWait time.Duration
+		var unmarshalStart time.Time
+		if metered {
+			unmarshalStart = time.Now()
+			recvWait = unmarshalStart.Sub(waitStart)
+		}
 		userAccount, skipAccount, err := getUserAccountFromBytes(sm.accountFactory, sm.marshaller, leaf.Key(), leaf.Value())
 		if err != nil {
 			iteratorChannels.ErrChan.WriteInChanNonBlocking(err)
 			return
 		}
-		if skipAccount {
-			continue
+		if metered {
+			analysis.Leaf(recvWait, time.Since(unmarshalStart), leafKind(userAccount, skipAccount))
 		}
-
-		if len(userAccount.GetRootHash()) == 0 {
-			continue
+		sm.snapshotDataTrieIfNeeded(userAccount, skipAccount, mainTrieRootHash, iteratorChannels, missingNodesChannel, stats, epoch, trieStorageManager)
+		if metered {
+			waitStart = time.Now()
 		}
-
-		stats.NewSnapshotStarted()
-
-		iteratorChannelsForDataTries := &common.TrieIteratorChannels{
-			LeavesChan: nil,
-			ErrChan:    iteratorChannels.ErrChan,
-		}
-
-		address := sm.addressConverter.SilentEncode(userAccount.AddressBytes(), log)
-		trieStorageManager.TakeSnapshot(address, userAccount.GetRootHash(), mainTrieRootHash, iteratorChannelsForDataTries, missingNodesChannel, stats, epoch)
 	}
+}
+
+func (sm *snapshotsManager) snapshotDataTrieIfNeeded(
+	userAccount UserAccountHandler,
+	skipAccount bool,
+	mainTrieRootHash []byte,
+	iteratorChannels *common.TrieIteratorChannels,
+	missingNodesChannel chan []byte,
+	stats *snapshotStatistics,
+	epoch uint32,
+	trieStorageManager common.StorageManager,
+) {
+	if skipAccount {
+		return
+	}
+
+	if len(userAccount.GetRootHash()) == 0 {
+		return
+	}
+
+	stats.NewSnapshotStarted()
+
+	iteratorChannelsForDataTries := &common.TrieIteratorChannels{
+		LeavesChan: nil,
+		ErrChan:    iteratorChannels.ErrChan,
+	}
+
+	address := sm.addressConverter.SilentEncode(userAccount.AddressBytes(), log)
+	trieStorageManager.TakeSnapshot(address, userAccount.GetRootHash(), mainTrieRootHash, iteratorChannelsForDataTries, missingNodesChannel, stats, epoch)
+}
+
+// leafKind classifies a main trie leaf for the snapshot analysis
+func leafKind(userAccount UserAccountHandler, skipAccount bool) int {
+	if skipAccount || check.IfNil(userAccount) {
+		return snapshotAnalysis.LeafCode
+	}
+	if len(userAccount.GetRootHash()) != 0 {
+		return snapshotAnalysis.LeafAccountWithDataTrie
+	}
+	return snapshotAnalysis.LeafAccount
 }
 
 func (sm *snapshotsManager) syncMissingNodes(missingNodesChan chan []byte, errChan common.BufferedErrChan, stats *snapshotStatistics, syncer AccountsDBSyncer) {
@@ -326,7 +386,10 @@ func (sm *snapshotsManager) syncMissingNodes(missingNodesChan chan []byte, errCh
 	}
 
 	for missingNode := range missingNodesChan {
+		stats.analysis.MissingNode()
+		syncStart := time.Now()
 		err := syncer.SyncAccounts(missingNode, storageMarker.NewDisabledStorageMarker())
+		stats.analysis.MissingSynced(time.Since(syncStart))
 		if err != nil {
 			log.Error("could not sync missing node",
 				"missing node hash", missingNode,
@@ -347,14 +410,16 @@ func (sm *snapshotsManager) processSnapshotCompletion(
 ) {
 	sm.finishSnapshotOperation(rootHash, stats, missingNodesCh, sm.stateMetrics.GetSnapshotMessage(), trieStorageManager)
 
+	var errorDuringSnapshot error
 	defer func() {
 		sm.isSnapshotInProgress.Reset()
 		sm.stateMetrics.UpdateMetricsOnSnapshotCompletion(stats)
 		sm.printStorageStatistics()
 		errChan.Close()
+		stats.analysis.Completed(errorDuringSnapshot != nil)
 	}()
 
-	errorDuringSnapshot := errChan.ReadFromChanNonBlocking()
+	errorDuringSnapshot = errChan.ReadFromChanNonBlocking()
 	shouldNotMarkActive := trieStorageManager.IsClosed() || errorDuringSnapshot != nil
 	if shouldNotMarkActive {
 		log.Debug("will not set activeDB in epoch as the snapshot might be incomplete",
@@ -387,15 +452,17 @@ func (sm *snapshotsManager) finishSnapshotOperation(
 	trieStorageManager common.StorageManager,
 ) {
 	stats.WaitForSnapshotsToFinish()
+	stats.analysis.TriesDone()
 	close(missingNodesCh)
 	stats.WaitForSyncToFinish()
+	stats.analysis.SyncDone()
 
 	trieStorageManager.ExitPruningBufferingMode()
 
 	stats.PrintStats(message, rootHash)
 }
 
-func (sm *snapshotsManager) waitForCompletionIfAppropriate(stats common.SnapshotStatisticsHandler) {
+func (sm *snapshotsManager) waitForCompletionIfAppropriate(stats *snapshotStatistics) {
 	shouldSerializeSnapshots := sm.shouldSerializeSnapshots || sm.processingMode == common.ImportDb
 	if !shouldSerializeSnapshots {
 		return
@@ -408,7 +475,9 @@ func (sm *snapshotsManager) waitForCompletionIfAppropriate(stats common.Snapshot
 	sm.processStatusHandler.SuspendBackgroundJobBlocking("snapshotsManager.waitForCompletionIfAppropriate")
 	defer sm.processStatusHandler.ResumeBackgroundJobBlocking()
 
+	waitStart := time.Now()
 	stats.WaitForSnapshotsToFinish()
+	stats.analysis.StallReleased(time.Since(waitStart))
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

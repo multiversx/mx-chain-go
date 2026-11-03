@@ -29,6 +29,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/common/logging"
+	"github.com/multiversx/mx-chain-go/common/snapshotAnalysis"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -2883,6 +2884,12 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock data.MetaHead
 	if isStorerDisabled {
 		return nil
 	}
+
+	// this walk reads the whole trie through the processing path while the epoch start snapshot traverses it too
+	walkStart := time.Now()
+	defer func() {
+		snapshotAnalysis.EpochRootHashWalk(time.Since(walkStart))
+	}()
 
 	userAccountsDb := bp.accountsDB[state.UserAccountsState]
 	if userAccountsDb == nil {

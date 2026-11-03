@@ -4,12 +4,15 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"sync"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/snapshotAnalysis"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/pruningBuffer"
 )
@@ -26,6 +29,7 @@ var log = logger.GetOrCreate("state/storagePruningManager")
 type storagePruningManager struct {
 	dbEvictionWaitingList state.DBRemoveCacher
 	pruningBuffer         state.AtomicBuffer
+	probeOnce             sync.Once
 }
 
 // NewStoragePruningManager creates a new instance of storagePruningManager
@@ -113,6 +117,7 @@ func (spm *storagePruningManager) PruneTrie(
 ) {
 	rootHash = append(rootHash, byte(identifier))
 
+	spm.registerAnalysisProbe(tsm)
 	if tsm.IsPruningBlocked() {
 		if identifier == state.NewRoot {
 			spm.cancelPrune(rootHash)
@@ -121,22 +126,53 @@ func (spm *storagePruningManager) PruneTrie(
 
 		rootHash = append(rootHash, byte(prune))
 		spm.pruningBuffer.Add(rootHash)
+		snapshotAnalysis.PruneBuffered(tsm.GetIdentifier())
 
 		return
 	}
 
 	oldHashes := spm.pruningBuffer.RemoveAll()
-	spm.resolveBufferedHashes(oldHashes, tsm, handler)
+	spm.resolveBufferedHashesMetered(oldHashes, tsm, handler)
 	spm.prune(rootHash, tsm, handler)
+}
+
+// resolveBufferedHashesMetered resolves the operations buffered while pruning was blocked and reports the
+// size and the duration of the backlog to the snapshot analysis
+func (spm *storagePruningManager) resolveBufferedHashesMetered(oldHashes [][]byte, tsm common.StorageManager, handler state.PruningHandler) {
+	if len(oldHashes) == 0 {
+		return
+	}
+	if !snapshotAnalysis.Enabled() {
+		spm.resolveBufferedHashes(oldHashes, tsm, handler)
+		return
+	}
+
+	start := time.Now()
+	spm.resolveBufferedHashes(oldHashes, tsm, handler)
+	snapshotAnalysis.PruneResolved(tsm.GetIdentifier(), len(oldHashes), time.Since(start))
+}
+
+// registerAnalysisProbe lets the snapshot analysis sample the pruning backlog of this manager
+func (spm *storagePruningManager) registerAnalysisProbe(tsm common.StorageManager) {
+	if !snapshotAnalysis.Enabled() {
+		return
+	}
+	spm.probeOnce.Do(func() {
+		snapshotAnalysis.RegisterPruneProbe(tsm.GetIdentifier(), func() (int, int) {
+			return spm.pruningBuffer.Len(), spm.dbEvictionWaitingList.CacheLen()
+		})
+	})
 }
 
 // CancelPrune clears the evictionWaitingList at the given hash
 func (spm *storagePruningManager) CancelPrune(rootHash []byte, identifier state.TriePruningIdentifier, tsm common.StorageManager) {
 	rootHash = append(rootHash, byte(identifier))
 
+	spm.registerAnalysisProbe(tsm)
 	if tsm.IsPruningBlocked() || spm.pruningBuffer.Len() != 0 {
 		rootHash = append(rootHash, byte(cancelPrune))
 		spm.pruningBuffer.Add(rootHash)
+		snapshotAnalysis.PruneBuffered(tsm.GetIdentifier())
 
 		return
 	}
@@ -209,9 +245,11 @@ func (spm *storagePruningManager) removeFromDb(
 
 	sw := core.NewStopWatch()
 	sw.Start("removeFromDb")
+	numRemoved := 0
 	defer func() {
 		sw.Stop("removeFromDb")
 		log.Debug("trieStorageManager.removeFromDb", sw.GetMeasurements()...)
+		snapshotAnalysis.PruneRemoved(tsm.GetIdentifier(), numRemoved, sw.GetMeasurement("removeFromDb"))
 	}()
 
 	for key := range hashes {
@@ -229,6 +267,7 @@ func (spm *storagePruningManager) removeFromDb(
 		if errRemove != nil {
 			return errRemove
 		}
+		numRemoved++
 	}
 
 	return nil

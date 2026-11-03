@@ -5,9 +5,11 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/snapshotAnalysis"
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
@@ -20,6 +22,12 @@ const (
 
 type triePruningStorer struct {
 	*PruningStorer
+}
+
+// SnapshotAnalysisMeter returns the storage meter of this storer, used by the trie storage manager to link
+// the snapshot measurements with the storage measurements
+func (ps *triePruningStorer) SnapshotAnalysisMeter() *snapshotAnalysis.StorerMeter {
+	return ps.analysis
 }
 
 // NewTriePruningStorer will return a new instance of NewTriePruningStorer
@@ -42,8 +50,21 @@ func NewTriePruningStorer(args StorerArgs) (*triePruningStorer, error) {
 	tps := &triePruningStorer{ps}
 	ps.lastEpochNeededHandler = tps.lastEpochNeeded
 	tps.registerHandler(args.Notifier)
+	tps.initAnalysisMeter()
 
 	return tps, nil
+}
+
+// initAnalysisMeter creates the snapshot analysis meter of this trie storer (only trie storers are metered)
+func (ps *triePruningStorer) initAnalysisMeter() {
+	ps.analysis = snapshotAnalysis.NewStorerMeter(ps.identifier)
+	ps.analysis.SetCacheProbe(func() (int, int64, int) {
+		ps.lock.RLock()
+		numPersisters := len(ps.activePersisters)
+		ps.lock.RUnlock()
+
+		return ps.cacher.Len(), int64(ps.cacher.SizeInBytesContained()), numPersisters
+	})
 }
 
 func (ps *triePruningStorer) lastEpochNeeded() uint32 {
@@ -74,16 +95,29 @@ func (ps *triePruningStorer) PutInEpochWithoutCache(key []byte, data []byte, epo
 	pd, exists := ps.persistersMapByEpoch[epoch]
 	ps.lock.RUnlock()
 	if !exists {
+		ps.analysis.SnapPutNoEpoch()
 		return fmt.Errorf("put in epoch: persister for epoch %d not found", epoch)
 	}
 
+	metered := ps.analysis.Active()
+	var lockStart time.Time
+	if metered {
+		lockStart = time.Now()
+	}
 	persister, closePersister, err := ps.createAndInitPersisterIfClosedProtected(pd)
 	if err != nil {
 		return err
 	}
 	defer closePersister()
 
+	var putStart time.Time
+	if metered {
+		putStart = time.Now()
+	}
 	err = persister.Put(key, data)
+	if metered {
+		ps.analysis.SnapPut(putStart.Sub(lockStart), time.Since(putStart), len(data))
+	}
 	if err != nil {
 		return err
 	}
@@ -96,18 +130,40 @@ func (ps *triePruningStorer) GetWithoutAddingToCache(key []byte, maxEpochToSearc
 	v, ok := ps.cacher.Get(key)
 	if ok && !bytes.Equal([]byte(common.ActiveDBKey), key) {
 		ps.stateStatsHandler.IncrSnapshotCache()
+		ps.analysis.SnapCacheHit()
 		return v.([]byte), core.OptionalUint32{}, nil
 	}
 
+	metered := ps.analysis.Active()
+	var lockStart time.Time
+	if metered {
+		lockStart = time.Now()
+	}
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
+	var rlockWait, probeTime time.Duration
+	numProbes := 0
+	if metered {
+		rlockWait = time.Since(lockStart)
+		defer func() {
+			ps.analysis.SnapGet(rlockWait, numProbes, probeTime)
+		}()
+	}
 
 	numClosedDbs := 0
 	for idx := 0; idx < len(ps.activePersisters); idx++ {
 		if ps.activePersisters[idx].epoch > maxEpochToSearchFrom {
 			continue
 		}
+		var probeStart time.Time
+		if metered {
+			probeStart = time.Now()
+		}
 		val, err := ps.activePersisters[idx].getPersister().Get(key)
+		if metered {
+			probeTime += time.Since(probeStart)
+			numProbes++
+		}
 		if err != nil {
 			if errors.Is(err, storage.ErrDBIsClosed) {
 				numClosedDbs++

@@ -3,16 +3,20 @@ package trie
 import (
 	"bytes"
 	"fmt"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/snapshotAnalysis"
 )
 
 type snapshotTrieStorageManager struct {
 	tsm                *trieStorageManager
 	mainSnapshotStorer snapshotPruningStorer
 	epoch              uint32
+	// meter measures the traversal goroutine that owns this instance; nil when the analysis is disabled
+	meter *snapshotAnalysis.GoroutineMeter
 }
 
 func newSnapshotTrieStorageManager(tsm *trieStorageManager, epoch uint32) (*snapshotTrieStorageManager, error) {
@@ -32,12 +36,22 @@ func newSnapshotTrieStorageManager(tsm *trieStorageManager, epoch uint32) (*snap
 func (stsm *snapshotTrieStorageManager) GetWithoutAddingToCache(key []byte, maxEpochToSearchFrom uint32) ([]byte, uint32, error) {
 	// test point get during snapshot
 
+	var start time.Time
+	if stsm.meter != nil {
+		start = time.Now()
+	}
 	val, epoch, err := stsm.mainSnapshotStorer.GetWithoutAddingToCache(key, maxEpochToSearchFrom)
 	if core.IsClosingError(err) {
 		return nil, 0, err
 	}
 	if len(val) == 0 {
+		if stsm.meter != nil {
+			stsm.meter.GetMiss(time.Since(start))
+		}
 		return nil, 0, ErrKeyNotFound
+	}
+	if stsm.meter != nil {
+		stsm.meter.Get(time.Since(start), len(val), stsm.foundEpochDistance(epoch))
 	}
 
 	stsm.putInPreviousStorerIfAbsent(key, val, epoch)
@@ -47,6 +61,18 @@ func (stsm *snapshotTrieStorageManager) GetWithoutAddingToCache(key []byte, maxE
 	}
 
 	return val, foundInEpoch, nil
+}
+
+// foundEpochDistance returns how many epochs before the snapshot epoch the node was found in, or
+// snapshotAnalysis.DistCache for a cache hit (the storer does not know the epoch of a cached value)
+func (stsm *snapshotTrieStorageManager) foundEpochDistance(epoch core.OptionalUint32) int {
+	if !epoch.HasValue {
+		return snapshotAnalysis.DistCache
+	}
+	if epoch.Value >= stsm.epoch {
+		return 0
+	}
+	return int(stsm.epoch - epoch.Value)
 }
 
 func (stsm *snapshotTrieStorageManager) putInPreviousStorerIfAbsent(key []byte, val []byte, epoch core.OptionalUint32) {
@@ -67,7 +93,14 @@ func (stsm *snapshotTrieStorageManager) putInPreviousStorerIfAbsent(key []byte, 
 	}
 
 	log.Trace("put missing hash in snapshot storer", "hash", key, "epoch", stsm.epoch-1)
+	var start time.Time
+	if stsm.meter != nil {
+		start = time.Now()
+	}
 	err := stsm.mainSnapshotStorer.PutInEpoch(key, val, stsm.epoch-1)
+	if stsm.meter != nil {
+		stsm.meter.PrevPut(time.Since(start), len(val))
+	}
 	if err != nil {
 		log.Warn("can not put in epoch",
 			"error", err,
@@ -79,7 +112,19 @@ func (stsm *snapshotTrieStorageManager) putInPreviousStorerIfAbsent(key []byte, 
 // PutInEpochWithoutCache adds the given (key, data) in the current epoch without adding it to cache
 func (stsm *snapshotTrieStorageManager) PutInEpochWithoutCache(key, data []byte) error {
 	log.Trace("put hash in snapshot storer", "hash", key, "epoch", stsm.epoch)
-	return stsm.mainSnapshotStorer.PutInEpochWithoutCache(key, data, stsm.epoch)
+	if stsm.meter == nil {
+		return stsm.mainSnapshotStorer.PutInEpochWithoutCache(key, data, stsm.epoch)
+	}
+
+	start := time.Now()
+	err := stsm.mainSnapshotStorer.PutInEpochWithoutCache(key, data, stsm.epoch)
+	stsm.meter.Put(time.Since(start), len(data))
+	return err
+}
+
+// analysisMeter returns the goroutine meter of the traversal that owns this storage manager
+func (stsm *snapshotTrieStorageManager) analysisMeter() *snapshotAnalysis.GoroutineMeter {
+	return stsm.meter
 }
 
 // GetFromLastEpoch searches only the last epoch storer for the given key

@@ -8,6 +8,7 @@ import (
 	"io"
 	"math"
 	"sync"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -15,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/snapshotAnalysis"
 	"github.com/multiversx/mx-chain-go/trie/leavesRetriever/trieNodeData"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
@@ -136,7 +138,7 @@ func (ln *leafNode) commitDirty(_ byte, _ uint, _ common.TrieStorageInteractor, 
 }
 
 func (ln *leafNode) commitSnapshot(
-	_ snapshotDb,
+	db snapshotDb,
 	_ uint32,
 	leavesChan chan core.KeyValueHolder,
 	_ chan []byte,
@@ -146,11 +148,12 @@ func (ln *leafNode) commitSnapshot(
 	nodeBytes []byte,
 	depthLevel int,
 ) error {
-	if shouldStopIfContextDoneBlockingIfBusy(ctx, idleProvider) {
+	meter := meterOf(db)
+	if shouldStopIfContextDoneBlockingIfBusyMetered(ctx, idleProvider, meter) {
 		return core.ErrContextClosing
 	}
 
-	err := writeNodeOnChannel(ln, leavesChan)
+	err := writeNodeOnChannelMetered(ln, leavesChan, meter)
 	if err != nil {
 		return err
 	}
@@ -166,6 +169,12 @@ func (ln *leafNode) commitSnapshot(
 }
 
 func writeNodeOnChannel(ln *leafNode, leavesChan chan core.KeyValueHolder) error {
+	return writeNodeOnChannelMetered(ln, leavesChan, nil)
+}
+
+// writeNodeOnChannelMetered writes the leaf on the leaves channel and reports how long the send blocked,
+// which is time the main trie traversal waits for the leaves consumer
+func writeNodeOnChannelMetered(ln *leafNode, leavesChan chan core.KeyValueHolder, meter *snapshotAnalysis.GoroutineMeter) error {
 	if leavesChan == nil {
 		return nil
 	}
@@ -176,7 +185,18 @@ func writeNodeOnChannel(ln *leafNode, leavesChan chan core.KeyValueHolder) error
 	}
 
 	trieLeaf := keyValStorage.NewKeyValStorage(leafHash, ln.Value)
-	leavesChan <- trieLeaf
+	if meter == nil {
+		leavesChan <- trieLeaf
+		return nil
+	}
+
+	select {
+	case leavesChan <- trieLeaf:
+	default:
+		start := time.Now()
+		leavesChan <- trieLeaf
+		meter.LeafSent(time.Since(start))
+	}
 
 	return nil
 }

@@ -954,6 +954,27 @@
     MaxPeerTrieLevelInMemory = 5
     StateStatisticsEnabled = false
 
+[SnapshotAnalysisConfig]
+    # Enabled turns on the state snapshot analysis collector: it measures every state snapshot (trie reads,
+    # writes, decode, goroutine parking and utilization, queue and channel waits, storage lock waits,
+    # duplicated work, pruning backlog, processing activity alongside) and writes gzipped csv files under
+    # <OutputDir>/shard_<id>/ (snapshots.csv.gz, timeline.csv.gz, tries.csv.gz). See common/snapshotAnalysis/README.md
+    Enabled = false
+    # Label tags every row (e.g. the git branch under test) so that runs can be compared
+    Label = "master"
+    # OutputDir is relative to the working directory unless absolute
+    OutputDir = "snapshot-analysis"
+    # SampleIntervalMs is the period of the timeline rows written while a snapshot runs
+    SampleIntervalMs = 1000
+    # AfterSnapshotSeconds keeps sampling after the snapshot completed, to capture the pruning backlog
+    # resolution and the cache behaviour that follow it
+    AfterSnapshotSeconds = 120
+    # NodeHashSampleShift: 1 of 2^shift node hashes is tracked to estimate how many nodes are written more
+    # than once per snapshot (memory ~ nodes / 2^shift * 40 bytes)
+    NodeHashSampleShift = 8
+    # MaxTrackedDataTrieRoots bounds the set of data trie root hashes used to count identical data tries
+    MaxTrackedDataTrieRoots = 4000000
+
 [TrieLeavesRetrieverConfig]
     Enabled = false
     MaxSizeInBytes = 10485760 #10MB

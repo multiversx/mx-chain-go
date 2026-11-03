@@ -212,6 +212,7 @@ type Config struct {
 	EvictionWaitingList          EvictionWaitingListConfig
 	StateTriesConfig             StateTriesConfig
 	StateAccessesCollectorConfig StateAccessesCollectorConfig
+	SnapshotAnalysisConfig       SnapshotAnalysisConfig
 	TrieStorageManagerConfig     TrieStorageManagerConfig
 	TrieLeavesRetrieverConfig    TrieLeavesRetrieverConfig
 	TrieOperations               TrieOperationsConfig
@@ -512,6 +513,17 @@ type StateTriesConfig struct {
 	MaxStateTrieLevelInMemory   uint
 	MaxPeerTrieLevelInMemory    uint
 	StateStatisticsEnabled      bool
+}
+
+// SnapshotAnalysisConfig configures the state snapshot analysis collector (measurements of the snapshot process)
+type SnapshotAnalysisConfig struct {
+	Enabled                 bool
+	Label                   string
+	OutputDir               string
+	SampleIntervalMs        int
+	AfterSnapshotSeconds    int
+	NodeHashSampleShift     int
+	MaxTrackedDataTrieRoots int
 }
 
 // StateAccessesCollectorConfig will hold information about state accesses collector

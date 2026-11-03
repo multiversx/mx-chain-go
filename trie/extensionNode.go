@@ -221,7 +221,7 @@ func (en *extensionNode) commitSnapshot(
 	nodeBytes []byte,
 	depthLevel int,
 ) error {
-	if shouldStopIfContextDoneBlockingIfBusy(ctx, idleProvider) {
+	if shouldStopIfContextDoneBlockingIfBusyMetered(ctx, idleProvider, meterOf(db)) {
 		return core.ErrContextClosing
 	}
 
