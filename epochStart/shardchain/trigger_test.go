@@ -4406,7 +4406,9 @@ func TestTrigger_ImportModeDisablesOnlyEpochStartWatchdog(t *testing.T) {
 			}
 			tr, err := NewEpochStartTrigger(args)
 			require.NoError(t, err)
-			defer tr.Close()
+			defer func() {
+				_ = tr.Close()
+			}()
 			if importMode {
 				select {
 				case epoch := <-requested:
@@ -4445,7 +4447,9 @@ func TestTrigger_ImportModeStillProcessesRequestedEpochStart(t *testing.T) {
 	}
 	tr, err := NewEpochStartTrigger(args)
 	require.NoError(t, err)
-	defer tr.Close()
+	defer func() {
+		_ = tr.Close()
+	}()
 	tr.OnBootstrapCompleted()
 	parent := &block.MetaBlockV3{Epoch: 2243, Nonce: 9, Round: 19}
 	start := &block.MetaBlockV3{Epoch: 2244, Nonce: 10, Round: 20, PrevHash: parentHash,

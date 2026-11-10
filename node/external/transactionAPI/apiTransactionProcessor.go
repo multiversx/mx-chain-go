@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/batch"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	rewardTxData "github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
@@ -30,6 +31,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/txstatus"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/txcache"
 )
 
@@ -759,7 +761,7 @@ func (atp *apiTransactionProcessor) computeTimestampsForRound(round uint64) (int
 	return timestampSec, timestampMs
 }
 
-func (atp *apiTransactionProcessor) checkExecutionResultAndTx(miniblockMetadata *dblookupext.MiniblockMetadata) (bool, error) {
+func (atp *apiTransactionProcessor) checkExecutionResultAndTx(txHash []byte, miniblockMetadata *dblookupext.MiniblockMetadata) (bool, error) {
 	isSupernovaEnabled := atp.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, miniblockMetadata.Round)
 	if !isSupernovaEnabled {
 		return true, nil
@@ -780,32 +782,83 @@ func (atp *apiTransactionProcessor) checkExecutionResultAndTx(miniblockMetadata 
 		// we cannot have unexecutable txs on metachain
 		return true, nil
 	}
-	mbHeaders, err := atp.getMbHeadersFromExecutionResultBytes(executionResultsBytes)
+	executionResult, err := atp.getExecutionResultFromBytes(executionResultsBytes)
 	if err != nil {
 		return false, err
 	}
 
 	// check if the transaction miniblock metadata has a mb header on execution result
 	// if yes - the transaction was executed
-	// if no  - the transaction was proposed but not executed
-	currentTxIsExecuted := false
-	for _, mbHeader := range mbHeaders {
+	// if no  - the transaction was proposed but not executed, unless it was settled through receipts
+	for _, mbHeader := range executionResult.GetMiniBlockHeaders() {
 		if bytes.Equal(mbHeader.Hash, miniblockMetadata.MiniblockHash) {
-			currentTxIsExecuted = true
-			break
+			return true, nil
 		}
 	}
-	return currentTxIsExecuted, nil
+
+	return atp.isTxSettledThroughReceipts(txHash, executionResult)
 }
 
-func (atp *apiTransactionProcessor) getMbHeadersFromExecutionResultBytes(executionResultBytes []byte) ([]block.MiniBlockHeader, error) {
-	executResult := &block.ExecutionResult{}
-	err := atp.marshalizer.Unmarshal(executResult, executionResultBytes)
+// isTxSettledThroughReceipts checks whether the transaction is part of a receipt of the block, that is of an
+// intra-shard miniblock created and settled during the execution of the block (for example, an in-shard refund).
+// Such miniblocks are not part of the execution result's miniblock headers, but their transactions were settled
+// during the execution of the parent transaction, so they must not be reported as not executed.
+func (atp *apiTransactionProcessor) isTxSettledThroughReceipts(txHash []byte, executionResult *block.ExecutionResult) (bool, error) {
+	receiptsHash := executionResult.GetReceiptsHash()
+	if len(receiptsHash) == 0 {
+		return false, nil
+	}
+
+	receiptsStorer, err := atp.storageService.GetStorer(dataRetriever.ReceiptsUnit)
+	if err != nil {
+		log.Debug("isTxSettledThroughReceipts(): cannot get the receipts storer", "error", err.Error())
+		return false, nil
+	}
+
+	receiptsBytes, err := receiptsStorer.GetFromEpoch(receiptsHash, executionResult.GetHeaderEpoch())
+	if err != nil {
+		if storage.IsNotFoundInStorageErr(err) {
+			return false, nil
+		}
+
+		return false, err
+	}
+
+	if len(receiptsBytes) == 0 {
+		return false, nil
+	}
+
+	receiptsBatch := &batch.Batch{}
+	err = atp.marshalizer.Unmarshal(receiptsBatch, receiptsBytes)
+	if err != nil {
+		return false, err
+	}
+
+	for _, miniBlockBytes := range receiptsBatch.Data {
+		miniBlock := &block.MiniBlock{}
+		err = atp.marshalizer.Unmarshal(miniBlock, miniBlockBytes)
+		if err != nil {
+			return false, err
+		}
+
+		for _, txHashInMiniBlock := range miniBlock.TxHashes {
+			if bytes.Equal(txHashInMiniBlock, txHash) {
+				return true, nil
+			}
+		}
+	}
+
+	return false, nil
+}
+
+func (atp *apiTransactionProcessor) getExecutionResultFromBytes(executionResultBytes []byte) (*block.ExecutionResult, error) {
+	executionResult := &block.ExecutionResult{}
+	err := atp.marshalizer.Unmarshal(executionResult, executionResultBytes)
 	if err != nil {
 		return nil, err
 	}
 
-	return executResult.GetMiniBlockHeaders(), nil
+	return executionResult, nil
 }
 
 func (atp *apiTransactionProcessor) lookupHistoricalTransaction(hash []byte, withResults bool) (*transaction.ApiTransactionResult, error) {
@@ -818,7 +871,7 @@ func (atp *apiTransactionProcessor) lookupHistoricalTransaction(hash []byte, wit
 		return nil, ErrTransactionNotFound
 	}
 
-	isExecuted, err := atp.checkExecutionResultAndTx(miniblockMetadata)
+	isExecuted, err := atp.checkExecutionResultAndTx(hash, miniblockMetadata)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", ErrTransactionNotFound.Error(), err)
 	}
