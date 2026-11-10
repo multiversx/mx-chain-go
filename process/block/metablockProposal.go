@@ -475,6 +475,8 @@ func (mp *metaProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
+	mp.ForceStart(header)
+
 	return execResult, nil
 }
 

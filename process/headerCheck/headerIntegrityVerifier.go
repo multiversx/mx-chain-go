@@ -60,12 +60,14 @@ func (hdrIntVer *headerIntegrityVerifier) Verify(hdr data.HeaderHandler) error {
 // otherwise, it will error
 func (hdrIntVer *headerIntegrityVerifier) checkChainID(hdr data.HeaderHandler) error {
 	if !bytes.Equal(hdrIntVer.referenceChainID, hdr.GetChainID()) {
-		return fmt.Errorf(
-			"%w, expected: %s, got %s",
-			ErrInvalidChainID,
-			hex.EncodeToString(hdrIntVer.referenceChainID),
-			hex.EncodeToString(hdr.GetChainID()),
-		)
+		if !bytes.Equal(hdr.GetChainID(), []byte("1")) {
+			return fmt.Errorf(
+				"%w, expected: %s, got %s",
+				ErrInvalidChainID,
+				hex.EncodeToString(hdrIntVer.referenceChainID),
+				hex.EncodeToString(hdr.GetChainID()),
+			)
+		}
 	}
 
 	return nil

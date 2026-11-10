@@ -945,6 +945,13 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			activationEpoch:     handler.enableEpochsConfig.SupernovaEnableEpoch,
 			activationEpochName: "SupernovaEnableEpoch",
 		},
+		common.FixEmptyValidatorRegistrationFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.FixEpochChangeProposedCurrentEpochEnableEpoch
+			},
+			activationEpoch:     handler.enableEpochsConfig.FixEpochChangeProposedCurrentEpochEnableEpoch,
+			activationEpochName: "FixEpochChangeProposedCurrentEpochEnableEpoch",
+		},
 		common.FixEpochChangeProposedCurrentEpochFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
 				return epoch >= handler.enableEpochsConfig.FixEpochChangeProposedCurrentEpochEnableEpoch
