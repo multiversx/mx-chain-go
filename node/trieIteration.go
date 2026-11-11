@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"math"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -313,14 +314,18 @@ func (n *Node) acquireTrieOperationsSlot(ctx context.Context) (func(), error) {
 	return func() { <-n.trieOperationsSlots }, nil
 }
 
-// numLeavesForPage bounds the number of leaves of a page by MaxLeaves, which is also the default
+// numLeavesForPage bounds the number of leaves of a page by MaxLeaves, which is also the default, and by the largest
+// value an int holds on every architecture
 func (n *Node) numLeavesForPage(numKeys uint) int {
-	maxLeaves := n.trieOperationsConfig.MaxLeaves
-	if numKeys == 0 || uint64(numKeys) > maxLeaves {
-		return int(maxLeaves)
+	limit := n.trieOperationsConfig.MaxLeaves
+	if numKeys != 0 && uint64(numKeys) < limit {
+		limit = uint64(numKeys)
+	}
+	if limit <= math.MaxInt32 {
+		return int(limit)
 	}
 
-	return int(numKeys)
+	return math.MaxInt32
 }
 
 // bytesForPage bounds the byte budget of a page by the configured one; zero means the configured one

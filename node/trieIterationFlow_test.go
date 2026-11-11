@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math"
 	"math/big"
 	"sync/atomic"
 	"testing"
@@ -364,6 +365,24 @@ func TestNode_IterateDataTrie(t *testing.T) {
 			require.Len(t, pairs, 7)
 			require.NotNil(t, next)
 		}
+	})
+	t.Run("a MaxLeaves above the int range still pages", func(t *testing.T) {
+		t.Parallel()
+
+		env := newTrieIterationTestEnv(t, 25, config.TrieOperationsConfig{MaxLeaves: math.MaxUint64})
+		for _, numKeys := range []uint{0, math.MaxUint} {
+			pairs := make(map[string]string)
+			_, next, err := env.node.IterateDataTrie(context.Background(), env.address, api.AccountQueryOptions{}, numKeys, nil, collectPairs(pairs))
+			require.Nil(t, err)
+			require.Len(t, pairs, 25)
+			require.Nil(t, next)
+		}
+
+		pairs := make(map[string]string)
+		_, next, err := env.node.IterateDataTrie(context.Background(), env.address, api.AccountQueryOptions{}, 10, nil, collectPairs(pairs))
+		require.Nil(t, err)
+		require.Len(t, pairs, 10)
+		require.NotNil(t, next)
 	})
 	t.Run("byte budget stops the page", func(t *testing.T) {
 		t.Parallel()
