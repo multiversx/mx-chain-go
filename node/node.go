@@ -26,6 +26,7 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/checkpoint"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/debug"
@@ -57,12 +58,13 @@ var _ facade.NodeHandler = (*Node)(nil)
 // over the None struct.
 type Option func(*Node) error
 
+// filter decides whether a token of the ESDT system smart contract is part of a response and reports the size of
+// what it adds to the response besides the token identifier
 type filter interface {
-	filter(tokenIdentifier string, esdtData *systemSmartContracts.ESDTDataV2) bool
+	filter(tokenIdentifier string, esdtData *systemSmartContracts.ESDTDataV2) (accepted bool, size uint64)
 }
 
 type accountInfo struct {
-	account         state.UserAccountHandler
 	block           api.BlockInfo
 	accountResponse api.AccountResponse
 }
@@ -209,53 +211,15 @@ func (n *Node) GetCodeHash(address string, options api.AccountQueryOptions) ([]b
 	return codeHash, blockInfo, nil
 }
 
-// GetAllIssuedESDTs returns all the issued esdt tokens, works only on metachain
-func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]string, error) {
-	if n.processComponents.ShardCoordinator().SelfId() != core.MetachainShardId {
-		return nil, ErrMetachainOnlyEndpoint
+// GetAllIssuedESDTs returns a page of the identifiers of the tokens issued through the ESDT system smart contract,
+// all of them or only those of the given type
+func (n *Node) GetAllIssuedESDTs(tokenType string, options api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint, ctx context.Context) ([]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
+	var f filter
+	if tokenType != "" {
+		f = &getTokensOfTypeFilter{tokenType: tokenType}
 	}
 
-	userAccount, _, err := n.loadUserAccountHandlerByPubKey(vm.ESDTSCAddress, api.AccountQueryOptions{})
-	if err != nil {
-		// don't return 0 values here - not finding the ESDT SC address is an error that should be returned
-		return nil, err
-	}
-
-	tokens := make([]string, 0)
-	if check.IfNil(userAccount.DataTrie()) {
-		return tokens, nil
-	}
-
-	err = n.collectTrieLeaves(ctx, userAccount, func(leaf core.KeyValueHolder, _ *trieCollectionBudget) error {
-		tokenName := string(leaf.Key())
-		if !strings.Contains(tokenName, "-") {
-			return nil
-		}
-
-		if tokenType == "" {
-			tokens = append(tokens, tokenName)
-			return nil
-		}
-
-		esdtToken, okGet := n.getEsdtDataFromLeaf(leaf)
-		if !okGet {
-			return nil
-		}
-
-		if tokenTypeEquals(esdtToken.TokenType, tokenType) {
-			tokens = append(tokens, tokenName)
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	if common.IsContextDone(ctx) {
-		return nil, ErrTrieOperationsTimeout
-	}
-
-	return tokens, nil
+	return n.getTokensIDsWithFilter(f, options, numKeys, iteratorState, ctx)
 }
 
 func tokenTypeEquals(tokenType []byte, providedTokenType string) bool {
@@ -276,7 +240,7 @@ func (n *Node) getEsdtDataFromLeaf(leaf core.KeyValueHolder) (*systemSmartContra
 
 	err := n.coreComponents.InternalMarshalizer().Unmarshal(esdtToken, leaf.Value())
 	if err != nil {
-		log.Warn("cannot unmarshal esdt data", "err", err)
+		log.Trace("cannot unmarshal esdt data", "err", err)
 		return nil, false
 	}
 
@@ -284,31 +248,15 @@ func (n *Node) getEsdtDataFromLeaf(leaf core.KeyValueHolder) (*systemSmartContra
 }
 
 // GetKeyValuePairs returns all the key-value pairs under the address
-func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions, ctx context.Context) (map[string]string, api.BlockInfo, error) {
-	userAccount, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
+func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint, ctx context.Context) (map[string]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
+	req := trieIterationRequest{address: address, options: options, numKeys: numKeys, checkpoint: iteratorState}
+	pairs := make(map[string]string)
+	blockInfo, next, err := n.iterateDataTrie(ctx, req, keyValueCollector(pairs))
 	if err != nil {
-		adaptedBlockInfo, isEmptyAccount := extractBlockInfoIfNewAccount(err)
-		if isEmptyAccount {
-			return make(map[string]string), adaptedBlockInfo, nil
-		}
-
-		return nil, api.BlockInfo{}, err
+		return nil, nil, api.BlockInfo{}, err
 	}
 
-	if check.IfNil(userAccount.DataTrie()) {
-		return map[string]string{}, blockInfo, nil
-	}
-
-	mapToReturn, err := n.getKeys(userAccount, ctx)
-	if err != nil {
-		return nil, api.BlockInfo{}, err
-	}
-
-	if common.IsContextDone(ctx) {
-		return nil, api.BlockInfo{}, ErrTrieOperationsTimeout
-	}
-
-	return mapToReturn, blockInfo, nil
+	return pairs, next, blockInfo, nil
 }
 
 type userAccountWithLeavesParser interface {
@@ -317,47 +265,21 @@ type userAccountWithLeavesParser interface {
 
 // IterateKeys starts from the given iteratorState and returns the next key-value pairs and the new iteratorState
 func (n *Node) IterateKeys(address string, numKeys uint, iteratorState [][]byte, options api.AccountQueryOptions, ctx context.Context) (map[string]string, [][]byte, api.BlockInfo, error) {
-	userAccount, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
-	if err != nil {
-		adaptedBlockInfo, isEmptyAccount := extractBlockInfoIfNewAccount(err)
-		if isEmptyAccount {
-			return make(map[string]string), nil, adaptedBlockInfo, nil
-		}
-
-		return nil, nil, api.BlockInfo{}, err
+	req := trieIterationRequest{address: address, options: options, numKeys: numKeys}
+	if len(iteratorState) > 0 {
+		req.checkpoint = &checkpoint.Checkpoint{IteratorState: iteratorState}
 	}
 
-	if check.IfNil(userAccount.DataTrie()) {
-		return map[string]string{}, nil, blockInfo, nil
-	}
-
-	account, ok := userAccount.(userAccountWithLeavesParser)
-	if !ok {
-		return nil, nil, api.BlockInfo{}, fmt.Errorf("cannot cast user account to userAccountWithLeavesParser")
-	}
-
-	if len(iteratorState) == 0 {
-		iteratorState = append(iteratorState, userAccount.GetRootHash())
-	}
-
-	mapToReturn, newIteratorState, err := n.stateComponents.TrieLeavesRetriever().GetLeaves(int(numKeys), iteratorState, account.GetLeavesParser(), ctx)
+	pairs := make(map[string]string)
+	blockInfo, next, err := n.iterateDataTrie(ctx, req, keyValueCollector(pairs))
 	if err != nil {
 		return nil, nil, api.BlockInfo{}, err
 	}
-
-	return mapToReturn, newIteratorState, blockInfo, nil
-}
-
-func (n *Node) getKeys(userAccount state.UserAccountHandler, ctx context.Context) (map[string]string, error) {
-	mapToReturn := make(map[string]string)
-	err := n.collectTrieLeaves(ctx, userAccount, func(leaf core.KeyValueHolder, _ *trieCollectionBudget) error {
-		mapToReturn[hex.EncodeToString(leaf.Key())] = hex.EncodeToString(leaf.Value())
-		return nil
-	})
-	if err != nil {
-		return nil, err
+	if next == nil {
+		return pairs, nil, blockInfo, nil
 	}
-	return mapToReturn, nil
+
+	return pairs, next.IteratorState, blockInfo, nil
 }
 
 // GetValueForKey will return the value for a key from a given account
@@ -477,88 +399,103 @@ func (n *Node) GetESDTData(address, tokenID string, nonce uint64, options api.Ac
 	return esdtToken, blockInfo, nil
 }
 
+// getTokensIDsWithFilter walks a page of the data trie of the ESDT system smart contract and returns the identifiers
+// of the tokens accepted by the filter (all the tokens for a nil filter, which does not need the token data)
 func (n *Node) getTokensIDsWithFilter(
 	f filter,
 	options api.AccountQueryOptions,
+	numKeys uint,
+	iteratorState *checkpoint.Checkpoint,
 	ctx context.Context,
-) ([]string, api.BlockInfo, error) {
+) ([]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
 	if n.processComponents.ShardCoordinator().SelfId() != core.MetachainShardId {
-		return nil, api.BlockInfo{}, ErrMetachainOnlyEndpoint
+		return nil, nil, api.BlockInfo{}, ErrMetachainOnlyEndpoint
 	}
 
-	userAccount, blockInfo, err := n.loadUserAccountHandlerByPubKey(vm.ESDTSCAddress, options)
+	req := trieIterationRequest{pubKey: vm.ESDTSCAddress, options: options, numKeys: numKeys, checkpoint: iteratorState}
+	loaded, err := n.loadAccountForIteration(req)
 	if err != nil {
-		return nil, api.BlockInfo{}, err
+		return nil, nil, api.BlockInfo{}, err
+	}
+	if check.IfNil(loaded.userAccount) {
+		// don't return 0 values here - not finding the ESDT SC address is an error that should be returned
+		return nil, nil, api.BlockInfo{}, ErrSystemSCAccountNotFound
 	}
 
 	tokens := make([]string, 0)
-	if check.IfNil(userAccount.DataTrie()) {
-		return tokens, api.BlockInfo{}, nil
-	}
-
-	err = n.collectTrieLeaves(ctx, userAccount, func(leaf core.KeyValueHolder, _ *trieCollectionBudget) error {
-		tokenIdentifier := string(leaf.Key())
-		if !strings.Contains(tokenIdentifier, "-") {
-			return nil
-		}
-
-		esdtToken, okGet := n.getEsdtDataFromLeaf(leaf)
-		if !okGet {
-			return nil
-		}
-
-		if f.filter(tokenIdentifier, esdtToken) {
-			tokens = append(tokens, tokenIdentifier)
-		}
-		return nil
-	})
+	next, err := n.walkDataTrie(ctx, loaded, req, n.esdtRegistryCollector(f, &tokens))
 	if err != nil {
-		return nil, api.BlockInfo{}, err
+		return nil, nil, api.BlockInfo{}, err
 	}
 
-	if common.IsContextDone(ctx) {
-		return nil, api.BlockInfo{}, ErrTrieOperationsTimeout
-	}
-
-	return tokens, blockInfo, nil
+	return tokens, next, loaded.blockInfo, nil
 }
 
-// GetNFTTokenIDsRegisteredByAddress returns all the token identifiers for semi or non fungible tokens registered by the address
-func (n *Node) GetNFTTokenIDsRegisteredByAddress(address string, options api.AccountQueryOptions, ctx context.Context) ([]string, api.BlockInfo, error) {
+// esdtRegistryCollector visits the leaves of the ESDT system smart contract data trie and collects the identifiers
+// of the tokens accepted by the filter; a nil filter accepts every token without reading its data
+func (n *Node) esdtRegistryCollector(f filter, tokens *[]string) common.LeafVisitor {
+	return func(leaf core.KeyValueHolder) (bool, uint64, error) {
+		tokenIdentifier := string(leaf.Key())
+		if !strings.Contains(tokenIdentifier, "-") {
+			return false, 0, nil
+		}
+
+		size := uint64(len(tokenIdentifier))
+		if f != nil {
+			esdtToken, okGet := n.getEsdtDataFromLeaf(leaf)
+			if !okGet {
+				return false, 0, nil
+			}
+
+			accepted, extraSize := f.filter(tokenIdentifier, esdtToken)
+			if !accepted {
+				return false, 0, nil
+			}
+			size += extraSize
+		}
+
+		*tokens = append(*tokens, tokenIdentifier)
+		return true, size, nil
+	}
+}
+
+// GetNFTTokenIDsRegisteredByAddress returns a page of the identifiers of the semi or non fungible tokens registered
+// by the address
+func (n *Node) GetNFTTokenIDsRegisteredByAddress(address string, options api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint, ctx context.Context) ([]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
 	addressBytes, err := n.coreComponents.AddressPubKeyConverter().Decode(address)
 	if err != nil {
-		return nil, api.BlockInfo{}, err
+		return nil, nil, api.BlockInfo{}, err
 	}
 
 	f := &getRegisteredNftsFilter{
 		addressBytes: addressBytes,
 	}
-	return n.getTokensIDsWithFilter(f, options, ctx)
+	return n.getTokensIDsWithFilter(f, options, numKeys, iteratorState, ctx)
 }
 
-// GetESDTsWithRole returns all the tokens with the given role for the given address
-func (n *Node) GetESDTsWithRole(address string, role string, options api.AccountQueryOptions, ctx context.Context) ([]string, api.BlockInfo, error) {
+// GetESDTsWithRole returns a page of the identifiers of the tokens where the address has the given role
+func (n *Node) GetESDTsWithRole(address string, role string, options api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint, ctx context.Context) ([]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
 	if !core.IsValidESDTRole(role) {
-		return nil, api.BlockInfo{}, ErrInvalidESDTRole
+		return nil, nil, api.BlockInfo{}, ErrInvalidESDTRole
 	}
 
 	addressBytes, err := n.coreComponents.AddressPubKeyConverter().Decode(address)
 	if err != nil {
-		return nil, api.BlockInfo{}, err
+		return nil, nil, api.BlockInfo{}, err
 	}
 
 	f := &getTokensWithRoleFilter{
 		addressBytes: addressBytes,
 		role:         role,
 	}
-	return n.getTokensIDsWithFilter(f, options, ctx)
+	return n.getTokensIDsWithFilter(f, options, numKeys, iteratorState, ctx)
 }
 
-// GetESDTsRoles returns all the tokens identifiers and roles for the given address
-func (n *Node) GetESDTsRoles(address string, options api.AccountQueryOptions, ctx context.Context) (map[string][]string, api.BlockInfo, error) {
+// GetESDTsRoles returns a page of the tokens where the address has special roles, with those roles
+func (n *Node) GetESDTsRoles(address string, options api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint, ctx context.Context) (map[string][]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
 	addressBytes, err := n.coreComponents.AddressPubKeyConverter().Decode(address)
 	if err != nil {
-		return nil, api.BlockInfo{}, err
+		return nil, nil, api.BlockInfo{}, err
 	}
 
 	tokensRoles := make(map[string][]string)
@@ -567,12 +504,12 @@ func (n *Node) GetESDTsRoles(address string, options api.AccountQueryOptions, ct
 		addressBytes: addressBytes,
 		outputRoles:  tokensRoles,
 	}
-	_, blockInfo, err := n.getTokensIDsWithFilter(f, options, ctx)
+	_, next, blockInfo, err := n.getTokensIDsWithFilter(f, options, numKeys, iteratorState, ctx)
 	if err != nil {
-		return nil, api.BlockInfo{}, err
+		return nil, nil, api.BlockInfo{}, err
 	}
 
-	return tokensRoles, blockInfo, nil
+	return tokensRoles, next, blockInfo, nil
 }
 
 // GetTokenSupply returns the provided token supply from current shard
@@ -597,84 +534,76 @@ func bigToString(bigValue *big.Int) string {
 	return bigValue.String()
 }
 
-// GetAllESDTTokens returns all the ESDTs that the given address interacted with
-func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions, ctx context.Context) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error) {
-	// TODO: refactor here as to ensure userAccount and systemAccount are on the same root-hash
-	userAccount, _, err := n.loadUserAccountHandlerByAddress(address, options)
+// GetAllESDTTokens returns a page of the ESDT tokens of the address. The system account, consulted for the NFT
+// metadata, is loaded at the root hash and epoch the user account was served from, so both come from the same state
+func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint, ctx context.Context) (map[string]*esdt.ESDigitalToken, *checkpoint.Checkpoint, api.BlockInfo, error) {
+	req := trieIterationRequest{address: address, options: options, numKeys: numKeys, checkpoint: iteratorState}
+	loaded, err := n.loadAccountForIteration(req)
 	if err != nil {
-		adaptedBlockInfo, isEmptyAccount := extractBlockInfoIfNewAccount(err)
-		if isEmptyAccount {
-			return make(map[string]*esdt.ESDigitalToken), adaptedBlockInfo, nil
-		}
-
-		return nil, api.BlockInfo{}, err
-	}
-
-	systemAccount, blockInfo, err := n.loadSystemAccountWithOptions(options)
-	if err != nil {
-		return nil, api.BlockInfo{}, err
+		return nil, nil, api.BlockInfo{}, err
 	}
 
 	allESDTs := make(map[string]*esdt.ESDigitalToken)
-	if check.IfNil(userAccount.DataTrie()) {
-		return allESDTs, api.BlockInfo{}, nil
+	if check.IfNil(loaded.userAccount) || check.IfNil(loaded.userAccount.DataTrie()) {
+		return allESDTs, nil, loaded.blockInfo, nil
 	}
 
+	account, ok := loaded.userAccount.(userAccountWithLeavesParser)
+	if !ok {
+		return nil, nil, api.BlockInfo{}, fmt.Errorf("cannot cast user account to userAccountWithLeavesParser")
+	}
+	req.leafParser = n.newESDTLeafParser(account.GetLeavesParser(), loaded.userAccount.AddressBytes())
+
+	systemAccount, _, err := n.loadSystemAccountWithOptions(n.optionsForSameState(loaded))
+	if err != nil {
+		return nil, nil, api.BlockInfo{}, err
+	}
+
+	next, err := n.walkDataTrie(ctx, loaded, req, n.esdtTokensCollector(systemAccount, allESDTs))
+	if err != nil {
+		return nil, nil, api.BlockInfo{}, err
+	}
+
+	return allESDTs, next, loaded.blockInfo, nil
+}
+
+// esdtTokensCollector visits the ESDT leaves of the user account and collects the tokens with a positive balance,
+// decoded from the leaves (the NFT metadata may live in the system account). A token that can not be decoded is skipped
+func (n *Node) esdtTokensCollector(systemAccount vmcommon.UserAccountHandler, tokens map[string]*esdt.ESDigitalToken) common.LeafVisitor {
 	esdtPrefix := []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier)
 	lenESDTPrefix := len(esdtPrefix)
 
-	err = n.collectTrieLeaves(ctx, userAccount, func(leaf core.KeyValueHolder, budget *trieCollectionBudget) error {
+	return func(leaf core.KeyValueHolder) (bool, uint64, error) {
 		if !bytes.HasPrefix(leaf.Key(), esdtPrefix) {
-			return nil
+			return false, 0, nil
 		}
 
-		tokenKey := leaf.Key()
-		tokenName := string(tokenKey[lenESDTPrefix:])
-		esdtToken := &esdt.ESDigitalToken{Value: big.NewInt(0)}
+		tokenName := string(leaf.Key()[lenESDTPrefix:])
+		_, nonce := common.ExtractTokenIDAndNonceFromTokenStorageKey([]byte(tokenName))
 
-		userAccountVmCommon, ok := userAccount.(vmcommon.UserAccountHandler)
-		if !ok {
-			return ErrCannotCastUserAccountHandlerToVmCommonUserAccountHandler
-		}
-
-		tokenID, nonce := common.ExtractTokenIDAndNonceFromTokenStorageKey([]byte(tokenName))
-
-		esdtTokenKey := []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier + string(tokenID))
-		esdtToken, _, err = n.esdtStorageHandler.GetESDTNFTTokenOnDestinationWithCustomSystemAccount(userAccountVmCommon, esdtTokenKey, nonce, systemAccount)
+		esdtToken, err := n.esdtTokenFromLeaf(leaf, nonce, systemAccount)
 		if err != nil {
-			log.Warn("cannot get ESDT token", "token name", tokenName, "error", err)
-			return nil
+			log.Trace("cannot get ESDT token", "token name", tokenName, "error", err)
+			return false, 0, nil
 		}
 
 		if esdtToken.Value.Sign() <= 0 {
-			return nil
-		}
-		// NFT metadata may come from the system account rather than this leaf.
-		if err = budget.chargeBytes(2 * uint64(esdtToken.Size())); err != nil {
-			return err
+			return false, 0, nil
 		}
 
 		if esdtToken.TokenMetaData != nil {
 			esdtTokenCreatorAddr, errEncode := n.coreComponents.AddressPubKeyConverter().Encode(esdtToken.TokenMetaData.Creator)
 			if errEncode != nil {
-				return errEncode
+				return false, 0, errEncode
 			}
 			esdtToken.TokenMetaData.Creator = []byte(esdtTokenCreatorAddr)
 			tokenName = adjustNftTokenIdentifier(tokenName, esdtToken.TokenMetaData.Nonce)
 		}
 
-		allESDTs[tokenName] = esdtToken
-		return nil
-	})
-	if err != nil {
-		return nil, api.BlockInfo{}, err
+		tokens[tokenName] = esdtToken
+		// the response size of the token: its metadata may come from the system account rather than this leaf
+		return true, uint64(len(tokenName) + 2*esdtToken.Size()), nil
 	}
-
-	if common.IsContextDone(ctx) {
-		return nil, api.BlockInfo{}, ErrTrieOperationsTimeout
-	}
-
-	return allESDTs, blockInfo, nil
 }
 
 func adjustNftTokenIdentifier(token string, nonce uint64) string {
@@ -992,28 +921,33 @@ func (n *Node) GetAccount(address string, options api.AccountQueryOptions) (api.
 	return accInfo.accountResponse, accInfo.block, nil
 }
 
-// GetAccountWithKeys will return account details for a given address including the keys
-func (n *Node) GetAccountWithKeys(address string, options api.AccountQueryOptions, ctx context.Context) (api.AccountResponse, api.BlockInfo, error) {
-	accInfo, err := n.getAccountInfo(address, options)
+// GetAccountWithKeys will return account details for a given address including a page of its keys
+func (n *Node) GetAccountWithKeys(address string, options api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint, ctx context.Context) (api.AccountResponse, *checkpoint.Checkpoint, api.BlockInfo, error) {
+	req := trieIterationRequest{address: address, options: options, numKeys: numKeys, checkpoint: iteratorState}
+	loaded, err := n.loadAccountForIteration(req)
 	if err != nil {
-		return api.AccountResponse{}, api.BlockInfo{}, err
+		return api.AccountResponse{}, nil, api.BlockInfo{}, err
 	}
 
-	var keys map[string]string
-	if options.WithKeys {
-		if accInfo.account == nil || accInfo.account.DataTrie() == nil {
-			return accInfo.accountResponse, accInfo.block, nil
-		}
+	accountResponse, err := n.accountResponseFromAccount(address, loaded.userAccount)
+	if err != nil {
+		return api.AccountResponse{}, nil, api.BlockInfo{}, err
+	}
+	// the code is read with the options the account was loaded with, so a continuation page gets it from the
+	// recorded state as well
+	code, _ := n.loadAccountCode(accountResponse.CodeHash, loaded.options)
+	accountResponse.Code = hex.EncodeToString(code)
 
-		keys, err = n.getKeys(accInfo.account, ctx)
-		if err != nil {
-			return api.AccountResponse{}, api.BlockInfo{}, err
-		}
+	pairs := make(map[string]string)
+	next, err := n.walkDataTrie(ctx, loaded, req, keyValueCollector(pairs))
+	if err != nil {
+		return api.AccountResponse{}, nil, api.BlockInfo{}, err
+	}
+	if len(pairs) > 0 {
+		accountResponse.Pairs = pairs
 	}
 
-	accInfo.accountResponse.Pairs = keys
-
-	return accInfo.accountResponse, accInfo.block, nil
+	return accountResponse, next, loaded.blockInfo, nil
 }
 
 func extractBlockInfoIfNewAccount(err error) (api.BlockInfo, bool) {
@@ -1038,50 +972,60 @@ func (n *Node) getAccountInfo(address string, options api.AccountQueryOptions) (
 	if err != nil {
 		adaptedBlockInfo, isEmptyAccount := extractBlockInfoIfNewAccount(err)
 		if isEmptyAccount {
+			account = nil
+			blockInfo = adaptedBlockInfo
+		} else {
 			return accountInfo{
-				accountResponse: api.AccountResponse{
-					Address:         address,
-					Balance:         "0",
-					DeveloperReward: "0",
-				},
-				block:   adaptedBlockInfo,
-				account: account,
-			}, nil
+				accountResponse: api.AccountResponse{},
+				block:           api.BlockInfo{},
+			}, err
 		}
+	}
+
+	accountResponse, err := n.accountResponseFromAccount(address, account)
+	if err != nil {
 		return accountInfo{
 			accountResponse: api.AccountResponse{},
 			block:           api.BlockInfo{},
-			account:         nil,
 		}, err
+	}
+
+	return accountInfo{
+		accountResponse: accountResponse,
+		block:           blockInfo,
+	}, nil
+}
+
+// accountResponseFromAccount builds the API response of an account; a nil account is one that does not exist yet
+func (n *Node) accountResponseFromAccount(address string, account state.UserAccountHandler) (api.AccountResponse, error) {
+	if check.IfNil(account) {
+		return api.AccountResponse{
+			Address:         address,
+			Balance:         "0",
+			DeveloperReward: "0",
+		}, nil
 	}
 
 	ownerAddress := ""
 	if len(account.GetOwnerAddress()) > 0 {
 		addressPubkeyConverter := n.coreComponents.AddressPubKeyConverter()
+		var err error
 		ownerAddress, err = addressPubkeyConverter.Encode(account.GetOwnerAddress())
 		if err != nil {
-			return accountInfo{
-				accountResponse: api.AccountResponse{},
-				block:           api.BlockInfo{},
-				account:         nil,
-			}, err
+			return api.AccountResponse{}, err
 		}
 	}
 
-	return accountInfo{
-		accountResponse: api.AccountResponse{
-			Address:         address,
-			Nonce:           account.GetNonce(),
-			Balance:         account.GetBalance().String(),
-			Username:        string(account.GetUserName()),
-			CodeHash:        account.GetCodeHash(),
-			RootHash:        account.GetRootHash(),
-			CodeMetadata:    account.GetCodeMetadata(),
-			DeveloperReward: account.GetDeveloperReward().String(),
-			OwnerAddress:    ownerAddress,
-		},
-		block:   blockInfo,
-		account: account,
+	return api.AccountResponse{
+		Address:         address,
+		Nonce:           account.GetNonce(),
+		Balance:         account.GetBalance().String(),
+		Username:        string(account.GetUserName()),
+		CodeHash:        account.GetCodeHash(),
+		RootHash:        account.GetRootHash(),
+		CodeMetadata:    account.GetCodeMetadata(),
+		DeveloperReward: account.GetDeveloperReward().String(),
+		OwnerAddress:    ownerAddress,
 	}, nil
 }
 

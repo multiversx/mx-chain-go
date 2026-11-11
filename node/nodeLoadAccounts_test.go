@@ -149,13 +149,14 @@ func TestNode_AddBlockCoordinatesToAccountQueryOptions(t *testing.T) {
 			BlockRootHash: blockRootHash,
 			BlockNonce:    core.OptionalUint64{Value: 7, HasValue: true},
 			BlockHash:     []byte("ignored"),
-			// Ignored, as well
+			// Kept, it selects the epoch storage the trie is recreated from
 			HintEpoch: core.OptionalUint32{Value: 123456, HasValue: true},
 		})
 
 		expectedOptions := api.AccountQueryOptions{
 			BlockRootHash: blockRootHash,
-			// When "BlockRootHash" is provided, all other coordinates are ignored and reset.
+			// When "BlockRootHash" is provided, the other block coordinates are ignored and reset.
+			HintEpoch: core.OptionalUint32{Value: 123456, HasValue: true},
 		}
 
 		require.Nil(t, err)

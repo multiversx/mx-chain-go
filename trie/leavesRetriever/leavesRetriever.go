@@ -12,17 +12,13 @@ import (
 )
 
 type leavesRetriever struct {
-	db         common.TrieStorageInteractor
 	marshaller marshal.Marshalizer
 	hasher     hashing.Hasher
 	maxSize    uint64
 }
 
 // NewLeavesRetriever creates a new leaves retriever
-func NewLeavesRetriever(db common.TrieStorageInteractor, marshaller marshal.Marshalizer, hasher hashing.Hasher, maxSize uint64) (*leavesRetriever, error) {
-	if check.IfNil(db) {
-		return nil, ErrNilDB
-	}
+func NewLeavesRetriever(marshaller marshal.Marshalizer, hasher hashing.Hasher, maxSize uint64) (*leavesRetriever, error) {
 	if check.IfNil(marshaller) {
 		return nil, ErrNilMarshaller
 	}
@@ -31,31 +27,39 @@ func NewLeavesRetriever(db common.TrieStorageInteractor, marshaller marshal.Mars
 	}
 
 	return &leavesRetriever{
-		db:         db,
 		marshaller: marshaller,
 		hasher:     hasher,
 		maxSize:    maxSize,
 	}, nil
 }
 
-// GetLeaves retrieves leaves from the trie starting from the iterator state. It will also return the new iterator state
-// from which one can continue the iteration.
-func (lr *leavesRetriever) GetLeaves(numLeaves int, iteratorState [][]byte, leavesParser common.TrieLeafParser, ctx context.Context) (map[string]string, [][]byte, error) {
+// IterateLeaves walks the trie found in the given storage, starting from the iterator state, and calls visit for
+// every leaf. It returns the iterator state from which the iteration can be resumed, or nil when it finished.
+// The size limit of the walk is maxSize, or the retriever's one when maxSize is zero or larger.
+// New pruning requests of the given storage are buffered while the leaves are iterated; between two calls the
+// nodes referenced by the iterator state can be pruned.
+func (lr *leavesRetriever) IterateLeaves(numLeaves int, maxSize uint64, iteratorState [][]byte, storage common.StorageManager, leavesParser common.TrieLeafParser, ctx context.Context, visit common.LeafVisitor) ([][]byte, error) {
 	if check.IfNil(leavesParser) {
-		return nil, nil, fmt.Errorf("nil leaves parser")
+		return nil, fmt.Errorf("nil leaves parser")
+	}
+	if maxSize == 0 || maxSize > lr.maxSize {
+		maxSize = lr.maxSize
 	}
 
-	iterator, err := dfsTrieIterator.NewIterator(iteratorState, lr.db, lr.marshaller, lr.hasher)
+	iterator, err := dfsTrieIterator.NewIterator(iteratorState, storage, lr.marshaller, lr.hasher)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	leavesData, err := iterator.GetLeaves(numLeaves, lr.maxSize, leavesParser, ctx)
+	storage.EnterPruningBufferingMode()
+	defer storage.ExitPruningBufferingMode()
+
+	err = iterator.IterateLeaves(numLeaves, maxSize, leavesParser, ctx, visit)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	return leavesData, iterator.GetIteratorState(), nil
+	return iterator.GetIteratorState(), nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

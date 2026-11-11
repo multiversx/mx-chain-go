@@ -11,21 +11,32 @@ import (
 
 type trieOperationsTransport struct {
 	timeout      time.Duration
+	reserve      time.Duration
 	maxBodyBytes int64
 }
 
-// NewTrieOperationsTransport also bounds responses rejected by downstream limiters.
+// NewTrieOperationsTransport also bounds responses rejected by downstream limiters. The request context expires
+// one reserve before the socket deadlines, so the handler can still write its response; a reserve that is not
+// smaller than the timeout is ignored.
 func NewTrieOperationsTransport(cfg config.TrieOperationsConfig) *trieOperationsTransport {
 	cfg = cfg.WithDefaults()
+	timeout := time.Duration(cfg.HTTPTimeoutMilliseconds) * time.Millisecond
+	reserve := time.Duration(cfg.DeadlineReserveMilliseconds) * time.Millisecond
+	if reserve >= timeout {
+		log.Warn("trie operations deadline reserve is not smaller than the HTTP timeout, ignoring it",
+			"reserve", reserve, "timeout", timeout)
+		reserve = 0
+	}
 	return &trieOperationsTransport{
-		timeout:      time.Duration(cfg.HTTPTimeoutMilliseconds) * time.Millisecond,
+		timeout:      timeout,
+		reserve:      reserve,
 		maxBodyBytes: int64(cfg.MaxRequestBodyBytes),
 	}
 }
 
 func (t *trieOperationsTransport) MiddlewareHandlerFunc() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if !isTrieListing(c) {
+		if !isTrieOperation(c) {
 			c.Next()
 			return
 		}
@@ -46,7 +57,7 @@ func (t *trieOperationsTransport) MiddlewareHandlerFunc() gin.HandlerFunc {
 			c.AbortWithStatus(http.StatusServiceUnavailable)
 			return
 		}
-		ctx, cancel := context.WithDeadline(c.Request.Context(), deadline)
+		ctx, cancel := context.WithDeadline(c.Request.Context(), deadline.Add(-t.reserve))
 		defer cancel()
 		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, t.maxBodyBytes)
 		c.Request = c.Request.WithContext(ctx)

@@ -49,12 +49,6 @@ var ErrGetESDTNFTData = errors.New("get esdt nft data for account error")
 // ErrEmptyAddress signals that an empty address was provided
 var ErrEmptyAddress = errors.New("address is empty")
 
-// ErrEmptyNumKeys signals that an empty numKeys was provided
-var ErrEmptyNumKeys = errors.New("numKeys is empty")
-
-// ErrEmptyCheckpointId signals that an empty checkpointId was provided
-var ErrEmptyCheckpointId = errors.New("checkpointId is empty")
-
 // ErrEmptyKey signals that an empty key was provided
 var ErrEmptyKey = errors.New("key is empty")
 
@@ -174,6 +168,9 @@ var ErrFetchingNonceGapsCannotIncludeFields = errors.New("fetching nonce gaps ca
 
 // ErrInvalidFields signals that invalid fields were provided
 var ErrInvalidFields = errors.New("invalid fields")
+
+// ErrGetESDTTokens signals an error in getting the issued esdt tokens
+var ErrGetESDTTokens = errors.New("get esdt tokens error")
 
 // ErrGetESDTTokensWithRole signals an error in getting the esdt tokens with the given role for given address
 var ErrGetESDTTokensWithRole = errors.New("getting esdt tokens with role error")

@@ -12,6 +12,7 @@ import (
 	ginFramework "github.com/gin-gonic/gin"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	"github.com/multiversx/mx-chain-go/common/checkpoint"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/facade"
 	facadeMock "github.com/multiversx/mx-chain-go/facade/mock"
@@ -65,29 +66,29 @@ func testTrieContext(t *testing.T, antiflood bool, path string, expire bool) {
 		return ctx.Err()
 	}
 	n := &facadeMock.NodeStub{
-		GetAccountWithKeysCalled: func(_ string, _ api.AccountQueryOptions, ctx context.Context) (api.AccountResponse, api.BlockInfo, error) {
-			return api.AccountResponse{}, api.BlockInfo{}, observe(ctx)
+		GetAccountWithKeysCalled: func(_ string, _ api.AccountQueryOptions, _ uint, _ *checkpoint.Checkpoint, ctx context.Context) (api.AccountResponse, *checkpoint.Checkpoint, api.BlockInfo, error) {
+			return api.AccountResponse{}, nil, api.BlockInfo{}, observe(ctx)
 		},
-		GetKeyValuePairsCalled: func(_ string, _ api.AccountQueryOptions, ctx context.Context) (map[string]string, api.BlockInfo, error) {
-			return nil, api.BlockInfo{}, observe(ctx)
+		GetKeyValuePairsCalled: func(_ string, _ api.AccountQueryOptions, _ uint, _ *checkpoint.Checkpoint, ctx context.Context) (map[string]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
+			return nil, nil, api.BlockInfo{}, observe(ctx)
 		},
 		IterateKeysCalled: func(_ string, _ uint, _ [][]byte, _ api.AccountQueryOptions, ctx context.Context) (map[string]string, [][]byte, api.BlockInfo, error) {
 			return nil, nil, api.BlockInfo{}, observe(ctx)
 		},
-		GetAllESDTTokensCalled: func(_ string, _ api.AccountQueryOptions, ctx context.Context) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error) {
-			return nil, api.BlockInfo{}, observe(ctx)
+		GetAllESDTTokensCalled: func(_ string, _ api.AccountQueryOptions, _ uint, _ *checkpoint.Checkpoint, ctx context.Context) (map[string]*esdt.ESDigitalToken, *checkpoint.Checkpoint, api.BlockInfo, error) {
+			return nil, nil, api.BlockInfo{}, observe(ctx)
 		},
-		GetESDTsRolesCalled: func(_ string, _ api.AccountQueryOptions, ctx context.Context) (map[string][]string, api.BlockInfo, error) {
-			return nil, api.BlockInfo{}, observe(ctx)
+		GetESDTsRolesCalled: func(_ string, _ api.AccountQueryOptions, _ uint, _ *checkpoint.Checkpoint, ctx context.Context) (map[string][]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
+			return nil, nil, api.BlockInfo{}, observe(ctx)
 		},
-		GetNFTTokenIDsRegisteredByAddressCalled: func(_ string, _ api.AccountQueryOptions, ctx context.Context) ([]string, api.BlockInfo, error) {
-			return nil, api.BlockInfo{}, observe(ctx)
+		GetNFTTokenIDsRegisteredByAddressCalled: func(_ string, _ api.AccountQueryOptions, _ uint, _ *checkpoint.Checkpoint, ctx context.Context) ([]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
+			return nil, nil, api.BlockInfo{}, observe(ctx)
 		},
-		GetESDTsWithRoleCalled: func(_ string, _ string, _ api.AccountQueryOptions, ctx context.Context) ([]string, api.BlockInfo, error) {
-			return nil, api.BlockInfo{}, observe(ctx)
+		GetESDTsWithRoleCalled: func(_ string, _ string, _ api.AccountQueryOptions, _ uint, _ *checkpoint.Checkpoint, ctx context.Context) ([]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
+			return nil, nil, api.BlockInfo{}, observe(ctx)
 		},
-		GetAllIssuedESDTsCalled: func(_ string, ctx context.Context) ([]string, error) {
-			return nil, observe(ctx)
+		GetAllIssuedESDTsCalled: func(_ string, _ api.AccountQueryOptions, _ uint, _ *checkpoint.Checkpoint, ctx context.Context) ([]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
+			return nil, nil, api.BlockInfo{}, observe(ctx)
 		},
 	}
 	args := createMockArgsNewWebServer()

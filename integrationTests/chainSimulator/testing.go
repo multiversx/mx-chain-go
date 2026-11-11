@@ -33,7 +33,7 @@ func CheckSetState(t *testing.T, chainSimulator ChainSimulator, nodeHandler chai
 	err = chainSimulator.GenerateBlocks(1)
 	require.Nil(t, err)
 
-	keyValuePairs, _, err := nodeHandler.GetFacadeHandler().GetKeyValuePairs(context.Background(), address, coreAPI.AccountQueryOptions{})
+	keyValuePairs, _, _, err := nodeHandler.GetFacadeHandler().GetKeyValuePairs(context.Background(), address, coreAPI.AccountQueryOptions{}, 0, nil)
 	require.Nil(t, err)
 	require.Equal(t, keyValueMap, keyValuePairs)
 }

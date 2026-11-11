@@ -1,6 +1,7 @@
 package groups_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -21,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/api/mock"
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/checkpoint"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/node/external"
 	"github.com/multiversx/mx-chain-go/statusHandler"
@@ -57,7 +59,9 @@ func TestNewNetworkGroup(t *testing.T) {
 }
 
 type esdtTokensResponseData struct {
-	Tokens []string `json:"tokens"`
+	Tokens        []string               `json:"tokens"`
+	BlockInfo     api.BlockInfo          `json:"blockInfo"`
+	IteratorState *checkpoint.Checkpoint `json:"iteratorState"`
 }
 
 type esdtTokensResponse struct {
@@ -376,9 +380,14 @@ func TestEconomicsMetrics_CannotGetStakeValues(t *testing.T) {
 
 func TestGetAllIssuedESDTs_ShouldWork(t *testing.T) {
 	tokens := []string{"tokenA", "tokenB"}
+	blockInfo := api.BlockInfo{Nonce: 3, Hash: "aa", RootHash: "bb"}
 	facade := mock.FacadeStub{
-		GetAllIssuedESDTsCalled: func(_ context.Context, _ string) ([]string, error) {
-			return tokens, nil
+		GetAllIssuedESDTsCalled: func(_ context.Context, tokenType string, options api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint) ([]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
+			assert.Equal(t, "", tokenType)
+			assert.Equal(t, api.AccountQueryOptions{}, options)
+			assert.Zero(t, numKeys)
+			assert.Nil(t, iteratorState)
+			return tokens, nil, blockInfo, nil
 		},
 	}
 
@@ -396,13 +405,60 @@ func TestGetAllIssuedESDTs_ShouldWork(t *testing.T) {
 	assert.Equal(t, resp.Code, http.StatusOK)
 
 	assert.Equal(t, tokens, response.Data.Tokens)
+	assert.Equal(t, blockInfo, response.Data.BlockInfo)
+	assert.Nil(t, response.Data.IteratorState)
+}
+
+func TestGetAllIssuedESDTs_PagesThroughGetAndPost(t *testing.T) {
+	givenCheckpoint := &checkpoint.Checkpoint{BlockNonce: 5, BlockHash: "aa", BlockRootHash: "bb", IteratorState: [][]byte{[]byte("s")}}
+	nextCheckpoint := &checkpoint.Checkpoint{BlockNonce: 5, BlockHash: "aa", BlockRootHash: "bb", IteratorState: [][]byte{[]byte("t")}}
+	facade := mock.FacadeStub{
+		GetAllIssuedESDTsCalled: func(_ context.Context, tokenType string, options api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint) ([]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
+			assert.Equal(t, core.FungibleESDT, tokenType)
+			assert.Equal(t, api.AccountQueryOptions{BlockNonce: core.OptionalUint64{Value: 5, HasValue: true}}, options)
+			assert.Equal(t, uint(7), numKeys)
+			assert.Equal(t, givenCheckpoint, iteratorState)
+			return []string{"tokenA"}, nextCheckpoint, api.BlockInfo{}, nil
+		},
+	}
+
+	networkGroup, err := groups.NewNetworkGroup(&facade)
+	require.NoError(t, err)
+	ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
+
+	encodedCheckpoint, err := checkpoint.Encode(givenCheckpoint)
+	require.NoError(t, err)
+	req, _ := http.NewRequest("GET", "/network/esdt/fungible-tokens?blockNonce=5&numKeys=7&iteratorState="+encodedCheckpoint, nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response := esdtTokensResponse{}
+	loadResponse(resp.Body, &response)
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, []string{"tokenA"}, response.Data.Tokens)
+	assert.Equal(t, nextCheckpoint, response.Data.IteratorState)
+
+	numKeys := uint(7)
+	body, _ := json.Marshal(groups.PagedRequestBody{NumKeys: &numKeys, IteratorState: givenCheckpoint})
+	req, _ = http.NewRequest("POST", "/network/esdt/fungible-tokens?blockNonce=5", bytes.NewBuffer(body))
+	resp = httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response = esdtTokensResponse{}
+	loadResponse(resp.Body, &response)
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, []string{"tokenA"}, response.Data.Tokens)
+	assert.Equal(t, nextCheckpoint, response.Data.IteratorState)
+
+	req, _ = http.NewRequest("GET", "/network/esdts?iteratorState=!!!", nil)
+	resp = httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
 }
 
 func TestGetAllIssuedESDTs_Error(t *testing.T) {
 	localErr := fmt.Errorf("%s", "local error")
 	facade := mock.FacadeStub{
-		GetAllIssuedESDTsCalled: func(_ context.Context, _ string) ([]string, error) {
-			return nil, localErr
+		GetAllIssuedESDTsCalled: func(_ context.Context, _ string, _ api.AccountQueryOptions, _ uint, _ *checkpoint.Checkpoint) ([]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
+			return nil, nil, api.BlockInfo{}, localErr
 		},
 	}
 
@@ -1136,6 +1192,7 @@ func getNetworkRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/status", Open: true},
 					{Name: "/economics", Open: true},
 					{Name: "/esdts", Open: true},
+					{Name: "/esdt/fungible-tokens", Open: true},
 					{Name: "/total-staked", Open: true},
 					{Name: "/enable-epochs", Open: true},
 					{Name: "/enable-epochs-v2", Open: true},
