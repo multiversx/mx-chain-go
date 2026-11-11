@@ -31,6 +31,20 @@ func parseUint32UrlParam(c *gin.Context, name string) (core.OptionalUint32, erro
 	return core.OptionalUint32{Value: uint32(value), HasValue: true}, nil
 }
 
+func parseUintUrlParam(c *gin.Context, name string) (uint, error) {
+	param := c.Request.URL.Query().Get(name)
+	if param == "" {
+		return 0, nil
+	}
+
+	value, err := strconv.ParseUint(param, 10, 0)
+	if err != nil {
+		return 0, err
+	}
+
+	return uint(value), nil
+}
+
 func parseUint64UrlParam(c *gin.Context, name string) (core.OptionalUint64, error) {
 	param := c.Request.URL.Query().Get(name)
 	if param == "" {

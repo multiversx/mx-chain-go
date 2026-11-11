@@ -2,7 +2,6 @@ package groups
 
 import (
 	"context"
-	stderrors "errors"
 	"fmt"
 	"net/http"
 	"sync"
@@ -16,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/api/shared/logging"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/checkpoint"
 	"github.com/multiversx/mx-chain-go/node/external"
 )
 
@@ -45,7 +45,7 @@ type networkFacadeHandler interface {
 	GetDirectStakedList() ([]*api.DirectStakedValue, error)
 	GetDelegatorsList() ([]*api.Delegator, error)
 	StatusMetrics() external.StatusMetricsHandler
-	GetAllIssuedESDTs(ctx context.Context, tokenType string) ([]string, error)
+	GetAllIssuedESDTs(ctx context.Context, tokenType string, options api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint) ([]string, *checkpoint.Checkpoint, api.BlockInfo, error)
 	GetTokenSupply(token string) (*api.ESDTSupply, error)
 	GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string, error)
 	GetGenesisBalances() ([]*common.InitialAccountAPI, error)
@@ -119,8 +119,18 @@ func NewNetworkGroup(facade networkFacadeHandler) (*networkGroup, error) {
 			Handler: ng.getHandlerFuncForEsdt(""),
 		},
 		{
+			Path:    getESDTsPath,
+			Method:  http.MethodPost,
+			Handler: ng.getHandlerFuncForEsdt(""),
+		},
+		{
 			Path:    getFFTsPath,
 			Method:  http.MethodGet,
+			Handler: ng.getHandlerFuncForEsdt(core.FungibleESDT),
+		},
+		{
+			Path:    getFFTsPath,
+			Method:  http.MethodPost,
 			Handler: ng.getHandlerFuncForEsdt(core.FungibleESDT),
 		},
 		{
@@ -129,8 +139,18 @@ func NewNetworkGroup(facade networkFacadeHandler) (*networkGroup, error) {
 			Handler: ng.getHandlerFuncForEsdt(core.SemiFungibleESDT),
 		},
 		{
+			Path:    getSFTsPath,
+			Method:  http.MethodPost,
+			Handler: ng.getHandlerFuncForEsdt(core.SemiFungibleESDT),
+		},
+		{
 			Path:    getNFTsPath,
 			Method:  http.MethodGet,
+			Handler: ng.getHandlerFuncForEsdt(core.NonFungibleESDTv2),
+		},
+		{
+			Path:    getNFTsPath,
+			Method:  http.MethodPost,
 			Handler: ng.getHandlerFuncForEsdt(core.NonFungibleESDTv2),
 		},
 		{
@@ -320,31 +340,19 @@ func (ng *networkGroup) economicsMetrics(c *gin.Context) {
 
 func (ng *networkGroup) getHandlerFuncForEsdt(tokenType string) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		tokens, err := ng.getFacade().GetAllIssuedESDTs(c.Request.Context(), tokenType)
+		request, err := ExtractPagedRequest(c)
 		if err != nil {
-			if stderrors.Is(err, common.ErrTrieOperationsBusy) {
-				shared.RespondWith(c, http.StatusTooManyRequests, nil, err.Error(), shared.ReturnCodeSystemBusy)
-				return
-			}
-			c.JSON(
-				http.StatusInternalServerError,
-				shared.GenericAPIResponse{
-					Data:  nil,
-					Error: err.Error(),
-					Code:  shared.ReturnCodeInternalError,
-				},
-			)
+			RespondWithPageError(c, errors.ErrGetESDTTokens, err)
 			return
 		}
 
-		c.JSON(
-			http.StatusOK,
-			shared.GenericAPIResponse{
-				Data:  gin.H{"tokens": tokens},
-				Error: "",
-				Code:  shared.ReturnCodeSuccess,
-			},
-		)
+		tokens, iteratorState, blockInfo, err := ng.getFacade().GetAllIssuedESDTs(c.Request.Context(), tokenType, request.Options, request.NumKeys, request.IteratorState)
+		if err != nil {
+			RespondWithPageError(c, errors.ErrGetESDTTokens, err)
+			return
+		}
+
+		RespondWithPage(c, gin.H{"tokens": tokens, "blockInfo": blockInfo}, iteratorState)
 	}
 }
 

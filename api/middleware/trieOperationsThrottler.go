@@ -21,7 +21,7 @@ func NewTrieOperationsThrottler(cfg config.TrieOperationsConfig) *trieOperations
 
 func (t *trieOperationsThrottler) MiddlewareHandlerFunc() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if !isTrieListing(c) {
+		if !isTrieOperation(c) {
 			c.Next()
 			return
 		}
@@ -39,18 +39,16 @@ func (t *trieOperationsThrottler) MiddlewareHandlerFunc() gin.HandlerFunc {
 	}
 }
 
-func isTrieListing(c *gin.Context) bool {
-	if c.Request.Method == http.MethodPost {
-		return c.FullPath() == "/address/iterate-keys"
-	}
-	if c.Request.Method != http.MethodGet {
-		return false
-	}
+// isTrieOperation matches the routes that walk a trie, whatever the HTTP method
+func isTrieOperation(c *gin.Context) bool {
 	switch c.FullPath() {
 	case "/address/:address":
+		if c.Request.Method == http.MethodPost {
+			return true // the POST route exists for paging only
+		}
 		withKeys, _ := strconv.ParseBool(c.Query("withKeys"))
 		return withKeys
-	case "/address/:address/keys", "/address/:address/esdt", "/address/:address/esdts/roles",
+	case "/address/iterate-keys", "/address/:address/keys", "/address/:address/esdt", "/address/:address/esdts/roles",
 		"/address/:address/esdts-with-role/:role", "/address/:address/registered-nfts",
 		"/network/esdts", "/network/esdt/fungible-tokens", "/network/esdt/semi-fungible-tokens",
 		"/network/esdt/non-fungible-tokens":

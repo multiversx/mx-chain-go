@@ -2,7 +2,7 @@ package dfsTrieIterator
 
 import (
 	"context"
-	"encoding/hex"
+	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing"
@@ -11,6 +11,13 @@ import (
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/leavesRetriever/trieNodeData"
+)
+
+// numNibbleValues bounds the symbols of a path in the iterator state: the nibbles of a key, and the terminator
+// (the child of a branch holding the value of the key ending there) as the last symbol only
+const (
+	numNibbleValues = 16
+	terminator      = 16
 )
 
 type dfsIterator struct {
@@ -57,6 +64,12 @@ func getNextNodesFromInitialState(initialState [][]byte, hashSize uint) ([]commo
 
 		nodeHash := state[:hashSize]
 		key := state[hashSize:]
+		for j, symbol := range key {
+			isTerminator := symbol == terminator && j == len(key)-1
+			if symbol >= numNibbleValues && !isTerminator {
+				return nil, trie.ErrInvalidIteratorState
+			}
+		}
 
 		kb := keyBuilder.NewKeyBuilder()
 		kb.BuildKey(key)
@@ -82,55 +95,62 @@ func getIteratorStateFromNextNodes(nextNodes []common.TrieNodeData) [][]byte {
 	return iteratorState
 }
 
-// GetLeaves retrieves leaves from the trie. It stops either when the number of leaves is reached or the context is done.
-func (it *dfsIterator) GetLeaves(numLeaves int, maxSize uint64, leavesParser common.TrieLeafParser, ctx context.Context) (map[string]string, error) {
-	retrievedLeaves := make(map[string]string)
-	leavesSize := uint64(0)
+// IterateLeaves walks the trie from the current iterator state and calls visit for every leaf. It stops between
+// nodes when numLeaves accepted leaves (0 means no limit) or maxSize bytes, as reported by the visitor, were reached,
+// when the context is done or when there are no more nodes to visit. A visitor error aborts the iteration.
+func (it *dfsIterator) IterateLeaves(numLeaves int, maxSize uint64, leavesParser common.TrieLeafParser, ctx context.Context, visit common.LeafVisitor) error {
+	numAccepted := 0
+	size := uint64(0)
 	for {
-		nextNodes := make([]common.TrieNodeData, 0)
-		if leavesSize >= maxSize {
-			return retrievedLeaves, nil
+		if size >= maxSize {
+			return nil
 		}
 
-		if len(retrievedLeaves) >= numLeaves && numLeaves != 0 {
-			return retrievedLeaves, nil
+		if numAccepted >= numLeaves && numLeaves != 0 {
+			return nil
 		}
 
 		if it.FinishedIteration() {
-			return retrievedLeaves, nil
+			return nil
 		}
 
 		if common.IsContextDone(ctx) {
-			return retrievedLeaves, nil
+			return nil
 		}
 
 		nextNode := it.nextNodes[0]
 		nodeHash := nextNode.GetData()
 		childrenNodes, err := trie.GetNodeDataFromHash(nodeHash, nextNode.GetKeyBuilder(), it.db, it.marshaller, it.hasher)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
+		nextNodes := make([]common.TrieNodeData, 0)
 		for _, childNode := range childrenNodes {
-			if childNode.IsLeaf() {
-				key, err := childNode.GetKeyBuilder().GetKey()
-				if err != nil {
-					return nil, err
-				}
-
-				keyValHolder, err := leavesParser.ParseLeaf(key, childNode.GetData(), childNode.GetVersion())
-				if err != nil {
-					return nil, err
-				}
-
-				hexKey := hex.EncodeToString(keyValHolder.Key())
-				hexData := hex.EncodeToString(keyValHolder.Value())
-				retrievedLeaves[hexKey] = hexData
-				leavesSize += uint64(len(hexKey) + len(hexData))
+			if !childNode.IsLeaf() {
+				nextNodes = append(nextNodes, childNode)
 				continue
 			}
 
-			nextNodes = append(nextNodes, childNode)
+			key, err := childNode.GetKeyBuilder().GetKey()
+			if err != nil {
+				// the key of a leaf is built from the path of the state: a path that does not fit is not a state
+				return fmt.Errorf("%w: %v", trie.ErrInvalidIteratorState, err)
+			}
+
+			leaf, err := leavesParser.ParseLeaf(key, childNode.GetData(), childNode.GetVersion())
+			if err != nil {
+				return err
+			}
+
+			accepted, leafSize, err := visit(leaf)
+			if err != nil {
+				return err
+			}
+			if accepted {
+				numAccepted++
+				size += leafSize
+			}
 		}
 
 		it.nextNodes = append(nextNodes, it.nextNodes[1:]...)
@@ -149,9 +169,4 @@ func (it *dfsIterator) GetIteratorState() [][]byte {
 // FinishedIteration checks if the iterator has finished the iteration.
 func (it *dfsIterator) FinishedIteration() bool {
 	return len(it.nextNodes) == 0
-}
-
-// IsInterfaceNil returns true if there is no value under the interface
-func (it *dfsIterator) IsInterfaceNil() bool {
-	return it == nil
 }

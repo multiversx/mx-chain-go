@@ -121,6 +121,9 @@ var ErrDifferentSenderShardId = errors.New("different shard ID between the trans
 // ErrInvalidESDTRole signals that an invalid ESDT role has been provided
 var ErrInvalidESDTRole = errors.New("invalid ESDT role")
 
+// ErrSystemSCAccountNotFound signals that the account of a system smart contract was not found
+var ErrSystemSCAccountNotFound = errors.New("system smart contract account not found")
+
 // ErrMetachainOnlyEndpoint signals that an endpoint was called, but it is only available for metachain nodes
 var ErrMetachainOnlyEndpoint = errors.New("the endpoint is only available on metachain nodes")
 

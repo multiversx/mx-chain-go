@@ -1538,6 +1538,34 @@ func TestGetNodeDataFromHash(t *testing.T) {
 	assert.Equal(t, uint64(hashSize+keySize), thirdChildData.Size())
 	assert.False(t, thirdChildData.IsLeaf())
 
+	t.Run("node not found in storage", func(t *testing.T) {
+		t.Parallel()
+
+		missingNodeData, missingErr := trie.GetNodeDataFromHash([]byte("missing"), keyBuilder.NewKeyBuilder(), tr.GetStorageManager(), &marshal.GogoProtoMarshalizer{}, &testscommon.KeccakMock{})
+		assert.True(t, errors.Is(missingErr, trie.ErrIteratorNodeUnavailable))
+		assert.Nil(t, missingNodeData)
+	})
+	t.Run("other storage errors are not classified as unavailable", func(t *testing.T) {
+		t.Parallel()
+
+		getNodeDataWithStorageError := func(storageErr error) error {
+			db := &storageManager.StorageManagerStub{
+				GetCalled: func(_ []byte) ([]byte, error) {
+					return nil, storageErr
+				},
+			}
+			failedNodeData, failedErr := trie.GetNodeDataFromHash(rootHash, keyBuilder.NewKeyBuilder(), db, &marshal.GogoProtoMarshalizer{}, &testscommon.KeccakMock{})
+			assert.Nil(t, failedNodeData)
+			assert.False(t, errors.Is(failedErr, trie.ErrIteratorNodeUnavailable))
+			assert.Contains(t, failedErr.Error(), storageErr.Error())
+
+			return failedErr
+		}
+
+		assert.True(t, core.IsClosingError(getNodeDataWithStorageError(core.ErrContextClosing)))
+		assert.True(t, core.IsClosingError(getNodeDataWithStorageError(core.ErrDBIsClosed)))
+		assert.True(t, core.IsGetNodeFromDBError(getNodeDataWithStorageError(errors.New("storage error"))))
+	})
 }
 
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {

@@ -455,17 +455,15 @@ type TrieNodeData interface {
 	GetVersion() core.TrieNodeVersion
 }
 
-// DfsIterator is used to iterate the trie nodes in a depth-first search manner
-type DfsIterator interface {
-	GetLeaves(numLeaves int, maxSize uint64, leavesParser TrieLeafParser, ctx context.Context) (map[string]string, error)
-	GetIteratorState() [][]byte
-	IsInterfaceNil() bool
-}
+// LeafVisitor is called by a trie iteration for every leaf. It returns whether the leaf was accepted (counted
+// towards the requested number of leaves) and its size, which is charged against the iteration size limit only
+// when the leaf was accepted
+type LeafVisitor func(leaf core.KeyValueHolder) (accepted bool, size uint64, err error)
 
-// TrieLeavesRetriever is used to retrieve the leaves from the trie. If there is a saved checkpoint for the iterator id,
-// it will continue to iterate from the checkpoint.
+// TrieLeavesRetriever walks the leaves of a trie from an iterator state, returning the state the walk can be
+// resumed from
 type TrieLeavesRetriever interface {
-	GetLeaves(numLeaves int, iteratorState [][]byte, leavesParser TrieLeafParser, ctx context.Context) (map[string]string, [][]byte, error)
+	IterateLeaves(numLeaves int, maxSize uint64, iteratorState [][]byte, storage StorageManager, leavesParser TrieLeafParser, ctx context.Context, visit LeafVisitor) ([][]byte, error)
 	IsInterfaceNil() bool
 }
 

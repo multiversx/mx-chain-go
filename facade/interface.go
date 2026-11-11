@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/checkpoint"
 	"github.com/multiversx/mx-chain-go/debug"
 	"github.com/multiversx/mx-chain-go/heartbeat/data"
 	"github.com/multiversx/mx-chain-go/node/external"
@@ -40,28 +41,28 @@ type NodeHandler interface {
 	GetGuardianData(address string, options api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error)
 
 	// GetKeyValuePairs returns the key-value pairs under a given address
-	GetKeyValuePairs(address string, options api.AccountQueryOptions, ctx context.Context) (map[string]string, api.BlockInfo, error)
+	GetKeyValuePairs(address string, options api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint, ctx context.Context) (map[string]string, *checkpoint.Checkpoint, api.BlockInfo, error)
 
 	// IterateKeys returns the key-value pairs under a given address starting from a given state
 	IterateKeys(address string, numKeys uint, iteratorState [][]byte, options api.AccountQueryOptions, ctx context.Context) (map[string]string, [][]byte, api.BlockInfo, error)
 
 	// GetAllIssuedESDTs returns all the issued esdt tokens from esdt system smart contract
-	GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]string, error)
+	GetAllIssuedESDTs(tokenType string, options api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint, ctx context.Context) ([]string, *checkpoint.Checkpoint, api.BlockInfo, error)
 
 	// GetESDTData returns the esdt data from a given account, given key and given nonce
 	GetESDTData(address, tokenID string, nonce uint64, options api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error)
 
 	// GetESDTsRoles returns the token identifiers and the roles for a given address
-	GetESDTsRoles(address string, options api.AccountQueryOptions, ctx context.Context) (map[string][]string, api.BlockInfo, error)
+	GetESDTsRoles(address string, options api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint, ctx context.Context) (map[string][]string, *checkpoint.Checkpoint, api.BlockInfo, error)
 
 	// GetNFTTokenIDsRegisteredByAddress returns all the token identifiers for semi or non fungible tokens registered by the address
-	GetNFTTokenIDsRegisteredByAddress(address string, options api.AccountQueryOptions, ctx context.Context) ([]string, api.BlockInfo, error)
+	GetNFTTokenIDsRegisteredByAddress(address string, options api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint, ctx context.Context) ([]string, *checkpoint.Checkpoint, api.BlockInfo, error)
 
 	// GetESDTsWithRole returns the token identifiers where the specified address has the given role
-	GetESDTsWithRole(address string, role string, options api.AccountQueryOptions, ctx context.Context) ([]string, api.BlockInfo, error)
+	GetESDTsWithRole(address string, role string, options api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint, ctx context.Context) ([]string, *checkpoint.Checkpoint, api.BlockInfo, error)
 
 	// GetAllESDTTokens returns the value of a key from a given account
-	GetAllESDTTokens(address string, options api.AccountQueryOptions, ctx context.Context) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error)
+	GetAllESDTTokens(address string, options api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint, ctx context.Context) (map[string]*esdt.ESDigitalToken, *checkpoint.Checkpoint, api.BlockInfo, error)
 
 	// GetTokenSupply returns the provided token supply from current shard
 	GetTokenSupply(token string) (*api.ESDTSupply, error)
@@ -82,7 +83,7 @@ type NodeHandler interface {
 
 	// GetAccountWithKeys returns an accountResponse containing information
 	// about the account correlated with provided address and all keys
-	GetAccountWithKeys(address string, options api.AccountQueryOptions, ctx context.Context) (api.AccountResponse, api.BlockInfo, error)
+	GetAccountWithKeys(address string, options api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint, ctx context.Context) (api.AccountResponse, *checkpoint.Checkpoint, api.BlockInfo, error)
 
 	// GetCode returns the code for the given code hash
 	GetCode(codeHash []byte, options api.AccountQueryOptions) ([]byte, api.BlockInfo)
