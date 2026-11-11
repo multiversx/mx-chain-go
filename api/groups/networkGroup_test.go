@@ -511,16 +511,6 @@ func TestDirectStakedInfo_ShouldWork(t *testing.T) {
 	assert.True(t, valuesFoundInResponse)
 }
 
-type directStakedInfoResponse struct {
-	Data struct {
-		List          []*api.DirectStakedValue `json:"list"`
-		BlockInfo     api.BlockInfo            `json:"blockInfo"`
-		IteratorState *checkpoint.Checkpoint   `json:"iteratorState"`
-	} `json:"data"`
-	Error string `json:"error"`
-	Code  string `json:"code"`
-}
-
 func directStakedFoundInResponse(response string, stakedData api.DirectStakedValue) bool {
 	return strings.Contains(response, stakedData.Address) && strings.Contains(response, stakedData.Total) &&
 		strings.Contains(response, stakedData.BaseStaked) && strings.Contains(response, stakedData.TopUp)
@@ -618,16 +608,6 @@ func delegatorFoundInResponse(response string, delegator api.Delegator) bool {
 	}
 
 	return found
-}
-
-type delegatedInfoResponse struct {
-	Data struct {
-		List          []*api.Delegator       `json:"list"`
-		BlockInfo     api.BlockInfo          `json:"blockInfo"`
-		IteratorState *checkpoint.Checkpoint `json:"iteratorState"`
-	} `json:"data"`
-	Error string `json:"error"`
-	Code  string `json:"code"`
 }
 
 func TestDelegatedInfo_CannotGetDelegatedList(t *testing.T) {
