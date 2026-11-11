@@ -90,6 +90,20 @@ func TestNewIterator(t *testing.T) {
 		assert.Nil(t, err)
 		assert.NotNil(t, iterator)
 	})
+	t.Run("path longer than the maximum is invalid", func(t *testing.T) {
+		t.Parallel()
+
+		nodeHash := bytes.Repeat([]byte{1}, 32)
+		tooLong := append(append([]byte{}, nodeHash...), make([]byte, maxPathLength+1)...)
+		iterator, err := NewIterator([][]byte{nodeHash, tooLong}, testscommon.NewMemDbMock(), &marshallerMock.MarshalizerMock{}, &hashingMocks.HasherMock{})
+		assert.Nil(t, iterator)
+		assert.Equal(t, trie.ErrInvalidIteratorState, err)
+
+		longest := append(append([]byte{}, nodeHash...), make([]byte, maxPathLength)...)
+		iterator, err = NewIterator([][]byte{nodeHash, longest}, testscommon.NewMemDbMock(), &marshallerMock.MarshalizerMock{}, &hashingMocks.HasherMock{})
+		assert.Nil(t, err)
+		assert.Equal(t, [][]byte{nodeHash, longest}, iterator.GetIteratorState())
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 

@@ -240,7 +240,7 @@ func (n *Node) getEsdtDataFromLeaf(leaf core.KeyValueHolder) (*systemSmartContra
 
 	err := n.coreComponents.InternalMarshalizer().Unmarshal(esdtToken, leaf.Value())
 	if err != nil {
-		log.Warn("cannot unmarshal esdt data", "err", err)
+		log.Trace("cannot unmarshal esdt data", "err", err)
 		return nil, false
 	}
 
@@ -568,8 +568,7 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 }
 
 // esdtTokensCollector visits the ESDT leaves of the user account and collects the tokens with a positive balance,
-// decoded from the leaves (the NFT metadata may live in the system account). A token that can not be decoded is
-// logged and skipped
+// decoded from the leaves (the NFT metadata may live in the system account). A token that can not be decoded is skipped
 func (n *Node) esdtTokensCollector(systemAccount vmcommon.UserAccountHandler, tokens map[string]*esdt.ESDigitalToken) common.LeafVisitor {
 	esdtPrefix := []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier)
 	lenESDTPrefix := len(esdtPrefix)
@@ -584,7 +583,7 @@ func (n *Node) esdtTokensCollector(systemAccount vmcommon.UserAccountHandler, to
 
 		esdtToken, err := n.esdtTokenFromLeaf(leaf, nonce, systemAccount)
 		if err != nil {
-			log.Warn("cannot get ESDT token", "token name", tokenName, "error", err)
+			log.Trace("cannot get ESDT token", "token name", tokenName, "error", err)
 			return false, 0, nil
 		}
 

@@ -20,6 +20,9 @@ const (
 	terminator      = 16
 )
 
+// maxPathLength bounds the path of a node in the iterator state
+const maxPathLength = 4096
+
 type dfsIterator struct {
 	nextNodes  []common.TrieNodeData
 	db         common.TrieStorageInteractor
@@ -58,7 +61,7 @@ func NewIterator(initialState [][]byte, db common.TrieStorageInteractor, marshal
 func getNextNodesFromInitialState(initialState [][]byte, hashSize uint) ([]common.TrieNodeData, error) {
 	nextNodes := make([]common.TrieNodeData, len(initialState))
 	for i, state := range initialState {
-		if len(state) < int(hashSize) {
+		if len(state) < int(hashSize) || len(state)-int(hashSize) > maxPathLength {
 			return nil, trie.ErrInvalidIteratorState
 		}
 

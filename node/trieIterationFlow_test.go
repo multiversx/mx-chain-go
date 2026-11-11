@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -34,9 +35,47 @@ import (
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/trie/leavesRetriever"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 )
+
+// warningsCounter counts the log lines with the given message written at warn level or above. It is the formatter
+// and the (discarding) writer of its log observer, both safe to be called concurrently
+type warningsCounter struct {
+	message string
+	num     atomic.Int32
+}
+
+// Output counts the line
+func (wc *warningsCounter) Output(line logger.LogLineHandler) []byte {
+	if line.GetLogLevel() >= int32(logger.LogWarning) && line.GetMessage() == wc.message {
+		wc.num.Add(1)
+	}
+
+	return nil
+}
+
+// Write discards the output
+func (wc *warningsCounter) Write(p []byte) (int, error) {
+	return len(p), nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (wc *warningsCounter) IsInterfaceNil() bool {
+	return wc == nil
+}
+
+// countWarnings observes the logs until the end of the test, counting the warnings with the given message
+func countWarnings(t *testing.T, message string) *warningsCounter {
+	counter := &warningsCounter{message: message}
+	require.Nil(t, logger.AddLogObserver(counter, counter))
+	t.Cleanup(func() {
+		_ = logger.RemoveLogObserver(counter)
+	})
+
+	return counter
+}
 
 type trieIterationTestEnv struct {
 	node          *node.Node
@@ -370,6 +409,13 @@ func TestNode_IterateDataTrie(t *testing.T) {
 		_, _, err = env.node.IterateDataTrie(context.Background(), env.address, api.AccountQueryOptions{BlockRootHash: []byte{0xbb}}, 0, conflicting, collectPairs(pairs))
 		require.ErrorIs(t, err, common.ErrInvalidIteratorState)
 		require.Empty(t, env.loadOptions[1:]) // rejected before loading the account
+
+		// an entry with an oversized path is invalid, whatever its node: it is rejected before any node is read
+		oversized := &checkpoint.Checkpoint{IteratorState: [][]byte{append(bytes.Repeat([]byte{7}, 32), make([]byte, 4097)...)}}
+		_, newState, err := env.node.IterateDataTrie(context.Background(), env.address, api.AccountQueryOptions{}, 0, oversized, collectPairs(pairs))
+		require.ErrorIs(t, err, common.ErrInvalidIteratorState)
+		require.Nil(t, newState)
+		require.Empty(t, pairs)
 
 		cancelledCtx, cancel := context.WithCancel(context.Background())
 		cancel()
@@ -809,6 +855,32 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 		_, _, _, err = env.node.GetAllESDTTokens(env.address, api.AccountQueryOptions{}, 0, nil, cancelledCtx)
 		require.ErrorIs(t, err, node.ErrTrieOperationsTimeout)
 	})
+	t.Run("legacy ESDT leaves under a shifted path are skipped without a warning", func(t *testing.T) {
+		t.Parallel()
+
+		warnings := countWarnings(t, "cannot get ESDT token")
+		env := newTrieIterationTestEnvWithLeaves(t, nil, config.TrieOperationsConfig{})
+		account := accountWithLeaves(t, env.pubKey, map[string][]byte{
+			esdtKey("TKKR-7q8w9e"): marshalledToken(t, fungible),
+			esdtKey("TKKR-aaaaaa"): marshalledToken(t, fungible),
+			esdtKey("TKKR-bbbbbb"): marshalledToken(t, fungible),
+		})
+		env.userAccount = account
+
+		tokens, next, _, err := env.node.GetAllESDTTokens(env.address, api.AccountQueryOptions{}, 0, nil, context.Background())
+		require.Nil(t, err)
+		require.Nil(t, next)
+		require.Len(t, tokens, 3)
+
+		// two more symbols in front of the root make every key one byte longer, so the value of a legacy leaf is
+		// trimmed one byte short and the token can not be decoded
+		shifted := &checkpoint.Checkpoint{IteratorState: [][]byte{append(append([]byte{}, account.GetRootHash()...), 0, 0)}}
+		tokens, next, _, err = env.node.GetAllESDTTokens(env.address, api.AccountQueryOptions{}, 0, shifted, context.Background())
+		require.Nil(t, err)
+		require.Nil(t, next)
+		require.Empty(t, tokens)
+		require.Zero(t, warnings.num.Load())
+	})
 	t.Run("a stop while the metadata of a token is read happens after the token is complete", func(t *testing.T) {
 		t.Parallel()
 
@@ -891,6 +963,22 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 			require.Equal(t, api.BlockInfo{RootHash: hex.EncodeToString([]byte("main root"))}, blockInfo)
 			require.ElementsMatch(t, expected, identifiers, tokenType)
 		}
+	})
+	t.Run("leaves that are not tokens are skipped without a warning", func(t *testing.T) {
+		t.Parallel()
+
+		warnings := countWarnings(t, "cannot unmarshal esdt data")
+		leaves := esdtRegistryLeaves(t, tokens)
+		leaves["NOT-ATOKEN"] = []byte("not the data of a token")
+		leaves["NOT-ATOKEN2"] = []byte("not the data of a token either")
+		env := newTrieIterationTestEnvWithLeaves(t, leaves, config.TrieOperationsConfig{})
+		env.onMetachain(t)
+
+		identifiers, next, _, err := env.node.GetAllIssuedESDTs(core.FungibleESDT, api.AccountQueryOptions{}, 0, nil, context.Background())
+		require.Nil(t, err)
+		require.Nil(t, next)
+		require.Equal(t, []string{"TCK-RANDOM"}, identifiers)
+		require.Zero(t, warnings.num.Load())
 	})
 	t.Run("pages through the identifiers at the recorded state", func(t *testing.T) {
 		t.Parallel()

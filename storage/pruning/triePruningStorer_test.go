@@ -1,7 +1,9 @@
 package pruning_test
 
 import (
+	"errors"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -393,6 +395,131 @@ func TestTriePruningStorer_RemoveFromAllActiveEpochs(t *testing.T) {
 		assert.Nil(t, val)
 		assert.NotNil(t, err)
 	})
+}
+
+func TestTriePruningStorer_GetFromEpochDoesNotOpenClosedPersister(t *testing.T) {
+	t.Parallel()
+
+	args := getDefaultArgs()
+	args.EpochsData.NumOfActivePersisters = 2
+	args.EpochsData.NumOfEpochsToKeep = 5
+
+	mutCreates := sync.Mutex{}
+	numCreates := 0
+	persisterFactory := args.PersisterFactory
+	args.PersisterFactory = &mock.PersisterFactoryStub{
+		CreateCalled: func(path string) (storage.Persister, error) {
+			mutCreates.Lock()
+			numCreates++
+			mutCreates.Unlock()
+
+			return persisterFactory.Create(path)
+		},
+	}
+	getNumCreates := func() int {
+		mutCreates.Lock()
+		defer mutCreates.Unlock()
+
+		return numCreates
+	}
+
+	tps, _ := pruning.NewTriePruningStorer(args)
+	putInCurrentEpoch := func(epoch uint32, key []byte, val []byte) {
+		tps.SetEpochForPutOperation(epoch)
+		require.Nil(t, tps.Put(key, val))
+		require.Nil(t, tps.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal)))
+	}
+	keys := [][]byte{[]byte("key0"), []byte("key1"), []byte("key2"), []byte("key3"), []byte("key4")}
+	vals := [][]byte{[]byte("val0"), []byte("val1"), []byte("val2"), []byte("val3"), []byte("val4")}
+
+	putInCurrentEpoch(0, keys[0], vals[0])
+	require.Nil(t, tps.ChangeEpochSimple(1))
+	putInCurrentEpoch(1, keys[1], vals[1])
+	tps.ClearCache()
+
+	// both epochs are open: the keys are found in their own epoch only
+	for epoch := uint32(0); epoch < 2; epoch++ {
+		val, err := tps.GetFromEpoch(keys[epoch], epoch)
+		require.Nil(t, err)
+		require.Equal(t, vals[epoch], val)
+	}
+	val, err := tps.GetFromEpoch(keys[0], 1)
+	require.Nil(t, val)
+	require.True(t, storage.IsNotFoundInStorageErr(err))
+
+	// the epochs change: the persisters of the epochs 0 and 1 are closed, but kept (the persister of the epoch 2 is
+	// still needed, as the epoch 4 had no complete state when it started)
+	for epoch := uint32(2); epoch < 5; epoch++ {
+		require.Nil(t, tps.ChangeEpochSimple(epoch))
+		putInCurrentEpoch(epoch, keys[epoch], vals[epoch])
+	}
+	require.Equal(t, 3, tps.GetNumActivePersisters())
+	tps.ClearCache()
+	numCreatesBefore := getNumCreates()
+
+	// a closed persister is not opened for the read, even if it was read while it was open
+	for epoch := uint32(0); epoch < 2; epoch++ {
+		val, err = tps.GetFromEpoch(keys[epoch], epoch)
+		require.Nil(t, val)
+		require.True(t, storage.IsNotFoundInStorageErr(err))
+	}
+	// an epoch without a persister
+	val, err = tps.GetFromEpoch(keys[0], 100)
+	require.Nil(t, val)
+	require.True(t, storage.IsNotFoundInStorageErr(err))
+	// the open persisters are still read
+	for epoch := uint32(2); epoch < 5; epoch++ {
+		val, err = tps.GetFromEpoch(keys[epoch], epoch)
+		require.Nil(t, err)
+		require.Equal(t, vals[epoch], val)
+	}
+	require.Equal(t, numCreatesBefore, getNumCreates())
+
+	// the cache is searched first, whatever the epoch
+	putInCurrentEpoch(4, keys[0], vals[0])
+	val, err = tps.GetFromEpoch(keys[0], 0)
+	require.Nil(t, err)
+	require.Equal(t, vals[0], val)
+	require.Equal(t, numCreatesBefore, getNumCreates())
+
+	// a closed storer does not open its persisters for the read either
+	require.Nil(t, tps.Close())
+	tps.ClearCache()
+	val, err = tps.GetFromEpoch(keys[4], 4)
+	require.Nil(t, val)
+	require.True(t, storage.IsNotFoundInStorageErr(err))
+	require.Equal(t, numCreatesBefore, getNumCreates())
+}
+
+func TestTriePruningStorer_GetFromEpochReportsReadFailure(t *testing.T) {
+	t.Parallel()
+
+	errRead := errors.New("read failure")
+	args := getDefaultArgs()
+	args.PersisterFactory = &mock.PersisterFactoryStub{
+		CreateCalled: func(path string) (storage.Persister, error) {
+			return &mock.PersisterStub{
+				GetCalled: func(key []byte) ([]byte, error) {
+					if string(key) == "missing" {
+						return nil, storage.ErrKeyNotFound
+					}
+					return nil, errRead
+				},
+			}, nil
+		},
+	}
+	tps, _ := pruning.NewTriePruningStorer(args)
+
+	// a key that is not in the persister is not found, a failed read is reported as it is
+	val, err := tps.GetFromEpoch([]byte("missing"), 0)
+	require.Nil(t, val)
+	require.True(t, storage.IsNotFoundInStorageErr(err))
+	require.True(t, strings.Contains(err.Error(), args.Identifier))
+
+	val, err = tps.GetFromEpoch([]byte("key"), 0)
+	require.Nil(t, val)
+	require.Equal(t, errRead, err)
+	require.False(t, storage.IsNotFoundInStorageErr(err))
 }
 
 func TestTriePruningStorer_IsInterfaceNil(t *testing.T) {
