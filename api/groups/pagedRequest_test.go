@@ -246,39 +246,50 @@ func TestRespondWithPage(t *testing.T) {
 func TestRespondWithPageError(t *testing.T) {
 	t.Parallel()
 
-	for innerErr, expectedStatus := range map[error]int{
-		checkpoint.ErrInvalidCheckpoint:                                                  http.StatusBadRequest,
-		apiErrors.ErrBadUrlParams:                                                        http.StatusBadRequest,
-		apiErrors.ErrValidation:                                                          http.StatusBadRequest,
-		common.ErrInvalidIteratorState:                                                   http.StatusBadRequest,
-		common.ErrIteratorNodeUnavailable:                                                http.StatusBadRequest,
-		common.ErrTrieOperationsBusy:                                                     http.StatusTooManyRequests,
-		errors.New("storage error"):                                                      http.StatusInternalServerError,
-		errors.New("wrapped: " + "not matched"):                                          http.StatusInternalServerError,
-		fmt.Errorf("node: %w", common.ErrIteratorNodeUnavailable):                        http.StatusBadRequest,
-		fmt.Errorf("node: %w", common.ErrInvalidIteratorState):                           http.StatusBadRequest,
-		fmt.Errorf("node: %w", common.ErrTrieOperationsBusy):                             http.StatusTooManyRequests,
-		fmt.Errorf("%w: %w", apiErrors.ErrBadUrlParams, checkpoint.ErrInvalidCheckpoint): http.StatusBadRequest,
-		fmt.Errorf("%w: %w", apiErrors.ErrValidation, &http.MaxBytesError{Limit: 10}):    http.StatusRequestEntityTooLarge,
+	for innerErr, expected := range map[error]struct {
+		status int
+		code   shared.ReturnCode
+	}{
+		checkpoint.ErrInvalidCheckpoint:                                                  {http.StatusBadRequest, shared.ReturnCodeRequestError},
+		apiErrors.ErrBadUrlParams:                                                        {http.StatusBadRequest, shared.ReturnCodeRequestError},
+		apiErrors.ErrValidation:                                                          {http.StatusBadRequest, shared.ReturnCodeRequestError},
+		apiErrors.ErrEmptyAddress:                                                        {http.StatusBadRequest, shared.ReturnCodeRequestError},
+		common.ErrInvalidIteratorState:                                                   {http.StatusBadRequest, shared.ReturnCodeRequestError},
+		common.ErrIteratorNodeUnavailable:                                                {http.StatusBadRequest, shared.ReturnCodeIteratorStateUnavailable},
+		common.ErrTrieOperationsBusy:                                                     {http.StatusTooManyRequests, shared.ReturnCodeSystemBusy},
+		errors.New("storage error"):                                                      {http.StatusInternalServerError, shared.ReturnCodeInternalError},
+		errors.New("wrapped: " + "not matched"):                                          {http.StatusInternalServerError, shared.ReturnCodeInternalError},
+		errors.New(common.ErrIteratorNodeUnavailable.Error()):                            {http.StatusInternalServerError, shared.ReturnCodeInternalError},
+		fmt.Errorf("node: %w", common.ErrIteratorNodeUnavailable):                        {http.StatusBadRequest, shared.ReturnCodeIteratorStateUnavailable},
+		errors.Join(errors.New("context"), common.ErrIteratorNodeUnavailable):            {http.StatusBadRequest, shared.ReturnCodeIteratorStateUnavailable},
+		fmt.Errorf("node: %w", common.ErrInvalidIteratorState):                           {http.StatusBadRequest, shared.ReturnCodeRequestError},
+		fmt.Errorf("node: %w", common.ErrTrieOperationsBusy):                             {http.StatusTooManyRequests, shared.ReturnCodeSystemBusy},
+		fmt.Errorf("%w: %w", apiErrors.ErrBadUrlParams, checkpoint.ErrInvalidCheckpoint): {http.StatusBadRequest, shared.ReturnCodeRequestError},
+		fmt.Errorf("%w: %w", apiErrors.ErrValidation, &http.MaxBytesError{Limit: 10}):    {http.StatusRequestEntityTooLarge, shared.ReturnCodeRequestError},
 	} {
-		c, w := createPagedContext(http.MethodGet, "", "")
-		RespondWithPageError(c, apiErrors.ErrGetKeyValuePairs, innerErr)
-		require.Equal(t, expectedStatus, w.Code, innerErr.Error())
-		require.Contains(t, w.Body.String(), apiErrors.ErrGetKeyValuePairs.Error()+": "+innerErr.Error())
+		for _, method := range []string{http.MethodGet, http.MethodPost} {
+			c, w := createPagedContext(method, "", "")
+			RespondWithPageError(c, apiErrors.ErrGetKeyValuePairs, innerErr)
+			require.Equal(t, expected.status, w.Code, "%s: %s", method, innerErr)
+			response := shared.GenericAPIResponse{}
+			require.NoError(t, json.Unmarshal(w.Body.Bytes(), &response))
+			require.Equal(t, expected.code, response.Code, "%s: %s", method, innerErr)
+			require.Nil(t, response.Data)
+			require.Equal(t, apiErrors.ErrGetKeyValuePairs.Error()+": "+innerErr.Error(), response.Error)
+		}
 	}
 
-	c, w := createPagedContext(http.MethodGet, "", "")
-	RespondWithPageError(c, apiErrors.ErrGetKeyValuePairs, errors.Join(errors.New("context"), common.ErrIteratorNodeUnavailable))
-	require.Equal(t, http.StatusBadRequest, w.Code)
-
 	// a body above the limit read while decoding (unknown length) is reported like one announced by its length
-	c, w = createPagedContext(http.MethodPost, "", `{"numKeys": 1234567890}`)
+	c, w := createPagedContext(http.MethodPost, "", `{"numKeys": 1234567890}`)
 	c.Request.Body = http.MaxBytesReader(w, c.Request.Body, 10)
 	_, err := ExtractPagedRequest(c)
 	var tooLarge *http.MaxBytesError
 	require.ErrorAs(t, err, &tooLarge)
 	RespondWithPageError(c, apiErrors.ErrGetKeyValuePairs, err)
 	require.Equal(t, http.StatusRequestEntityTooLarge, w.Code)
+	response := shared.GenericAPIResponse{}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &response))
+	require.Equal(t, shared.ReturnCodeRequestError, response.Code)
 }
 
 func TestPagedHelpers_GetAndPostThroughServer(t *testing.T) {

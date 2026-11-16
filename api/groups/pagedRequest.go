@@ -152,20 +152,23 @@ func RespondWithPage(c *gin.Context, data gin.H, iteratorState *checkpoint.Check
 }
 
 // RespondWithPageError responds to a failed paginated request: a body above the limit is too large, a request that
-// can not be parsed or an iterator state that can not be used is a bad request, any other error is an internal
-// error (or system busy)
+// can not be parsed or an invalid iterator state is a bad request. Unavailable iterator state has a dedicated
+// response code so callers can distinguish it from invalid input. Any other error is internal (or system busy)
 func RespondWithPageError(c *gin.Context, err error, innerErr error) {
 	var tooLarge *http.MaxBytesError
 	if errors.As(innerErr, &tooLarge) {
 		shared.RespondWith(c, http.StatusRequestEntityTooLarge, nil, fmt.Sprintf("%s: %s", err.Error(), innerErr.Error()), shared.ReturnCodeRequestError)
 		return
 	}
+	if errors.Is(innerErr, common.ErrIteratorNodeUnavailable) {
+		shared.RespondWith(c, http.StatusBadRequest, nil, fmt.Sprintf("%s: %s", err.Error(), innerErr.Error()), shared.ReturnCodeIteratorStateUnavailable)
+		return
+	}
 	if errors.Is(innerErr, customErrors.ErrBadUrlParams) ||
 		errors.Is(innerErr, customErrors.ErrValidation) ||
 		errors.Is(innerErr, customErrors.ErrEmptyAddress) ||
 		errors.Is(innerErr, checkpoint.ErrInvalidCheckpoint) ||
-		errors.Is(innerErr, common.ErrInvalidIteratorState) ||
-		errors.Is(innerErr, common.ErrIteratorNodeUnavailable) {
+		errors.Is(innerErr, common.ErrInvalidIteratorState) {
 		shared.RespondWithValidationError(c, err, innerErr)
 		return
 	}

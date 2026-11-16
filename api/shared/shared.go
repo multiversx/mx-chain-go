@@ -53,6 +53,9 @@ const ReturnCodeInternalError ReturnCode = "internal_issue"
 // ReturnCodeRequestError defines a request which hasn't been executed successfully due to a bad request received
 const ReturnCodeRequestError ReturnCode = "bad_request"
 
+// ReturnCodeIteratorStateUnavailable identifies iterator state that this node cannot currently serve
+const ReturnCodeIteratorStateUnavailable ReturnCode = "iterator_state_unavailable"
+
 // ReturnCodeSystemBusy defines a request which hasn't been executed successfully due to too many requests
 const ReturnCodeSystemBusy ReturnCode = "system_busy"
 

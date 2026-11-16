@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/api/groups"
+	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/checkpoint"
 	"github.com/multiversx/mx-chain-go/config"
@@ -396,19 +397,24 @@ func TestChainSimulator_PagedTrieWalks_AccountAndRegistry(t *testing.T) {
 
 		p := client.get(keysPath, "iteratorState=***")
 		require.Equal(t, http.StatusBadRequest, p.status)
+		require.Equal(t, string(shared.ReturnCodeRequestError), p.response.Code)
 		require.Contains(t, p.response.Error, checkpoint.ErrInvalidCheckpoint.Error())
 
 		p = client.get(keysPath, "iteratorState="+base64.RawURLEncoding.EncodeToString([]byte(`{"blockRootHash":"zz"}`)))
 		require.Equal(t, http.StatusBadRequest, p.status)
+		require.Equal(t, string(shared.ReturnCodeRequestError), p.response.Code)
 
 		p = client.get(keysPath, "numKeys=-1")
 		require.Equal(t, http.StatusBadRequest, p.status)
+		require.Equal(t, string(shared.ReturnCodeRequestError), p.response.Code)
 
 		p = client.do(http.MethodPost, keysPath, []byte(`{"numKeys":`))
 		require.Equal(t, http.StatusBadRequest, p.status)
+		require.Equal(t, string(shared.ReturnCodeRequestError), p.response.Code)
 
 		p = client.post(keysPath, map[string]interface{}{"iteratorState": map[string]interface{}{"blockRootHash": "zz"}})
 		require.Equal(t, http.StatusBadRequest, p.status)
+		require.Equal(t, string(shared.ReturnCodeRequestError), p.response.Code)
 
 		unknownNode := make([]byte, 32)
 		_, _ = rand.Read(unknownNode)
@@ -417,14 +423,18 @@ func TestChainSimulator_PagedTrieWalks_AccountAndRegistry(t *testing.T) {
 		for _, method := range []string{http.MethodGet, http.MethodPost} {
 			p = client.requestPage(pageRequest{method: method, path: keysPath}, &unavailable)
 			require.Equal(t, http.StatusBadRequest, p.status, method)
+			require.Equal(t, string(shared.ReturnCodeIteratorStateUnavailable), p.response.Code, method)
 			require.Contains(t, p.response.Error, common.ErrIteratorNodeUnavailable.Error())
 		}
 
 		unknownRoot := *firstPage.iteratorState
 		unknownRoot.BlockRootHash = hex.EncodeToString(unknownNode)
-		p = client.requestPage(pageRequest{method: http.MethodGet, path: keysPath}, &unknownRoot)
-		require.Equal(t, http.StatusBadRequest, p.status)
-		require.Contains(t, p.response.Error, common.ErrIteratorNodeUnavailable.Error())
+		for _, method := range []string{http.MethodGet, http.MethodPost} {
+			p = client.requestPage(pageRequest{method: method, path: keysPath}, &unknownRoot)
+			require.Equal(t, http.StatusBadRequest, p.status, method)
+			require.Equal(t, string(shared.ReturnCodeIteratorStateUnavailable), p.response.Code, method)
+			require.Contains(t, p.response.Error, common.ErrIteratorNodeUnavailable.Error())
+		}
 	})
 }
 
