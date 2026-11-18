@@ -6,13 +6,18 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/multiversx/mx-chain-crypto-go/signing"
+	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
+	mclsig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/singlesig"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests"
 	chainSimulatorIntegrationTests "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/staking"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/vm"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -33,8 +38,9 @@ const (
 // testcase3 -- unJail transaction will be sent when staking v4 step2 is action --> node status should be `auction` after unjail
 // testcase4 -- unJail transaction will be sent when staking v4 step3 is action --> node status should be `auction` after unjail
 func TestChainSimulator_ValidatorJailUnJail(t *testing.T) {
+	t.Run("Supernova", func(t *testing.T) { testChainSimulatorJailAndUnJail(t, 11, "auction", true) })
 	if testing.Short() {
-		t.Skip("this is not a short test")
+		return
 	}
 
 	t.Run("staking ph 4 is not active", func(t *testing.T) {
@@ -54,7 +60,8 @@ func TestChainSimulator_ValidatorJailUnJail(t *testing.T) {
 	})
 }
 
-func testChainSimulatorJailAndUnJail(t *testing.T, targetEpoch int32, nodeStatusAfterUnJail string) {
+func testChainSimulatorJailAndUnJail(t *testing.T, targetEpoch int32, nodeStatusAfterUnJail string, qualify ...bool) {
+	supernova := len(qualify) > 0
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
@@ -68,7 +75,7 @@ func testChainSimulatorJailAndUnJail(t *testing.T, targetEpoch int32, nodeStatus
 	numOfShards := uint32(3)
 
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:         true,
+		BypassTxSignatureCheck:         !supernova,
 		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            defaultPathToInitialConfig,
@@ -83,6 +90,12 @@ func testChainSimulatorJailAndUnJail(t *testing.T, targetEpoch int32, nodeStatus
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			configs.SetStakingV4ActivationEpochs(cfg, stakingV4JailUnJailStep1EnableEpoch)
 			cfg.EpochConfig.EnableEpochs.AndromedaEnableEpoch = 100
+			if supernova {
+				configs.SetStakingV4ActivationEpochs(cfg, 1)
+				cfg.EpochConfig.EnableEpochs.AndromedaEnableEpoch = 1
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 2
+				cfg.RoundConfig.RoundActivations["SupernovaEnableRound"] = config.ActivationRoundByName{Round: "50"}
+			}
 			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 8 // 8 nodes until new nodes will be placed on queue
 			configs.SetMaxNumberOfNodesInConfigs(cfg, uint32(newNumNodes), 0, numOfShards)
 			configs.SetQuickJailRatingConfig(cfg)
@@ -96,18 +109,35 @@ func testChainSimulatorJailAndUnJail(t *testing.T, targetEpoch int32, nodeStatus
 	err = cs.GenerateBlocksUntilEpochIsReached(1)
 	require.Nil(t, err)
 
-	_, blsKeys, err := chainSimulator.GenerateBlsPrivateKeys(1)
+	if supernova {
+		chainSimulatorIntegrationTests.RequireSupernova(t, cs, numOfShards, 200)
+	}
+	privateKeys, blsKeys, err := chainSimulator.GenerateBlsPrivateKeys(1)
 	require.Nil(t, err)
 
 	mintValue := big.NewInt(0).Mul(chainSimulatorIntegrationTests.OneEGLD, big.NewInt(3000))
-	walletAddress, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
-	require.Nil(t, err)
+	wallet := integrationTests.CreateTestWalletAccount(cs.GetNodeHandler(0).GetShardCoordinator(), 0)
+	bech32, err := cs.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Encode(wallet.Address)
+	require.NoError(t, err)
+	walletAddress := dtos.WalletAddress{Bytes: wallet.Address, Bech32: bech32}
+	require.NoError(t, cs.SetStateMultiple([]*dtos.AddressState{{Address: bech32, Balance: mintValue.String()}}))
+	sign := func(tx *transaction.Transaction) {
+		message, err := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer, integrationTests.TestTxSignHasher)
+		require.NoError(t, err)
+		tx.Signature, err = wallet.SingleSigner.Sign(wallet.SkTxSign, message)
+		require.NoError(t, err)
+	}
+	key, err := signing.NewKeyGenerator(mcl.NewSuiteBLS12()).PrivateKeyFromByteArray(privateKeys[0])
+	require.NoError(t, err)
+	signature, err := mclsig.NewBlsSigner().Sign(key, wallet.Address)
+	require.NoError(t, err)
 
 	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
-	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], staking.MockBLSSignature)
+	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], hex.EncodeToString(signature))
 	txStake := chainSimulatorIntegrationTests.GenerateTransaction(walletAddress.Bytes, 0, vm.ValidatorSCAddress, chainSimulatorIntegrationTests.MinimumStakeValue, txDataField, staking.GasLimitForStakeOperation)
+	sign(txStake)
 	stakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, stakeTx)
@@ -128,6 +158,7 @@ func testChainSimulatorJailAndUnJail(t *testing.T, targetEpoch int32, nodeStatus
 	err = cs.GenerateBlocksUntilEpochIsReached(targetEpoch)
 	require.Nil(t, err)
 
+	sign(txUnJail)
 	unJailTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnJail, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, unJailTx)
@@ -140,6 +171,9 @@ func testChainSimulatorJailAndUnJail(t *testing.T, targetEpoch int32, nodeStatus
 	require.Equal(t, "staked", status)
 
 	staking.CheckValidatorStatus(t, cs, blsKeys[0], nodeStatusAfterUnJail)
+	if supernova {
+		require.NoError(t, cs.AddValidatorKeys(privateKeys))
+	}
 
 	err = cs.GenerateBlocksUntilEpochIsReached(targetEpoch + 1)
 	require.Nil(t, err)

@@ -13,6 +13,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/api/groups"
 	"github.com/multiversx/mx-chain-go/config"
+	chainTests "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
@@ -29,10 +30,8 @@ type esdtTokensCompleteResponse struct {
 	Code  string
 }
 
+// Included in the bounded Supernova smoke inventory, including short/race runs.
 func TestChainSimulator_Api_TokenType(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	activationEpoch := uint32(2)
 
@@ -56,6 +55,7 @@ func TestChainSimulator_Api_TokenType(t *testing.T) {
 		NumNodesWaitingListShard:       0,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
+			cfg.RoundConfig.RoundActivations["SupernovaEnableRound"] = config.ActivationRoundByName{Round: "80"}
 			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
 		},
 	})
@@ -67,6 +67,7 @@ func TestChainSimulator_Api_TokenType(t *testing.T) {
 	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch))
 	require.Nil(t, err)
 
+	chainTests.RequireSupernova(t, cs, numOfShards, 200)
 	vm.Log.Info("Initial setup: Create tokens")
 
 	addrs := vm.CreateAddresses(t, cs, false)

@@ -51,6 +51,8 @@ func startSupernovaSimulator(t *testing.T) testsChainSimulator.ChainSimulator {
 	err = simulator.GenerateBlocksUntilEpochIsReached(int32(supernovaEnableEpoch) + 1)
 	require.NoError(t, err)
 
+	testsChainSimulator.RequireSupernova(t, simulator, 1, 500)
+
 	return simulator
 }
 
@@ -91,10 +93,8 @@ func generateBlocksUntilSkipping(t *testing.T, simulator testsChainSimulator.Cha
 // a contended shard block (skipped rounds before it) commits without instant finality and without
 // being referenced by meta; its own proofed child does not settle it, so meta holds it for the
 // discovery window and notarizes it through arbitration, after which finality catches up
+// Included in the bounded Supernova smoke inventory, including short/race runs.
 func TestChainSimulator_ContendedShardBlockDefersFinalityAndSettles(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	simulator := startSupernovaSimulator(t)
 	defer simulator.Close()
@@ -302,10 +302,8 @@ func TestChainSimulator_SimultaneousShardAndMetaContentionConverges(t *testing.T
 
 // the shard stalls across a meta epoch change, so its epoch-start block is contended; the epoch
 // transition still completes and the contended epoch-start block settles
+// Included in the bounded Supernova smoke inventory, including short/race runs.
 func TestChainSimulator_EpochBoundaryContendedShardEpochStartSettles(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	simulator := startSupernovaSimulator(t)
 	defer simulator.Close()
