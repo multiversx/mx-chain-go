@@ -109,6 +109,18 @@ func (em *executionManager) StartExecution() {
 	em.headersExecutor.StartExecution()
 }
 
+// PauseExecution pauses execution and waits for the current operation to finish
+func (em *executionManager) PauseExecution() {
+	em.mut.RLock()
+	defer em.mut.RUnlock()
+
+	if em.closed {
+		return
+	}
+
+	em.headersExecutor.PauseExecution()
+}
+
 // SetHeadersExecutor sets the headers executor
 func (em *executionManager) SetHeadersExecutor(executor process.HeadersExecutor) error {
 	if check.IfNil(executor) {

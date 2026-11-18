@@ -6,5 +6,7 @@ import "github.com/multiversx/mx-chain-core-go/data"
 type BlockProcessingCutoffHandler interface {
 	HandleProcessErrorCutoff(header data.HeaderHandler) error
 	HandlePauseCutoff(header data.HeaderHandler)
+	HandleGracefulStopCutoff(header data.HeaderHandler, beforeStop func())
+	Close()
 	IsInterfaceNil() bool
 }
