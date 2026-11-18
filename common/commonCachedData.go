@@ -25,7 +25,6 @@ func GetCachedIntermediateTxs(cache storage.Cacher, headerHash []byte) (map[bloc
 
 	cachedIntermediateTxs, ok := cache.Get(headerHash)
 	if !ok {
-		log.Warn("intermediateTxs not found in dataPool", "hash", headerHash)
 		return nil, fmt.Errorf("%w for header %s", ErrMissingCachedTransactions, hex.EncodeToString(headerHash))
 	}
 
@@ -46,7 +45,6 @@ func GetCachedLogs(cache storage.Cacher, headerHash []byte) ([]data.LogDataHandl
 	logsKey := PrepareLogEventsKey(headerHash)
 	cachedLogs, ok := cache.Get(logsKey)
 	if !ok {
-		log.Warn("logs not found in dataPool", "hash", headerHash)
 		return nil, fmt.Errorf("%w for header %s", ErrMissingCachedLogs, hex.EncodeToString(headerHash))
 	}
 	cachedLogsSlice, ok := cachedLogs.([]data.LogDataHandler)
@@ -66,7 +64,6 @@ func GetCachedOrderedTxHashes(cache storage.Cacher, headerHash []byte) ([][]byte
 	orderedTxHashesKey := PrepareOrderedTxHashesKey(headerHash)
 	cachedData, ok := cache.Get(orderedTxHashesKey)
 	if !ok {
-		log.Warn("orderedTxHashes not found in dataPool", "hash", headerHash)
 		return nil, fmt.Errorf("%w for header %s", ErrMissingOrderedTxHashes, hex.EncodeToString(headerHash))
 	}
 
@@ -87,7 +84,6 @@ func GetCachedUnexecutableTxHashes(cache storage.Cacher, headerHash []byte) ([][
 	unexecutableTxHashesKey := PrepareUnexecutableTxHashesKey(headerHash)
 	cachedData, ok := cache.Get(unexecutableTxHashesKey)
 	if !ok {
-		log.Warn("unexecutableTxHashes not found in dataPool", "hash", headerHash)
 		return nil, fmt.Errorf("%w for header %s", ErrMissingUnexecutableTxHash, hex.EncodeToString(headerHash))
 	}
 
@@ -107,7 +103,6 @@ func GetCachedMbs(cache storage.Cacher, marshaller marshal.Marshalizer, headerHa
 
 	cachedIntraMBs, ok := cache.Get(headerHash)
 	if !ok {
-		log.Warn("intra miniblocks not found in dataPool", "hash", headerHash)
 		return nil, fmt.Errorf("%w for header %s", ErrMissingMiniBlock, hex.EncodeToString(headerHash))
 	}
 
@@ -135,8 +130,6 @@ func GetCachedBody(cache storage.Cacher, marshaller marshal.Marshalizer, baseExe
 		mbHash := miniBlockHeaderHandler.GetHash()
 		cachedMiniBlock, found := cache.Get(mbHash)
 		if !found {
-			log.Warn("mini block from execution result not cached after execution",
-				"mini block hash", mbHash)
 			return nil, ErrMissingMiniBlock
 		}
 
@@ -165,7 +158,6 @@ func GetCacheHeaderGasData(cache storage.Cacher, headerHash []byte) (*outport.He
 
 	cacheHeaderGasDataI, ok := cache.Get(PrepareHeaderGasDataKey(headerHash))
 	if !ok {
-		log.Warn("header gas data not found in dataPool", "hash", headerHash)
 		return nil, fmt.Errorf("%w for header %s", ErrMissingHeaderGasData, hex.EncodeToString(headerHash))
 	}
 

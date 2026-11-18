@@ -185,7 +185,7 @@ func (pcf *processComponentsFactory) createAOTSelector(
 
 	log.Info("AOT transaction selection enabled",
 		"cacheSize", pcf.config.AOTSelection.CacheSize,
-		"selectionTimeoutMs", pcf.config.TxCacheSelection.SelectionMaxNumTxs)
+		"selectionTimeoutMs", pcf.config.AOTSelection.SelectionTimeoutMs)
 
 	return aotSelector, nil
 }
