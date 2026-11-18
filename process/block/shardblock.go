@@ -1202,6 +1202,12 @@ func (sp *shardProcessor) CommitBlock(
 	if err != nil {
 		return err
 	}
+	commitCompleted := false
+	defer func() {
+		if commitCompleted {
+			sp.blockProcessingCutoffHandler.HandleGracefulStopCutoff(headerHandler, sp.executionManager.PauseExecution)
+		}
+	}()
 
 	prevBlockHeader := sp.blockChain.GetCurrentBlockHeader()
 	prevBlockHeaderHash := sp.blockChain.GetCurrentBlockHeaderHash()
@@ -1458,6 +1464,7 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.blockProcessingCutoffHandler.HandlePauseCutoff(header)
 	sp.UpdateSupernovaTransitionReadiness(header, headerHash)
+	commitCompleted = true
 
 	return nil
 }
