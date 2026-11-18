@@ -2,6 +2,7 @@ package trackableDataTrie
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"sort"
 
@@ -243,7 +244,7 @@ func (tdt *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]*stateChang
 
 	if check.IfNil(tdt.tr) {
 		emptyRootHash := holders.NewDefaultRootHashesHolder(make([]byte, 0))
-		newDataTrie, err := mainTrie.Recreate(emptyRootHash)
+		newDataTrie, err := mainTrie.Recreate(emptyRootHash, hex.EncodeToString(tdt.identifier))
 		if err != nil {
 			return nil, nil, err
 		}
@@ -260,15 +261,9 @@ func (tdt *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]*stateChang
 }
 
 func (tdt *trackableDataTrie) rollbackAppliedUpdates(dtr state.DataTrie, oldValues []core.TrieData) {
-	var trieUpdate core.TrieData
-	var err error
-
 	for i := len(oldValues) - 1; i >= 0; i-- {
-		trieUpdate = oldValues[i]
-		err = dtr.UpdateWithVersion(trieUpdate.Key, trieUpdate.Value, trieUpdate.Version)
-		if err != nil {
-			log.Error("could not apply rollback updates", "err", err, "key", trieUpdate.Key, "account", tdt.identifier)
-		}
+		update := oldValues[i]
+		dtr.UpdateWithVersion(update.Key, update.Value, update.Version)
 	}
 }
 
@@ -305,11 +300,7 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]*stateChange.Dat
 			}
 		}
 
-		wasDeleted, err := tdt.deleteOldEntryIfMigrated([]byte(key), dataEntry, oldVal)
-		if err != nil {
-			tdt.rollbackAppliedUpdates(dtr, trieUpdates)
-			return nil, nil, err
-		}
+		wasDeleted := tdt.deleteOldEntryIfMigrated([]byte(key), dataEntry, oldVal)
 
 		if wasDeleted {
 			trieUpdates = append(trieUpdates, oldVal)
@@ -531,18 +522,19 @@ func (tdt *trackableDataTrie) getValueNotSpecifiedVersion(key []byte, val []byte
 	return trimmedValue
 }
 
-func (tdt *trackableDataTrie) deleteOldEntryIfMigrated(key []byte, newData dirtyData, oldEntry core.TrieData) (bool, error) {
+func (tdt *trackableDataTrie) deleteOldEntryIfMigrated(key []byte, newData dirtyData, oldEntry core.TrieData) bool {
 	if !tdt.enableEpochsHandler.IsFlagEnabled(common.AutoBalanceDataTriesFlag) {
-		return false, nil
+		return false
 	}
 
 	isMigration := oldEntry.Version == core.NotSpecified && newData.newVersion == core.AutoBalanceEnabled
 	if isMigration && len(newData.value) != 0 {
 		log.Trace("delete old entry if migrated", "key", key)
-		return true, tdt.tr.Delete(key)
+		tdt.tr.Delete(key)
+		return true
 	}
 
-	return false, nil
+	return false
 }
 
 func (tdt *trackableDataTrie) modifyTrie(key []byte, dataEntry dirtyData, oldVal core.TrieData, dtr state.DataTrie) ([]byte, error) {
@@ -550,7 +542,7 @@ func (tdt *trackableDataTrie) modifyTrie(key []byte, dataEntry dirtyData, oldVal
 	newKey := tdt.getKeyForVersion(key, version)
 
 	if len(dataEntry.value) == 0 {
-		return tdt.deleteFromTrie(oldVal, key, dtr)
+		return tdt.deleteFromTrie(oldVal, key, dtr), nil
 	}
 
 	value, err := tdt.getValueForVersion(key, dataEntry.value, version)
@@ -558,29 +550,28 @@ func (tdt *trackableDataTrie) modifyTrie(key []byte, dataEntry dirtyData, oldVal
 		return nil, err
 	}
 
-	err = dtr.UpdateWithVersion(newKey, value, version)
-	if err != nil {
-		return nil, err
-	}
+	dtr.UpdateWithVersion(newKey, value, version)
 
 	return newKey, nil
 }
 
-func (tdt *trackableDataTrie) deleteFromTrie(oldVal core.TrieData, key []byte, dtr state.DataTrie) ([]byte, error) {
+func (tdt *trackableDataTrie) deleteFromTrie(oldVal core.TrieData, key []byte, dtr state.DataTrie) []byte {
 	if len(oldVal.Value) == 0 {
-		return nil, nil
+		return nil
 	}
 
 	if oldVal.Version == core.AutoBalanceEnabled {
 		keyForTrie := tdt.hasher.Compute(string(key))
-		return keyForTrie, dtr.Delete(keyForTrie)
+		dtr.Delete(keyForTrie)
+		return keyForTrie
 	}
 
 	if oldVal.Version == core.NotSpecified {
-		return key, dtr.Delete(key)
+		dtr.Delete(key)
+		return key
 	}
 
-	return nil, nil
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

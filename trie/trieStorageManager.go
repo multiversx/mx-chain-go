@@ -352,7 +352,11 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 		return
 	}
 
-	newRoot, encodedRoot, foundInEpoch, err := newSnapshotNode(stsm, msh, hsh, snapshotEntry.rootHash, snapshotEntry.epoch, snapshotEntry.missingNodesChan)
+	trieCtx := &snapshotTrieContext{
+		TrieContext: &trieContext{Marshalizer: msh, Hasher: hsh},
+		storage:     stsm,
+	}
+	newRoot, encodedRoot, foundInEpoch, err := newSnapshotNode(trieCtx, snapshotEntry.rootHash, snapshotEntry.epoch, snapshotEntry.missingNodesChan)
 	if err != nil {
 		snapshotEntry.iteratorChannels.ErrChan.WriteInChanNonBlocking(err)
 		treatSnapshotError(err,
@@ -364,7 +368,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 	}
 
 	stats := statistics.NewTrieStatistics()
-	err = newRoot.commitSnapshot(stsm, foundInEpoch, snapshotEntry.iteratorChannels.LeavesChan, snapshotEntry.missingNodesChan, ctx, stats, tsm.idleProvider, encodedRoot, rootDepthLevel)
+	err = newRoot.commitSnapshot(trieCtx, foundInEpoch, snapshotEntry.iteratorChannels.LeavesChan, snapshotEntry.missingNodesChan, ctx, stats, tsm.idleProvider, encodedRoot, rootDepthLevel)
 	if err != nil {
 		snapshotEntry.iteratorChannels.ErrChan.WriteInChanNonBlocking(err)
 		treatSnapshotError(err,
@@ -397,13 +401,12 @@ func treatSnapshotError(err error, message string, rootHash []byte, mainTrieRoot
 }
 
 func newSnapshotNode(
-	db snapshotDb,
-	msh marshal.Marshalizer,
-	hsh hashing.Hasher,
+	trieCtx *snapshotTrieContext,
 	rootHash []byte,
 	epoch uint32,
 	missingNodesCh chan []byte,
 ) (snapshotNode, []byte, uint32, error) {
+	db := trieCtx.GetSnapshotStorage()
 	encodedNode, foundInEpoch, err := db.GetWithoutAddingToCache(rootHash, epoch)
 	if err != nil {
 		treatLogError(log, err, rootHash)
@@ -418,7 +421,7 @@ func newSnapshotNode(
 		return nil, nil, 0, err
 	}
 
-	n, err := decodeNode(encodedNode, msh, hsh)
+	n, err := decodeNode(encodedNode, trieCtx)
 	if err != nil {
 		return nil, nil, 0, err
 	}

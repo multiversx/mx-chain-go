@@ -31,9 +31,7 @@ type trieSyncer struct {
 	rootHash                  []byte
 	nodesForTrie              map[string]trieNodeInfo
 	waitTimeBetweenRequests   time.Duration
-	marshalizer               marshal.Marshalizer
-	hasher                    hashing.Hasher
-	db                        common.TrieStorageInteractor
+	trieContext               common.TrieContext
 	requestHandler            RequestHandler
 	interceptedNodesCacher    storage.Cacher
 	mutOperation              sync.RWMutex
@@ -76,11 +74,13 @@ func NewTrieSyncer(arg ArgTrieSyncer) (*trieSyncer, error) {
 	}
 
 	ts := &trieSyncer{
-		requestHandler:            arg.RequestHandler,
-		interceptedNodesCacher:    arg.InterceptedNodes,
-		db:                        stsm,
-		marshalizer:               arg.Marshalizer,
-		hasher:                    arg.Hasher,
+		requestHandler:         arg.RequestHandler,
+		interceptedNodesCacher: arg.InterceptedNodes,
+		trieContext: &trieContext{
+			StorageManager: stsm,
+			Marshalizer:    arg.Marshalizer,
+			Hasher:         arg.Hasher,
+		},
 		nodesForTrie:              make(map[string]trieNodeInfo),
 		topic:                     arg.Topic,
 		shardId:                   arg.ShardId,
@@ -172,7 +172,7 @@ func (ts *trieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
 func (ts *trieSyncer) checkIfSynced() (bool, error) {
 	var currentNode node
 	var err error
-	var nextNodes []node
+	var nextNodes []nodeWithHash
 	missingNodes := make(map[string]struct{})
 	currentMissingNodes := make([][]byte, 0)
 	checkedNodes := make(map[string]struct{})
@@ -206,7 +206,7 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			log.Trace("loaded children for node", "hash", currentNode.getHash())
+			log.Trace("loaded children for node", "hash", nodeHash)
 
 			if len(currentMissingNodes) > 0 {
 				hardcapReached := false
@@ -223,7 +223,11 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 					break
 				}
 
-				nextNodes = append(nextNodes, currentNode)
+				nextNodes = append(nextNodes, nodeWithHash{
+					node: currentNode,
+					hash: []byte(nodeHash),
+				})
+
 				_ = ts.addNew(nextNodes)
 				shouldRetryAfterRequest = true
 
@@ -234,18 +238,13 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 				continue
 			}
 
-			nextNodes, err = currentNode.getChildren(ts.db)
-			if err != nil {
-				return false, err
-			}
-
 			tmpNewElement := ts.addNew(nextNodes)
 			newElement = newElement || tmpNewElement
 
 			delete(ts.nodesForTrie, nodeHash)
 
 			var numBytes int
-			numBytes, err = commitSyncedNode(currentNode, ts.db)
+			numBytes, err = commitSyncedNode(currentNode, ts.trieContext)
 			if err != nil {
 				return false, err
 			}
@@ -274,17 +273,17 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 }
 
 // adds new elements to needed hash map, lock ts.nodeHashesMutex before calling
-func (ts *trieSyncer) addNew(nextNodes []node) bool {
+func (ts *trieSyncer) addNew(nextNodes []nodeWithHash) bool {
 	newElement := false
 	for _, nextNode := range nextNodes {
-		nextHash := string(nextNode.getHash())
+		nextHash := string(nextNode.hash)
 
 		nodeInfo, ok := ts.nodesForTrie[nextHash]
 		if !ok || !nodeInfo.received {
 			newElement = true
 			ts.trieSyncStatistics.AddNumProcessed(1)
 			ts.nodesForTrie[nextHash] = trieNodeInfo{
-				trieNode: nextNode,
+				trieNode: nextNode.node,
 				received: true,
 			}
 		}
@@ -302,60 +301,46 @@ func (ts *trieSyncer) getNode(hash []byte) (node, error) {
 	return getNodeFromCacheOrStorage(
 		hash,
 		ts.interceptedNodesCacher,
-		ts.db,
-		ts.marshalizer,
-		ts.hasher,
+		ts.trieContext,
 	)
 }
 
-func getNodeFromCacheOrStorage(
-	hash []byte,
-	interceptedNodesCacher storage.Cacher,
-	db common.TrieStorageInteractor,
-	marshalizer marshal.Marshalizer,
-	hasher hashing.Hasher,
-) (node, error) {
-	if _, recovery := db.(*recoveryTrieStorageManager); recovery {
-		n, err := getVerifiedNodeFromStorage(hash, db, marshalizer, hasher)
+func getNodeFromCacheOrStorage(hash []byte, interceptedNodesCacher storage.Cacher, trieCtx common.TrieContext) (node, error) {
+	if _, recovery := trieCtx.GetStorage().(*recoveryTrieStorageManager); recovery {
+		n, err := getVerifiedNodeFromStorage(hash, trieCtx)
 		if err == nil {
 			return n, nil
 		}
-		return getNodeFromCache(hash, interceptedNodesCacher, marshalizer, hasher)
+		return getNodeFromCache(hash, interceptedNodesCacher, trieCtx)
 	}
-	n, err := getNodeFromCache(hash, interceptedNodesCacher, marshalizer, hasher)
+	n, err := getNodeFromCache(hash, interceptedNodesCacher, trieCtx)
 	if err == nil {
 		return n, nil
 	}
-
-	return getVerifiedNodeFromStorage(hash, db, marshalizer, hasher)
+	return getVerifiedNodeFromStorage(hash, trieCtx)
 }
 
-func getVerifiedNodeFromStorage(hash []byte, db common.TrieStorageInteractor, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
-	existingNode, err := getNodeFromDBAndDecode(hash, db, marshalizer, hasher)
+func getVerifiedNodeFromStorage(hash []byte, trieCtx common.TrieContext) (node, error) {
+	existingNode, _, err := getNodeFromDBAndDecode(hash, trieCtx)
 	if err != nil {
 		return nil, ErrNodeNotFound
 	}
-	err = existingNode.setHash()
-	if err != nil {
+	computedHash, err := encodeNodeAndGetHash(existingNode, trieCtx)
+	if err != nil || !bytes.Equal(computedHash, hash) {
 		return nil, ErrNodeNotFound
 	}
-	if !bytes.Equal(existingNode.getHash(), hash) {
-		return nil, ErrNodeNotFound
-	}
-
 	return existingNode, nil
 }
 
 func getNodeFromCache(
 	hash []byte,
 	interceptedNodesCacher storage.Cacher,
-	marshalizer marshal.Marshalizer,
-	hasher hashing.Hasher,
+	trieCtx common.TrieContext,
 ) (node, error) {
 	n, ok := interceptedNodesCacher.Get(hash)
 	if ok {
 		interceptedNodesCacher.Remove(hash)
-		return trieNode(n, marshalizer, hasher)
+		return trieNode(n, trieCtx)
 	}
 
 	return nil, ErrNodeNotFound
@@ -363,25 +348,19 @@ func getNodeFromCache(
 
 func trieNode(
 	data interface{},
-	marshalizer marshal.Marshalizer,
-	hasher hashing.Hasher,
+	trieCtx common.TrieContext,
 ) (node, error) {
 	n, ok := data.(*InterceptedTrieNode)
 	if !ok {
 		return nil, ErrWrongTypeAssertion
 	}
 
-	decodedNode, err := decodeNode(n.GetSerialized(), marshalizer, hasher)
+	decodedNode, err := decodeNode(n.GetSerialized(), trieCtx)
 	if err != nil {
 		return nil, err
 	}
 
-	err = decodedNode.setHash()
-	if err != nil {
-		return nil, err
-	}
 	decodedNode.setDirty(true)
-
 	return decodedNode, nil
 }
 

@@ -9,6 +9,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-go/state/accounts"
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -55,20 +56,20 @@ func TestRecoveryUserAndDataTriePersistence(t *testing.T) {
 				},
 			}
 			args.TrieStorageManager = db
-			dataTrie, err := trie.NewTrie(db, args.Marshalizer, args.Hasher, args.EnableEpochsHandler, 5)
+			dataTrie, err := trie.NewTrie(trie.TrieArgs{TrieStorage: db, Marshalizer: args.Marshalizer, Hasher: args.Hasher, EnableEpochsHandler: args.EnableEpochsHandler, MaxTrieLevelInMemory: 5, Throttler: trie.NewDisabledTrieGoRoutinesThrottler()})
 			require.NoError(t, err)
-			require.NoError(t, dataTrie.Update([]byte("key"), []byte("value")))
+			dataTrie.Update([]byte("key"), []byte("value"))
 			dataRoot, err := dataTrie.RootHash()
 			require.NoError(t, err)
-			require.NoError(t, dataTrie.Commit())
-			mainTrie, err := trie.NewTrie(db, args.Marshalizer, args.Hasher, args.EnableEpochsHandler, 5)
+			require.NoError(t, dataTrie.Commit(hashesCollector.NewDisabledHashesCollector()))
+			mainTrie, err := trie.NewTrie(trie.TrieArgs{TrieStorage: db, Marshalizer: args.Marshalizer, Hasher: args.Hasher, EnableEpochsHandler: args.EnableEpochsHandler, MaxTrieLevelInMemory: 5, Throttler: trie.NewDisabledTrieGoRoutinesThrottler()})
 			require.NoError(t, err)
 			account, err := args.Marshalizer.Marshal(&accounts.UserAccountData{RootHash: dataRoot, Address: []byte("account")})
 			require.NoError(t, err)
-			require.NoError(t, mainTrie.Update([]byte("account"), account))
+			mainTrie.Update([]byte("account"), account)
 			root, err := mainTrie.RootHash()
 			require.NoError(t, err)
-			require.NoError(t, mainTrie.Commit())
+			require.NoError(t, mainTrie.Commit(hashesCollector.NewDisabledHashesCollector()))
 			original := make(map[string][]byte)
 			for key, value := range nodes {
 				original[key] = bytes.Clone(value)

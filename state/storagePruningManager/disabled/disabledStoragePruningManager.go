@@ -14,7 +14,7 @@ func NewDisabledStoragePruningManager() *disabledStoragePruningManager {
 }
 
 // MarkForEviction does nothing for this implementation
-func (d *disabledStoragePruningManager) MarkForEviction(_ []byte, _ []byte, _ common.ModifiedHashes, _ common.ModifiedHashes) error {
+func (d *disabledStoragePruningManager) MarkForEviction(_ []byte, _ common.TrieHashesCollector) error {
 	return nil
 }
 

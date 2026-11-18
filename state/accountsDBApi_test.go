@@ -237,7 +237,7 @@ func TestAccountsDBApi_RecreateTrie(t *testing.T) {
 				return &storageManager.StorageManagerStub{}
 			},
 		}
-		trieStub.RecreateCalled = func(_ common.RootHashHolder) (tree common.Trie, e error) {
+		trieStub.RecreateCalled = func(_ common.RootHashHolder, _ string) (tree common.Trie, e error) {
 			return nil, expectedErr
 		}
 
@@ -345,7 +345,7 @@ func TestAccountsDB_RecreateTrieIfNeeded(t *testing.T) {
 			RootCalled: func() ([]byte, error) {
 				return currentHash, nil
 			},
-			RecreateCalled: func(_ common.RootHashHolder) (common.Trie, error) {
+			RecreateCalled: func(_ common.RootHashHolder, _ string) (common.Trie, error) {
 				recreatedCalled = true
 				return &testTrie.TrieStub{}, nil
 			},

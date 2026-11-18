@@ -73,7 +73,8 @@ func (jea *journalEntryCode) revertCodeEntry(
 	}
 
 	if codeEntry == nil {
-		return jea.trie.Update(codeHash, nil)
+		jea.trie.Update(codeHash, nil)
+		return nil
 	}
 
 	_, err := saveCodeEntry(
@@ -140,7 +141,8 @@ func NewJournalEntryAccountCreation(address []byte, updater Updater) (*journalEn
 
 // Revert applies undo operation
 func (jea *journalEntryAccountCreation) Revert() (vmcommon.AccountHandler, error) {
-	return nil, jea.updater.Update(jea.address, nil)
+	jea.updater.Update(jea.address, nil)
+	return nil, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
@@ -179,10 +181,7 @@ func (jedtu *journalEntryDataTrieUpdates) Revert() (vmcommon.AccountHandler, err
 
 	for i := len(jedtu.trieUpdates) - 1; i >= 0; i-- {
 		trieUpdate := jedtu.trieUpdates[i]
-		err := trie.UpdateWithVersion(trieUpdate.Key, trieUpdate.Value, trieUpdate.Version)
-		if err != nil {
-			return nil, err
-		}
+		trie.UpdateWithVersion(trieUpdate.Key, trieUpdate.Value, trieUpdate.Version)
 
 		log.Trace("revert data trie update",
 			"address", jedtu.account.AddressBytes(),

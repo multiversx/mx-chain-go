@@ -16,10 +16,11 @@ func TestRecoveryStorageWrites(t *testing.T) {
 		t.Run(scenario, func(t *testing.T) {
 			failure := errors.New("storage failure")
 			writes, reads := 0, 0
-			n := getLn(getTestMarshalizerAndHasher())
-			encoded, err := n.getEncodedNode()
+			n := getLn()
+			encoded, err := n.getEncodedNode(getDefaultTrieContext())
 			require.NoError(t, err)
-			require.NoError(t, n.setHash())
+			nodeHash, err := encodeNodeAndGetHash(n, getDefaultTrieContext())
+			require.NoError(t, err)
 			db := &storageManager.StorageManagerStub{
 				GetForRecoveryCalled: func(_ []byte, epoch uint32) ([]byte, error) {
 					require.Equal(t, uint32(7), epoch)
@@ -34,7 +35,7 @@ func TestRecoveryStorageWrites(t *testing.T) {
 				},
 				PutInEpochCalled: func(key, value []byte, epoch uint32) error {
 					require.Equal(t, uint32(7), epoch)
-					require.Equal(t, n.getHash(), key)
+					require.Equal(t, nodeHash, key)
 					require.Equal(t, encoded, value)
 					writes++
 					if scenario == "write error" {
@@ -46,13 +47,13 @@ func TestRecoveryStorageWrites(t *testing.T) {
 			adapter, err := newStorageForTrieSync(ArgTrieSyncer{DB: db, RecoveryEpoch: core.OptionalUint32{Value: 7, HasValue: true}})
 			require.NoError(t, err)
 			cacher := cache.NewCacherMock()
-			intercepted, err := NewInterceptedTrieNode(encoded, n.getHasher())
+			intercepted, err := NewInterceptedTrieNode(encoded, getDefaultTrieContext().GetHasher())
 			require.NoError(t, err)
-			cacher.Put(n.getHash(), intercepted, len(encoded))
-			loaded, err := getNodeFromCacheOrStorage(n.getHash(), cacher, adapter, n.marsh, n.getHasher())
+			cacher.Put(nodeHash, intercepted, len(encoded))
+			loaded, err := getNodeFromCacheOrStorage(nodeHash, cacher, getTrieContextWithCustomStorage(adapter))
 			require.NoError(t, err)
 			require.Equal(t, 1, reads)
-			size, err := commitSyncedNode(loaded, adapter)
+			size, err := commitSyncedNode(loaded, getTrieContextWithCustomStorage(adapter))
 			require.Equal(t, len(encoded), size)
 			if scenario == "write error" {
 				require.ErrorIs(t, err, failure)
@@ -80,9 +81,9 @@ func TestNormalSyncStillWritesBothEpochs(t *testing.T) {
 	}
 	adapter, err := newStorageForTrieSync(ArgTrieSyncer{DB: db})
 	require.NoError(t, err)
-	n := getLn(getTestMarshalizerAndHasher())
+	n := getLn()
 	n.setDirty(false)
-	_, err = commitSyncedNode(n, adapter)
+	_, err = commitSyncedNode(n, getTrieContextWithCustomStorage(adapter))
 	require.NoError(t, err)
 	require.Equal(t, []uint32{7, 6}, epochs)
 }
@@ -111,14 +112,30 @@ func TestRecoveryStaticStorage(t *testing.T) {
 	require.NoError(t, err)
 	adapter, err := newStorageForTrieSync(ArgTrieSyncer{DB: static, RecoveryEpoch: core.OptionalUint32{Value: 7, HasValue: true}})
 	require.NoError(t, err)
-	n := getLn(getTestMarshalizerAndHasher())
-	require.NoError(t, n.setHash())
-	_, err = commitSyncedNode(n, adapter)
+	n := getLn()
+	nodeHash, err := encodeNodeAndGetHash(n, getDefaultTrieContext())
+	require.NoError(t, err)
+	_, err = commitSyncedNode(n, getTrieContextWithCustomStorage(adapter))
 	require.NoError(t, err)
 	require.Equal(t, 1, writes)
-	loaded, err := getVerifiedNodeFromStorage(n.getHash(), adapter, n.marsh, n.getHasher())
+	loaded, err := getVerifiedNodeFromStorage(nodeHash, getTrieContextWithCustomStorage(adapter))
 	require.NoError(t, err)
-	_, err = commitSyncedNode(loaded, adapter)
+	_, err = commitSyncedNode(loaded, getTrieContextWithCustomStorage(adapter))
 	require.NoError(t, err)
 	require.Equal(t, 1, writes)
+}
+
+func TestGetVerifiedNodeFromStorageRejectsNonCanonicalEncoding(t *testing.T) {
+	trieCtx := getDefaultTrieContext()
+	t.Cleanup(func() { require.NoError(t, trieCtx.GetStorage().Close()) })
+	n := getLn()
+	encoded, err := n.getEncodedNode(trieCtx)
+	require.NoError(t, err)
+	// Unknown protobuf fields are skipped while decoding. Verification must hash
+	// the decoded node's canonical encoding, as the node will be stored in that form.
+	nonCanonical := append(append([]byte{}, encoded[:len(encoded)-1]...), 0x78, 0x01, encoded[len(encoded)-1])
+	requestedHash := trieCtx.Compute(string(nonCanonical))
+	db := &storageManager.StorageManagerStub{GetCalled: func([]byte) ([]byte, error) { return nonCanonical, nil }}
+	_, err = getVerifiedNodeFromStorage(requestedHash, getTrieContextWithCustomStorage(db))
+	require.ErrorIs(t, err, ErrNodeNotFound)
 }

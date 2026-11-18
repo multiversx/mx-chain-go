@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -153,21 +154,26 @@ func testValidatorAccountsSyncerRepairsMissingChild(t *testing.T, version int) {
 			return bytes.Clone(value), nil
 		},
 	}
-	tr, err := trie.NewTrie(args.TrieStorageManager, args.Marshalizer, args.Hasher, args.EnableEpochsHandler, 5)
+	tr, err := trie.NewTrie(trie.TrieArgs{TrieStorage: args.TrieStorageManager, Marshalizer: args.Marshalizer, Hasher: args.Hasher, EnableEpochsHandler: args.EnableEpochsHandler, MaxTrieLevelInMemory: 5, Throttler: trie.NewDisabledTrieGoRoutinesThrottler()})
 	require.NoError(t, err)
-	require.NoError(t, tr.Update([]byte("first"), []byte("one")))
-	require.NoError(t, tr.Update([]byte("second"), []byte("two")))
+	tr.Update([]byte("first"), []byte("one"))
+	tr.Update([]byte("second"), []byte("two"))
 	rootHash, err := tr.RootHash()
 	require.NoError(t, err)
-	require.NoError(t, tr.Commit())
+	require.NoError(t, tr.Commit(hashesCollector.NewDisabledHashesCollector()))
 	mut.Lock()
 	_, hasRoot := nodes[string(rootHash)]
 	mut.Unlock()
 	require.True(t, hasRoot)
-	_, err = tr.Recreate(holders.NewDefaultRootHashesHolder(rootHash))
+	_, err = tr.Recreate(holders.NewDefaultRootHashesHolder(rootHash), "test trie")
 	require.NoError(t, err)
-	hashes, err := tr.GetAllHashes()
+	iterator, err := trie.NewDFSIterator(tr, rootHash)
 	require.NoError(t, err)
+	hashes := [][]byte{iterator.GetHash()}
+	for iterator.HasNext() {
+		require.NoError(t, iterator.Next())
+		hashes = append(hashes, iterator.GetHash())
+	}
 	require.Greater(t, len(hashes), 1)
 
 	var missingHash []byte

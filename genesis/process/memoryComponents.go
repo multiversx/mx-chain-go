@@ -11,7 +11,10 @@ import (
 	"github.com/multiversx/mx-chain-go/trie"
 )
 
-const maxTrieLevelInMemory = uint(5)
+const (
+	maxTrieLevelInMemory = uint(5)
+	trieIdentifier       = "main trie in memory"
+)
 
 func createAccountAdapter(
 	marshaller marshal.Marshalizer,
@@ -21,7 +24,16 @@ func createAccountAdapter(
 	addressConverter core.PubkeyConverter,
 	enableEpochsHandler common.EnableEpochsHandler,
 ) (state.AccountsAdapter, error) {
-	tr, err := trie.NewTrie(trieStorage, marshaller, hasher, enableEpochsHandler, maxTrieLevelInMemory)
+	tr, err := trie.NewTrie(
+		trie.TrieArgs{
+			TrieStorage:          trieStorage,
+			Marshalizer:          marshaller,
+			Hasher:               hasher,
+			EnableEpochsHandler:  enableEpochsHandler,
+			MaxTrieLevelInMemory: maxTrieLevelInMemory,
+			Throttler:            trie.NewDisabledTrieGoRoutinesThrottler(),
+			Identifier:           trieIdentifier,
+		})
 	if err != nil {
 		return nil, err
 	}

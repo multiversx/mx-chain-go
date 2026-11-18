@@ -8,13 +8,13 @@ option (gogoproto.stable_marshaler_all) = true;
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
 message CollapsedBn{
-    repeated bytes EncodedChildren = 1 [(gogoproto.nullable) = true];
+    repeated bytes ChildrenHashes = 1 [(gogoproto.nullable) = true];
     bytes ChildrenVersion = 2 [(gogoproto.nullable) = true];
 }
 
 message CollapsedEn{
     bytes Key = 1;
-    bytes EncodedChild = 2;
+    bytes ChildHash = 2;
     uint32 ChildVersion = 3;
 }
 

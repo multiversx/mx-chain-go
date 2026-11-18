@@ -19,7 +19,7 @@ type recoveryTrieStorageManager struct {
 	epoch uint32
 }
 
-func newStorageForTrieSync(arg ArgTrieSyncer) (common.TrieStorageInteractor, error) {
+func newStorageForTrieSync(arg ArgTrieSyncer) (common.StorageManager, error) {
 	if !arg.RecoveryEpoch.HasValue {
 		return NewSyncTrieStorageManager(arg.DB)
 	}
@@ -41,14 +41,14 @@ func (rs *recoveryTrieStorageManager) Put(key, value []byte) error {
 	return rs.nodes.PutForRecovery(key, value, rs.epoch)
 }
 
-func commitSyncedNode(n node, db common.TrieStorageInteractor) (int, error) {
-	_, recovery := db.(*recoveryTrieStorageManager)
+func commitSyncedNode(n node, trieCtx common.TrieContext) (int, error) {
+	_, recovery := trieCtx.GetStorage().(*recoveryTrieStorageManager)
 	// Decoded local nodes are clean; intercepted nodes are marked dirty.
 	if recovery && !n.isDirty() {
-		encoded, err := collapseAndEncodeNode(n)
+		encoded, err := n.getEncodedNode(trieCtx)
 		return len(encoded), err
 	}
-	return encodeNodeAndCommitToDB(n, db)
+	return encodeNodeAndCommitToDB(n, trieCtx)
 }
 
 // GetForRecovery reads only storage retained for the checkpoint.

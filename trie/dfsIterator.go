@@ -7,8 +7,8 @@ type dfsIterator struct {
 }
 
 // NewDFSIterator creates a new depth first traversal iterator
-func NewDFSIterator(trie common.Trie) (*dfsIterator, error) {
-	bit, err := newBaseIterator(trie)
+func NewDFSIterator(trie common.Trie, rootHash []byte) (*dfsIterator, error) {
+	bit, err := newBaseIterator(trie, rootHash)
 	if err != nil {
 		return nil, err
 	}
