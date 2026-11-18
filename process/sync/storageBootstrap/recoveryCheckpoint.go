@@ -187,7 +187,7 @@ func (st *storageBootstrapper) collectRecoverySuffix() (recoverySelectorBounds, 
 	return bounds, nil
 }
 
-func (st *storageBootstrapper) removeNonceSelectors(unit storage.Storer, firstNonce uint64, lastNonce uint64) error {
+func validateRecoverySelectorRange(firstNonce uint64, lastNonce uint64) error {
 	if lastNonce < firstNonce {
 		return nil
 	}
@@ -196,6 +196,13 @@ func (st *storageBootstrapper) removeNonceSelectors(unit storage.Storer, firstNo
 	}
 	if lastNonce-firstNonce >= maxRecoverySelectorNonces {
 		return ErrRecoveryCheckpointUnavailable
+	}
+	return nil
+}
+
+func (st *storageBootstrapper) removeNonceSelectors(unit storage.Storer, firstNonce uint64, lastNonce uint64) error {
+	if err := validateRecoverySelectorRange(firstNonce, lastNonce); err != nil {
+		return err
 	}
 	for nonce := firstNonce; nonce <= lastNonce; nonce++ {
 		key := st.uint64Converter.ToByteSlice(nonce)
@@ -251,30 +258,47 @@ func (st *storageBootstrapper) ensureNonceSelector(unit storage.Storer, nonce ui
 	return nil
 }
 
-func (st *storageBootstrapper) removeDiscardedSelectors(target bootstrapStorage.BootstrapData, bounds recoverySelectorBounds) error {
+func validateRecoverySelectorBounds(target bootstrapStorage.BootstrapData, bounds recoverySelectorBounds) (map[uint32]uint64, error) {
 	maxOwnNonce := max(target.LastHeader.Nonce, bounds.maxOwnNonce)
-	if maxOwnNonce == ^uint64(0) || target.LastHeader.Nonce == ^uint64(0) {
-		return ErrRecoveryCheckpointUnavailable
+	if maxOwnNonce == math.MaxUint64 {
+		return nil, ErrRecoveryCheckpointUnavailable
 	}
-	if err := st.removeNonceSelectors(st.headerNonceHashStore, target.LastHeader.Nonce+1, maxOwnNonce+1); err != nil {
-		return err
-	}
-	if err := st.ensureNonceSelector(st.headerNonceHashStore, target.LastHeader.Nonce, target.LastHeader.Hash); err != nil {
-		return err
+	if err := validateRecoverySelectorRange(target.LastHeader.Nonce+1, maxOwnNonce+1); err != nil {
+		return nil, err
 	}
 
 	baseline := make(map[uint32]uint64, len(target.LastCrossNotarizedHeaders))
 	for _, info := range target.LastCrossNotarizedHeaders {
 		if _, exists := baseline[info.ShardId]; exists {
-			return ErrRecoveryCheckpointUnavailable
+			return nil, ErrRecoveryCheckpointUnavailable
 		}
 		baseline[info.ShardId] = info.Nonce
 	}
 	for shardID, highNonce := range bounds.maxCross {
 		lowNonce, ok := baseline[shardID]
 		if !ok {
-			return ErrRecoveryCheckpointUnavailable
+			return nil, ErrRecoveryCheckpointUnavailable
 		}
+		if highNonce <= lowNonce {
+			continue
+		}
+		if err := validateRecoverySelectorRange(lowNonce+1, highNonce); err != nil {
+			return nil, err
+		}
+	}
+	return baseline, nil
+}
+
+func (st *storageBootstrapper) removeDiscardedSelectors(target bootstrapStorage.BootstrapData, bounds recoverySelectorBounds, baseline map[uint32]uint64) error {
+	maxOwnNonce := max(target.LastHeader.Nonce, bounds.maxOwnNonce)
+	if err := st.removeNonceSelectors(st.headerNonceHashStore, target.LastHeader.Nonce+1, maxOwnNonce+1); err != nil {
+		return err
+	}
+	if err := st.ensureNonceSelector(st.headerNonceHashStore, target.LastHeader.Nonce, target.LastHeader.Hash); err != nil {
+		return err
+	}
+	for shardID, highNonce := range bounds.maxCross {
+		lowNonce := baseline[shardID]
 		if highNonce <= lowNonce {
 			continue
 		}
@@ -306,6 +330,10 @@ func (st *storageBootstrapper) loadRecoveryCheckpoint() error {
 	bounds, err := st.collectRecoverySuffix()
 	if err != nil {
 		return err
+	}
+	baseline, err := validateRecoverySelectorBounds(target, bounds)
+	if err != nil {
+		return fmt.Errorf("%w: selector bounds: %w", ErrRecoveryCheckpointUnavailable, err)
 	}
 	bootInfos, err := st.getBootInfos(target)
 	if err != nil {
@@ -342,7 +370,7 @@ func (st *storageBootstrapper) loadRecoveryCheckpoint() error {
 		GasAndFees:      process.GetZeroGasAndFees(),
 		MiniBlocks:      make(block.MiniBlockSlice, 0),
 	})
-	if err = st.removeDiscardedSelectors(target, bounds); err != nil {
+	if err = st.removeDiscardedSelectors(target, bounds, baseline); err != nil {
 		return fmt.Errorf("%w: selector cleanup: %w", ErrRecoveryCheckpointUnavailable, err)
 	}
 	if err = st.bootStorer.SaveLastRound(int64(st.recoveryCheckpoint.Round)); err != nil {

@@ -555,6 +555,23 @@ func (ps *PruningStorer) Close() error {
 	return storage.ErrClosingPersisters
 }
 
+// GetFromEpochOrNext also checks the next epoch for data persisted across an epoch boundary.
+func (ps *PruningStorer) GetFromEpochOrNext(key []byte, epoch uint32) ([]byte, error) {
+	if value, ok := ps.cacher.Get(key); ok {
+		ps.stateStatsHandler.IncrCache()
+		return value.([]byte), nil
+	}
+
+	value, err := ps.GetFromEpoch(key, epoch)
+	if err != nil && epoch != math.MaxUint32 {
+		value, err = ps.GetFromEpoch(key, epoch+1)
+	}
+	if err == nil {
+		_ = ps.cacher.Put(key, value, len(value))
+	}
+	return value, err
+}
+
 // GetFromEpoch will search a key only in the persister for the given epoch
 func (ps *PruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) {
 	// TODO: this will be used when requesting from resolvers
