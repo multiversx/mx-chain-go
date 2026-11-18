@@ -222,12 +222,18 @@ func (scf *statusComponentsFactory) createOutportDriver() (outport.OutportHandle
 		return nil, err
 	}
 
+	grpcDriverArgs, err := scf.makeGRPCDriversArgs()
+	if err != nil {
+		return nil, err
+	}
+
 	outportFactoryArgs := &outportDriverFactory.OutportFactoryArgs{
 		ShardID:                   scf.shardCoordinator.SelfId(),
 		RetrialInterval:           common.RetrialIntervalForOutportDriver,
 		ElasticIndexerFactoryArgs: scf.makeElasticIndexerArgs(),
 		EventNotifierFactoryArgs:  eventNotifierArgs,
 		HostDriversArgs:           hostDriversArgs,
+		GRPCDriversArgs:           grpcDriverArgs,
 		IsImportDB:                scf.isInImportMode,
 		EnableEpochsHandler:       scf.coreComponents.EnableEpochsHandler(),
 		EnableRoundsHandler:       scf.coreComponents.EnableRoundsHandler(),
@@ -290,6 +296,28 @@ func (scf *statusComponentsFactory) makeHostDriversArgs() ([]outportDriverFactor
 		argsHostDriverFactorySlice = append(argsHostDriverFactorySlice, outportDriverFactory.ArgsHostDriverFactory{
 			Marshaller: marshaller,
 			HostConfig: hostConfig,
+		})
+	}
+
+	return argsHostDriverFactorySlice, nil
+}
+
+func (scf *statusComponentsFactory) makeGRPCDriversArgs() ([]outportDriverFactory.ArgsGRPCDriverFactory, error) {
+	argsHostDriverFactorySlice := make([]outportDriverFactory.ArgsGRPCDriverFactory, 0, len(scf.externalConfig.GRPCDriversConfig))
+	for idx := 0; idx < len(scf.externalConfig.GRPCDriversConfig); idx++ {
+		grpcConfig := scf.externalConfig.GRPCDriversConfig[idx]
+		if !grpcConfig.Enabled {
+			continue
+		}
+
+		marshaller, err := factoryMarshalizer.NewMarshalizer(grpcConfig.MarshallerType)
+		if err != nil {
+			return argsHostDriverFactorySlice, err
+		}
+
+		argsHostDriverFactorySlice = append(argsHostDriverFactorySlice, outportDriverFactory.ArgsGRPCDriverFactory{
+			Marshaller: marshaller,
+			GRPCClient: grpcConfig,
 		})
 	}
 
