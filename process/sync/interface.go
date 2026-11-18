@@ -44,3 +44,8 @@ type epochStartTriggerDisarmer interface {
 type forkDetector interface {
 	computeFinalCheckpoint()
 }
+
+// importDBPeerStateInitializer copies restored peer state before replay starts.
+type importDBPeerStateInitializer interface {
+	InitializeImportDBPeerState() error
+}

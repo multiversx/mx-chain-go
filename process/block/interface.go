@@ -88,3 +88,13 @@ type MissingDataResolver interface {
 	Reset()
 	IsInterfaceNil() bool
 }
+
+// importDBPeerCommitObserver records the block associated with committed peer state.
+type importDBPeerCommitObserver interface {
+	RecordImportDBPeerCommit(data.HeaderHandler, []byte)
+}
+
+// importDBPeerSnapshotProcessor advances snapshots using canonical import commits.
+type importDBPeerSnapshotProcessor interface {
+	ProcessImportDBPeerSnapshot(data.HeaderHandler, []byte, uint64, []byte)
+}
