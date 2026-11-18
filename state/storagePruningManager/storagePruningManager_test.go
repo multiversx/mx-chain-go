@@ -3,6 +3,7 @@ package storagePruningManager
 import (
 	"testing"
 
+	"github.com/multiversx/mx-chain-go/state/triesHolder"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -15,12 +16,13 @@ import (
 	"github.com/multiversx/mx-chain-go/state/lastSnapshotMarker"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	testCommon "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
-	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 )
 
 func getDefaultTrieAndAccountsDbAndStoragePruningManager() (common.Trie, *state.AccountsDB, *storagePruningManager) {
@@ -31,21 +33,23 @@ func getDefaultTrieAndAccountsDbAndStoragePruningManager() (common.Trie, *state.
 	}
 	marshaller := &marshallerMock.MarshalizerMock{}
 	hasher := &hashingMocks.HasherMock{}
-	args := storage.GetStorageManagerArgs()
+	args := testCommon.GetStorageManagerArgs()
 	trieStorage, _ := trie.NewTrieStorageManager(args)
-	tr, _ := trie.NewTrie(trieStorage, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
+	tr, _ := trie.NewTrie(trieStorage, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager())
 	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{
 		RootHashesSize: 100,
 		HashesSize:     10000,
 	}
 	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(ewlArgs)
 	spm, _ := NewStoragePruningManager(ewl, generalCfg.PruningBufferLen)
-
+	dth, _ := triesHolder.NewDataTriesHolder(common.TenMbSize)
 	argsAccCreator := factory.ArgsAccountCreator{
 		Hasher:                 hasher,
 		Marshaller:             marshaller,
 		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
+		DataTriesHolder:        dth,
+		DataTrieCreator:        tr,
 	}
 	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
 
@@ -70,6 +74,7 @@ func getDefaultTrieAndAccountsDbAndStoragePruningManager() (common.Trie, *state.
 		AddressConverter:       &testscommon.PubkeyConverterMock{},
 		SnapshotsManager:       snapshotsManager,
 		StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
+		DataTriesHolder:        dth,
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
@@ -264,7 +269,7 @@ func TestStoragePruningManager_MarkForEviction_removeDuplicatedKeys(t *testing.T
 func TestStoragePruningManager_Reset(t *testing.T) {
 	t.Parallel()
 
-	args := storage.GetStorageManagerArgs()
+	args := testCommon.GetStorageManagerArgs()
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{
 		RootHashesSize: 100,

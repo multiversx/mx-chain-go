@@ -41,10 +41,12 @@ import (
 	"github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
+	"github.com/multiversx/mx-chain-go/state/triesHolder"
 	"github.com/multiversx/mx-chain-go/storage"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	testCommon "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -57,6 +59,7 @@ import (
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageMock "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
@@ -741,14 +744,23 @@ func prepareStakingContractWithData(
 	log.LogIfError(err)
 }
 
-func createAccountsDB(
+func createAccountsDBArgs(
 	hasher hashing.Hasher,
 	marshaller marshal.Marshalizer,
-	accountFactory state.AccountFactory,
 	trieStorageManager common.StorageManager,
 	enableEpochsHandler common.EnableEpochsHandler,
-) *state.AccountsDB {
-	tr, _ := trie.NewTrie(trieStorageManager, marshaller, hasher, enableEpochsHandler, 5)
+) state.ArgsAccountsDB {
+	dth, _ := triesHolder.NewDataTriesHolder(common.TenMbSize)
+	tr, _ := trie.NewTrie(trieStorageManager, marshaller, hasher, enableEpochsHandler, collapseManager.NewDisabledCollapseManager())
+	argsAccCreator := factory.ArgsAccountCreator{
+		Hasher:                 hasher,
+		Marshaller:             marshaller,
+		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
+		DataTriesHolder:        dth,
+		DataTrieCreator:        tr,
+	}
+	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
 	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{
 		RootHashesSize: 100,
 		HashesSize:     10000,
@@ -756,37 +768,28 @@ func createAccountsDB(
 	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(ewlArgs)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 
-	args := state.ArgsAccountsDB{
+	return state.ArgsAccountsDB{
 		Trie:                   tr,
 		Hasher:                 hasher,
 		Marshaller:             marshaller,
-		AccountFactory:         accountFactory,
+		AccountFactory:         accCreator,
 		StoragePruningManager:  spm,
 		AddressConverter:       &testscommon.PubkeyConverterMock{},
 		SnapshotsManager:       disabledState.NewDisabledSnapshotsManager(),
 		StateAccessesCollector: disabledState.NewDisabledStateAccessesCollector(),
+		DataTriesHolder:        dth,
 	}
-	adb, _ := state.NewAccountsDB(args)
-	return adb
 }
 
 func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEpochs, trieStorer storage.Storer) (ArgsNewEpochStartSystemSCProcessing, vm.SystemSCContainer) {
 	hasher := sha256.NewSha256()
 	marshalizer := &marshal.GogoProtoMarshalizer{}
-	storageManagerArgs := storageMock.GetStorageManagerArgs()
+	storageManagerArgs := testCommon.GetStorageManagerArgs()
 	storageManagerArgs.Marshalizer = marshalizer
 	storageManagerArgs.Hasher = hasher
 	storageManagerArgs.MainStorer = trieStorer
 
-	trieFactoryManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, storageMock.GetStorageManagerOptions())
-	argsAccCreator := factory.ArgsAccountCreator{
-		Hasher:                 hasher,
-		Marshaller:             marshalizer,
-		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		StateAccessesCollector: disabledState.NewDisabledStateAccessesCollector(),
-	}
-	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
-	peerAccCreator := factory.NewPeerAccountCreator()
+	trieFactoryManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, testCommon.GetStorageManagerOptions())
 	en := forking.NewGenericEpochNotifier()
 	enableEpochsConfig.StakeLimitsEnableEpoch = 10
 	enableEpochsConfig.StakingV4Step1EnableEpoch = 444
@@ -795,8 +798,12 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 		EnableEpochs: enableEpochsConfig,
 	}
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(epochsConfig.EnableEpochs, en)
-	userAccountsDB := createAccountsDB(hasher, marshalizer, accCreator, trieFactoryManager, enableEpochsHandler)
-	peerAccountsDB := createAccountsDB(hasher, marshalizer, peerAccCreator, trieFactoryManager, enableEpochsHandler)
+	userAccountsDBArgs := createAccountsDBArgs(hasher, marshalizer, trieFactoryManager, enableEpochsHandler)
+	userAccountsDB, _ := state.NewAccountsDB(userAccountsDBArgs)
+
+	peerAccountsDBArgs := createAccountsDBArgs(hasher, marshalizer, trieFactoryManager, enableEpochsHandler)
+	peerAccountsDBArgs.AccountFactory = factory.NewPeerAccountCreator()
+	peerAccountsDB, _ := state.NewAccountsDB(peerAccountsDBArgs)
 
 	argsValidatorsProcessor := peer.ArgValidatorStatisticsProcessor{
 		Marshalizer:         marshalizer,

@@ -8,6 +8,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/stateChange"
+	"github.com/multiversx/mx-chain-go/testscommon/trie"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -45,16 +46,41 @@ var errInsufficientBalance = fmt.Errorf("insufficient balance")
 
 // NewAccountWrapMock -
 func NewAccountWrapMock(adr []byte) *AccountWrapMock {
-	tdt, _ := trackableDataTrie.NewTrackableDataTrie(
-		[]byte("identifier"),
-		&hashingMocks.HasherMock{},
-		&marshallerMock.MarshalizerMock{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		disabled.NewDisabledStateAccessesCollector(),
-	)
+	args := trackableDataTrie.TrackableDataTrieArgs{
+		Identifier:             []byte("identifier"),
+		Hasher:                 &hashingMocks.HasherMock{},
+		Marshaller:             &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		StateAccessesCollector: disabled.NewDisabledStateAccessesCollector(),
+		DataTriesHolder:        &trie.TriesHolderStub{},
+		DataTrieCreator:        &trie.TrieStub{},
+	}
+	tdt, _ := trackableDataTrie.NewTrackableDataTrie(args)
 
 	return &AccountWrapMock{
 		address:           adr,
+		trackableDataTrie: tdt,
+		Balance:           big.NewInt(0),
+	}
+}
+
+// NewAccountWrapMockWithDataTrieHolder -
+func NewAccountWrapMockWithDataTrieHolder(
+	dataTriesHolder common.TriesHolder,
+) *AccountWrapMock {
+	args := trackableDataTrie.TrackableDataTrieArgs{
+		Identifier:             []byte("identifier"),
+		Hasher:                 &hashingMocks.HasherMock{},
+		Marshaller:             &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		StateAccessesCollector: disabled.NewDisabledStateAccessesCollector(),
+		DataTriesHolder:        dataTriesHolder,
+		DataTrieCreator:        &trie.TrieStub{},
+	}
+	tdt, _ := trackableDataTrie.NewTrackableDataTrie(args)
+
+	return &AccountWrapMock{
+		address:           args.Identifier,
 		trackableDataTrie: tdt,
 		Balance:           big.NewInt(0),
 	}
@@ -187,6 +213,12 @@ func (awm *AccountWrapMock) GetRootHash() []byte {
 // SetRootHash -
 func (awm *AccountWrapMock) SetRootHash(rootHash []byte) {
 	awm.RootHash = rootHash
+	awm.trackableDataTrie.SetRootHash(rootHash)
+}
+
+// SetDataTrieRootHash -
+func (awm *AccountWrapMock) SetDataTrieRootHash() {
+	awm.trackableDataTrie.SetRootHash(awm.RootHash)
 }
 
 // AddressBytes -
@@ -202,11 +234,6 @@ func (awm *AccountWrapMock) DataTrie() common.DataTrieHandler {
 // SaveDirtyData -
 func (awm *AccountWrapMock) SaveDirtyData(trie common.Trie) ([]*stateChange.DataTrieChange, []core.TrieData, error) {
 	return awm.trackableDataTrie.SaveDirtyData(trie)
-}
-
-// SetDataTrie -
-func (awm *AccountWrapMock) SetDataTrie(trie common.Trie) {
-	awm.trackableDataTrie.SetDataTrie(trie)
 }
 
 // IncreaseNonce adds the given value to the current nonce

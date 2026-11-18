@@ -19,7 +19,6 @@ type StateUserAccountHandlerStub struct {
 	GetCodeHashCalled           func() []byte
 	SetRootHashCalled           func([]byte)
 	GetRootHashCalled           func() []byte
-	SetDataTrieCalled           func(trie common.Trie)
 	DataTrieCalled              func() common.DataTrieHandler
 	RetrieveValueCalled         func(key []byte) ([]byte, uint32, error)
 	SaveKeyValueCalled          func(key []byte, value []byte) error
@@ -112,13 +111,6 @@ func (aas *StateUserAccountHandlerStub) GetRootHash() []byte {
 		return aas.GetRootHashCalled()
 	}
 	return nil
-}
-
-// SetDataTrie -
-func (aas *StateUserAccountHandlerStub) SetDataTrie(trie common.Trie) {
-	if aas.SetDataTrieCalled != nil {
-		aas.SetDataTrieCalled(trie)
-	}
 }
 
 // DataTrie -

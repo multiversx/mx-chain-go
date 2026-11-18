@@ -12,10 +12,11 @@ import (
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/state/parsers"
+	testCommon "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/goroutines"
-	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/stretchr/testify/assert"
 )
@@ -23,7 +24,7 @@ import (
 func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	numLeavesToAdd := 200
 	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
-	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
+	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager())
 
 	for i := 0; i < numLeavesToAdd; i++ {
 		_ = tr.Update([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
@@ -139,7 +140,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 }
 
 func TestTrieStorageManager_Close(t *testing.T) {
-	args := storage.GetStorageManagerArgs()
+	args := testCommon.GetStorageManagerArgs()
 
 	gc := goroutines.NewGoCounter(goroutines.TestsRelevantGoRoutines)
 	idxInitial, _ := gc.Snapshot()

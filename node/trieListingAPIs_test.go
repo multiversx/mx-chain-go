@@ -57,8 +57,7 @@ func TestTrieListingAPIsRejectIncompleteResults(t *testing.T) {
 			t.Run(label, func(t *testing.T) {
 				ctx, cancel := context.WithCancel(context.Background())
 				defer cancel()
-				acc := createAcc(testscommon.TestPubKeyAlice)
-				acc.SetDataTrie(&trieMock.TrieStub{RootCalled: func() ([]byte, error) { return nil, nil }, GetAllLeavesOnChannelCalled: func(ch *common.TrieIteratorChannels, _ context.Context, _ []byte, _ common.KeyBuilder, _ common.TrieLeafParser) error {
+				dataTrie := &trieMock.TrieStub{RootCalled: func() ([]byte, error) { return nil, nil }, GetAllLeavesOnChannelCalled: func(ch *common.TrieIteratorChannels, _ context.Context, _ []byte, _ common.KeyBuilder, _ common.TrieLeafParser) error {
 					go func() {
 						defer close(ch.LeavesChan)
 						ch.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("unrelated"), []byte("value"))
@@ -69,7 +68,10 @@ func TestTrieListingAPIsRejectIncompleteResults(t *testing.T) {
 						ch.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("other"), []byte("value"))
 					}()
 					return nil
-				}})
+				}}
+				acc := createAccWithDth(testscommon.TestPubKeyAlice, &trieMock.TriesHolderStub{
+					GetCalled: func(_ []byte) common.Trie { return dataTrie },
+				})
 				n := getNodeWithAccount(&stateMock.AccountsStub{GetAccountWithBlockInfoCalled: func([]byte, common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
 					return acc, nil, nil
 				}})
@@ -89,12 +91,14 @@ func TestTrieListingAPIsRejectIncompleteResults(t *testing.T) {
 }
 
 func TestTrieListingChargesExternalNFTMetadata(t *testing.T) {
-	acc := createAcc(testscommon.TestPubKeyAlice)
-	acc.SetDataTrie(&trieMock.TrieStub{RootCalled: func() ([]byte, error) { return nil, nil }, GetAllLeavesOnChannelCalled: func(ch *common.TrieIteratorChannels, _ context.Context, _ []byte, _ common.KeyBuilder, _ common.TrieLeafParser) error {
+	dataTrie := &trieMock.TrieStub{RootCalled: func() ([]byte, error) { return nil, nil }, GetAllLeavesOnChannelCalled: func(ch *common.TrieIteratorChannels, _ context.Context, _ []byte, _ common.KeyBuilder, _ common.TrieLeafParser) error {
 		ch.LeavesChan <- keyValStorage.NewKeyValStorage([]byte(core.ProtectedKeyPrefix+core.ESDTKeyIdentifier+"TOKEN-abcdef"), nil)
 		close(ch.LeavesChan)
 		return nil
-	}})
+	}}
+	acc := createAccWithDth(testscommon.TestPubKeyAlice, &trieMock.TriesHolderStub{
+		GetCalled: func(_ []byte) common.Trie { return dataTrie },
+	})
 	n := getNodeWithAccount(&stateMock.AccountsStub{GetAccountWithBlockInfoCalled: func([]byte, common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
 		return acc, nil, nil
 	}})

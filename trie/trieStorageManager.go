@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
+	"github.com/multiversx/mx-chain-go/trie/trieMetricsCollector"
 )
 
 const minSnapshotGoroutines = 4
@@ -364,7 +365,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 	}
 
 	stats := statistics.NewTrieStatistics()
-	err = newRoot.commitSnapshot(stsm, foundInEpoch, snapshotEntry.iteratorChannels.LeavesChan, snapshotEntry.missingNodesChan, ctx, stats, tsm.idleProvider, encodedRoot, rootDepthLevel)
+	err = newRoot.commitSnapshot(stsm, foundInEpoch, snapshotEntry.iteratorChannels.LeavesChan, snapshotEntry.missingNodesChan, ctx, stats, tsm.idleProvider, encodedRoot, trieMetricsCollector.NewTrieMetricsCollector())
 	if err != nil {
 		snapshotEntry.iteratorChannels.ErrChan.WriteInChanNonBlocking(err)
 		treatSnapshotError(err,

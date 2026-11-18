@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	"github.com/multiversx/mx-chain-go/trie"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 	"github.com/stretchr/testify/require"
 )
@@ -55,13 +56,13 @@ func TestRecoveryUserAndDataTriePersistence(t *testing.T) {
 				},
 			}
 			args.TrieStorageManager = db
-			dataTrie, err := trie.NewTrie(db, args.Marshalizer, args.Hasher, args.EnableEpochsHandler, 5)
+			dataTrie, err := trie.NewTrie(db, args.Marshalizer, args.Hasher, args.EnableEpochsHandler, collapseManager.NewDisabledCollapseManager())
 			require.NoError(t, err)
 			require.NoError(t, dataTrie.Update([]byte("key"), []byte("value")))
 			dataRoot, err := dataTrie.RootHash()
 			require.NoError(t, err)
 			require.NoError(t, dataTrie.Commit())
-			mainTrie, err := trie.NewTrie(db, args.Marshalizer, args.Hasher, args.EnableEpochsHandler, 5)
+			mainTrie, err := trie.NewTrie(db, args.Marshalizer, args.Hasher, args.EnableEpochsHandler, collapseManager.NewDisabledCollapseManager())
 			require.NoError(t, err)
 			account, err := args.Marshalizer.Marshal(&accounts.UserAccountData{RootHash: dataRoot, Address: []byte("account")})
 			require.NoError(t, err)

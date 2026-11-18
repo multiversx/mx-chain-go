@@ -121,16 +121,19 @@ func TestTokensSuppliesProcessor_HandleTrieAccountIteration(t *testing.T) {
 
 		expectedErr := errors.New("error")
 
-		userAcc, _ := accounts.NewUserAccount([]byte("addr"), &trie.DataTrieTrackerStub{}, &trie.TrieLeafParserStub{})
+		userAcc, _ := accounts.NewUserAccount([]byte("addr"), &trie.DataTrieTrackerStub{
+			DataTrieCalled: func() common.Trie {
+				return &trie.TrieStub{
+					GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder, leafParser common.TrieLeafParser) error {
+						return expectedErr
+					},
+					RootCalled: func() ([]byte, error) {
+						return []byte("rootHash"), nil
+					},
+				}
+			},
+		}, &trie.TrieLeafParserStub{})
 		userAcc.SetRootHash([]byte("rootHash"))
-		userAcc.SetDataTrie(&trie.TrieStub{
-			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder, leafParser common.TrieLeafParser) error {
-				return expectedErr
-			},
-			RootCalled: func() ([]byte, error) {
-				return []byte("rootHash"), nil
-			},
-		})
 
 		err := tsp.HandleTrieAccountIteration(userAcc)
 		require.ErrorIs(t, err, expectedErr)
@@ -143,19 +146,22 @@ func TestTokensSuppliesProcessor_HandleTrieAccountIteration(t *testing.T) {
 		args := getTokensSuppliesProcessorArgs()
 		tsp, _ := NewTokensSuppliesProcessor(args)
 
-		userAcc, _ := accounts.NewUserAccount([]byte("addr"), &trie.DataTrieTrackerStub{}, &trie.TrieLeafParserStub{})
-		userAcc.SetRootHash([]byte("rootHash"))
-		userAcc.SetDataTrie(&trie.TrieStub{
-			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder, leafParser common.TrieLeafParser) error {
-				leavesChannels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("not a token key"), []byte("not a token value"))
+		userAcc, _ := accounts.NewUserAccount([]byte("addr"), &trie.DataTrieTrackerStub{
+			DataTrieCalled: func() common.Trie {
+				return &trie.TrieStub{
+					GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder, leafParser common.TrieLeafParser) error {
+						leavesChannels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("not a token key"), []byte("not a token value"))
 
-				close(leavesChannels.LeavesChan)
-				return nil
+						close(leavesChannels.LeavesChan)
+						return nil
+					},
+					RootCalled: func() ([]byte, error) {
+						return []byte("rootHash"), nil
+					},
+				}
 			},
-			RootCalled: func() ([]byte, error) {
-				return []byte("rootHash"), nil
-			},
-		})
+		}, &trie.TrieLeafParserStub{})
+		userAcc.SetRootHash([]byte("rootHash"))
 
 		err := tsp.HandleTrieAccountIteration(userAcc)
 		require.NoError(t, err)
@@ -168,23 +174,26 @@ func TestTokensSuppliesProcessor_HandleTrieAccountIteration(t *testing.T) {
 		args := getTokensSuppliesProcessorArgs()
 		tsp, _ := NewTokensSuppliesProcessor(args)
 
-		userAcc, _ := accounts.NewUserAccount(vmcommon.SystemAccountAddress, &trie.DataTrieTrackerStub{}, &trie.TrieLeafParserStub{})
-		userAcc.SetRootHash([]byte("rootHash"))
-		userAcc.SetDataTrie(&trie.TrieStub{
-			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder, leafParser common.TrieLeafParser) error {
-				esToken := &esdt.ESDigitalToken{
-					Value: big.NewInt(37),
-				}
-				esBytes, _ := args.Marshaller.Marshal(esToken)
-				tknKey := []byte("ELRONDesdtTKN-00aacc")
-				value := append(esBytes, tknKey...)
-				value = append(value, []byte("addr")...)
-				leavesChannels.LeavesChan <- keyValStorage.NewKeyValStorage(tknKey, value)
+		userAcc, _ := accounts.NewUserAccount(vmcommon.SystemAccountAddress, &trie.DataTrieTrackerStub{
+			DataTrieCalled: func() common.Trie {
+				return &trie.TrieStub{
+					GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder, leafParser common.TrieLeafParser) error {
+						esToken := &esdt.ESDigitalToken{
+							Value: big.NewInt(37),
+						}
+						esBytes, _ := args.Marshaller.Marshal(esToken)
+						tknKey := []byte("ELRONDesdtTKN-00aacc")
+						value := append(esBytes, tknKey...)
+						value = append(value, []byte("addr")...)
+						leavesChannels.LeavesChan <- keyValStorage.NewKeyValStorage(tknKey, value)
 
-				close(leavesChannels.LeavesChan)
-				return nil
+						close(leavesChannels.LeavesChan)
+						return nil
+					},
+				}
 			},
-		})
+		}, &trie.TrieLeafParserStub{})
+		userAcc.SetRootHash([]byte("rootHash"))
 
 		err := tsp.HandleTrieAccountIteration(userAcc)
 		require.NoError(t, err)
@@ -196,49 +205,54 @@ func TestTokensSuppliesProcessor_HandleTrieAccountIteration(t *testing.T) {
 
 		args := getTokensSuppliesProcessorArgs()
 		tsp, _ := NewTokensSuppliesProcessor(args)
+		argsTdt := trackableDataTrie.TrackableDataTrieArgs{
+			Identifier:             []byte("addr"),
+			Hasher:                 &hashingMocks.HasherMock{},
+			Marshaller:             &marshallerMock.MarshalizerMock{},
+			EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
+			DataTriesHolder: &trie.TriesHolderStub{
+				GetCalled: func(i []byte) common.Trie {
+					return &trie.TrieStub{
+						GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder, leafParser common.TrieLeafParser) error {
+							esToken := &esdt.ESDigitalToken{
+								Value: big.NewInt(37),
+							}
+							esBytes, _ := args.Marshaller.Marshal(esToken)
+							tknKey := []byte("ELRONDesdtTKN-00aacc")
+							value := append(esBytes, tknKey...)
+							value = append(value, []byte("addr")...)
+							leaf, err := leafParser.ParseLeaf(tknKey, value, 0)
+							require.Nil(t, err)
+							leavesChannels.LeavesChan <- leaf
 
-		dtt, _ := trackableDataTrie.NewTrackableDataTrie(
-			[]byte("addr"),
-			&hashingMocks.HasherMock{},
-			&marshallerMock.MarshalizerMock{},
-			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-			&stateMock.StateAccessesCollectorStub{},
-		)
+							sft := &esdt.ESDigitalToken{
+								Value: big.NewInt(1),
+							}
+							sftBytes, _ := args.Marshaller.Marshal(sft)
+							sftKey := []byte("ELRONDesdtSFT-00aabb")
+							sftKey = append(sftKey, big.NewInt(37).Bytes()...)
+							value = append(sftBytes, sftKey...)
+							value = append(value, []byte("addr")...)
+							leaf, err = leafParser.ParseLeaf(sftKey, value, 0)
+							require.Nil(t, err)
+							leavesChannels.LeavesChan <- leaf
+
+							close(leavesChannels.LeavesChan)
+							return nil
+						},
+						RootCalled: func() ([]byte, error) {
+							return []byte("rootHash"), nil
+						},
+					}
+				},
+			},
+			DataTrieCreator: &trie.TrieStub{},
+		}
+		dtt, _ := trackableDataTrie.NewTrackableDataTrie(argsTdt)
 		dtlp, _ := parsers.NewDataTrieLeafParser([]byte("addr"), &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 		userAcc, _ := accounts.NewUserAccount([]byte("addr"), dtt, dtlp)
 		userAcc.SetRootHash([]byte("rootHash"))
-		userAcc.SetDataTrie(&trie.TrieStub{
-			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder, leafParser common.TrieLeafParser) error {
-				esToken := &esdt.ESDigitalToken{
-					Value: big.NewInt(37),
-				}
-				esBytes, _ := args.Marshaller.Marshal(esToken)
-				tknKey := []byte("ELRONDesdtTKN-00aacc")
-				value := append(esBytes, tknKey...)
-				value = append(value, []byte("addr")...)
-				leaf, err := leafParser.ParseLeaf(tknKey, value, 0)
-				require.Nil(t, err)
-				leavesChannels.LeavesChan <- leaf
-
-				sft := &esdt.ESDigitalToken{
-					Value: big.NewInt(1),
-				}
-				sftBytes, _ := args.Marshaller.Marshal(sft)
-				sftKey := []byte("ELRONDesdtSFT-00aabb")
-				sftKey = append(sftKey, big.NewInt(37).Bytes()...)
-				value = append(sftBytes, sftKey...)
-				value = append(value, []byte("addr")...)
-				leaf, err = leafParser.ParseLeaf(sftKey, value, 0)
-				require.Nil(t, err)
-				leavesChannels.LeavesChan <- leaf
-
-				close(leavesChannels.LeavesChan)
-				return nil
-			},
-			RootCalled: func() ([]byte, error) {
-				return []byte("rootHash"), nil
-			},
-		})
 
 		err := tsp.HandleTrieAccountIteration(userAcc)
 		require.NoError(t, err)

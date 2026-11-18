@@ -64,13 +64,13 @@ func (uam *UserAccountMock) SetRootHash(bytes []byte) {
 	uam.rootHash = bytes
 }
 
+// SetDataTrieRootHash -
+func (uam *UserAccountMock) SetDataTrieRootHash() {
+}
+
 // GetRootHash -
 func (uam *UserAccountMock) GetRootHash() []byte {
 	return uam.rootHash
-}
-
-// SetDataTrie -
-func (uam *UserAccountMock) SetDataTrie(_ common.Trie) {
 }
 
 // DataTrie -

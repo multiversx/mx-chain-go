@@ -61,13 +61,16 @@ func createBlockBody() *block.Body {
 }
 
 func createStakingScAccount() state.UserAccountHandler {
-	dtt, _ := trackableDataTrie.NewTrackableDataTrie(
-		vm.StakingSCAddress,
-		&hashingMocks.HasherMock{},
-		&marshallerMock.MarshalizerMock{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&stateMock.StateAccessesCollectorStub{},
-	)
+	args := trackableDataTrie.TrackableDataTrieArgs{
+		Identifier:             vm.StakingSCAddress,
+		Hasher:                 &hashingMocks.HasherMock{},
+		Marshaller:             &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
+		DataTriesHolder:        &trie.TriesHolderStub{},
+		DataTrieCreator:        &trie.TrieStub{},
+	}
+	dtt, _ := trackableDataTrie.NewTrackableDataTrie(args)
 
 	userAcc, _ := accounts.NewUserAccount(vm.StakingSCAddress, dtt, &trie.TrieLeafParserStub{})
 	return userAcc
