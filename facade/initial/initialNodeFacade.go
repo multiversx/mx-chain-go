@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/checkpoint"
 	"github.com/multiversx/mx-chain-go/debug"
 	"github.com/multiversx/mx-chain-go/facade"
 	"github.com/multiversx/mx-chain-go/heartbeat/data"
@@ -124,18 +125,18 @@ func (inf *initialNodeFacade) GetESDTBalance(_ string, _ string, _ api.AccountQu
 }
 
 // GetAllESDTTokens returns nil and error
-func (inf *initialNodeFacade) GetAllESDTTokens(_ context.Context, _ string, _ api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error) {
-	return nil, api.BlockInfo{}, errNodeStarting
+func (inf *initialNodeFacade) GetAllESDTTokens(_ context.Context, _ string, _ api.AccountQueryOptions, _ uint, _ *checkpoint.Checkpoint) (map[string]*esdt.ESDigitalToken, *checkpoint.Checkpoint, api.BlockInfo, error) {
+	return nil, nil, api.BlockInfo{}, errNodeStarting
 }
 
 // GetNFTTokenIDsRegisteredByAddress returns nil and error
-func (inf *initialNodeFacade) GetNFTTokenIDsRegisteredByAddress(_ context.Context, _ string, _ api.AccountQueryOptions) ([]string, api.BlockInfo, error) {
-	return nil, api.BlockInfo{}, errNodeStarting
+func (inf *initialNodeFacade) GetNFTTokenIDsRegisteredByAddress(_ context.Context, _ string, _ api.AccountQueryOptions, _ uint, _ *checkpoint.Checkpoint) ([]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
+	return nil, nil, api.BlockInfo{}, errNodeStarting
 }
 
 // GetESDTsWithRole returns nil and error
-func (inf *initialNodeFacade) GetESDTsWithRole(_ context.Context, _ string, _ string, _ api.AccountQueryOptions) ([]string, api.BlockInfo, error) {
-	return nil, api.BlockInfo{}, errNodeStarting
+func (inf *initialNodeFacade) GetESDTsWithRole(_ context.Context, _ string, _ string, _ api.AccountQueryOptions, _ uint, _ *checkpoint.Checkpoint) ([]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
+	return nil, nil, api.BlockInfo{}, errNodeStarting
 }
 
 // CreateTransaction return nil and error
@@ -349,8 +350,13 @@ func (inf *initialNodeFacade) Close() error {
 }
 
 // GetKeyValuePairs nil map
-func (inf *initialNodeFacade) GetKeyValuePairs(_ context.Context, _ string, _ api.AccountQueryOptions) (map[string]string, api.BlockInfo, error) {
-	return nil, api.BlockInfo{}, errNodeStarting
+func (inf *initialNodeFacade) GetKeyValuePairs(_ context.Context, _ string, _ api.AccountQueryOptions, _ uint, _ *checkpoint.Checkpoint) (map[string]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
+	return nil, nil, api.BlockInfo{}, errNodeStarting
+}
+
+// GetAccountWithKeys returns error
+func (inf *initialNodeFacade) GetAccountWithKeys(_ context.Context, _ string, _ api.AccountQueryOptions, _ uint, _ *checkpoint.Checkpoint) (api.AccountResponse, *checkpoint.Checkpoint, api.BlockInfo, error) {
+	return api.AccountResponse{}, nil, api.BlockInfo{}, errNodeStarting
 }
 
 // IterateKeys returns error
@@ -379,13 +385,13 @@ func (inf *initialNodeFacade) GetESDTData(_ string, _ string, _ uint64, _ api.Ac
 }
 
 // GetESDTsRoles return nil and error
-func (inf *initialNodeFacade) GetESDTsRoles(_ context.Context, _ string, _ api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error) {
-	return nil, api.BlockInfo{}, errNodeStarting
+func (inf *initialNodeFacade) GetESDTsRoles(_ context.Context, _ string, _ api.AccountQueryOptions, _ uint, _ *checkpoint.Checkpoint) (map[string][]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
+	return nil, nil, api.BlockInfo{}, errNodeStarting
 }
 
 // GetAllIssuedESDTs returns nil and error
-func (inf *initialNodeFacade) GetAllIssuedESDTs(_ context.Context, _ string) ([]string, error) {
-	return nil, errNodeStarting
+func (inf *initialNodeFacade) GetAllIssuedESDTs(_ context.Context, _ string, _ api.AccountQueryOptions, _ uint, _ *checkpoint.Checkpoint) ([]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
+	return nil, nil, api.BlockInfo{}, errNodeStarting
 }
 
 // GetTokenSupply returns nil and error

@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/checkpoint"
 	"github.com/multiversx/mx-chain-go/debug"
 	"github.com/multiversx/mx-chain-go/heartbeat/data"
 	"github.com/multiversx/mx-chain-go/node/external"
@@ -51,14 +52,15 @@ type FacadeStub struct {
 	GetThrottlerForEndpointCalled               func(endpoint string) (core.Throttler, bool)
 	GetUsernameCalled                           func(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
 	GetCodeHashCalled                           func(address string, options api.AccountQueryOptions) ([]byte, api.BlockInfo, error)
-	GetKeyValuePairsCalled                      func(ctx context.Context, address string, options api.AccountQueryOptions) (map[string]string, api.BlockInfo, error)
+	GetKeyValuePairsCalled                      func(ctx context.Context, address string, options api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint) (map[string]string, *checkpoint.Checkpoint, api.BlockInfo, error)
+	GetAccountWithKeysCalled                    func(ctx context.Context, address string, options api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint) (api.AccountResponse, *checkpoint.Checkpoint, api.BlockInfo, error)
 	IterateKeysCalled                           func(ctx context.Context, address string, numKeys uint, iteratorState [][]byte, options api.AccountQueryOptions) (map[string]string, [][]byte, api.BlockInfo, error)
 	SimulateTransactionExecutionHandler         func(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error)
 	GetESDTDataCalled                           func(address string, key string, nonce uint64, options api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error)
-	GetAllESDTTokensCalled                      func(ctx context.Context, address string, options api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error)
-	GetESDTsWithRoleCalled                      func(ctx context.Context, address string, role string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error)
-	GetESDTsRolesCalled                         func(ctx context.Context, address string, options api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error)
-	GetNFTTokenIDsRegisteredByAddressCalled     func(ctx context.Context, address string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error)
+	GetAllESDTTokensCalled                      func(ctx context.Context, address string, options api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint) (map[string]*esdt.ESDigitalToken, *checkpoint.Checkpoint, api.BlockInfo, error)
+	GetESDTsWithRoleCalled                      func(ctx context.Context, address string, role string, options api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint) ([]string, *checkpoint.Checkpoint, api.BlockInfo, error)
+	GetESDTsRolesCalled                         func(ctx context.Context, address string, options api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint) (map[string][]string, *checkpoint.Checkpoint, api.BlockInfo, error)
+	GetNFTTokenIDsRegisteredByAddressCalled     func(ctx context.Context, address string, options api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint) ([]string, *checkpoint.Checkpoint, api.BlockInfo, error)
 	GetBlockByHashCalled                        func(hash string, options api.BlockQueryOptions) (*api.Block, error)
 	GetBlockByNonceCalled                       func(nonce uint64, options api.BlockQueryOptions) (*api.Block, error)
 	GetAlteredAccountsForBlockCalled            func(options api.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error)
@@ -73,7 +75,7 @@ type FacadeStub struct {
 	GetInternalStartOfEpochValidatorsInfoCalled func(epoch uint32) ([]*state.ShardValidatorInfo, error)
 	GetInternalMiniBlockByHashCalled            func(format common.ApiOutputFormat, txHash string, epoch uint32) (interface{}, error)
 	GetTotalStakedValueHandler                  func() (*api.StakeValues, error)
-	GetAllIssuedESDTsCalled                     func(ctx context.Context, tokenType string) ([]string, error)
+	GetAllIssuedESDTsCalled                     func(ctx context.Context, tokenType string, options api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint) ([]string, *checkpoint.Checkpoint, api.BlockInfo, error)
 	GetDirectStakedListHandler                  func() ([]*api.DirectStakedValue, error)
 	GetDelegatorsListHandler                    func() ([]*api.Delegator, error)
 	GetProofCalled                              func(string, string) (*common.GetProofResponse, error)
@@ -249,12 +251,21 @@ func (f *FacadeStub) GetValueForKey(address string, key string, options api.Acco
 }
 
 // GetKeyValuePairs -
-func (f *FacadeStub) GetKeyValuePairs(ctx context.Context, address string, options api.AccountQueryOptions) (map[string]string, api.BlockInfo, error) {
+func (f *FacadeStub) GetKeyValuePairs(ctx context.Context, address string, options api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint) (map[string]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
 	if f.GetKeyValuePairsCalled != nil {
-		return f.GetKeyValuePairsCalled(ctx, address, options)
+		return f.GetKeyValuePairsCalled(ctx, address, options, numKeys, iteratorState)
 	}
 
-	return nil, api.BlockInfo{}, nil
+	return nil, nil, api.BlockInfo{}, nil
+}
+
+// GetAccountWithKeys -
+func (f *FacadeStub) GetAccountWithKeys(ctx context.Context, address string, options api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint) (api.AccountResponse, *checkpoint.Checkpoint, api.BlockInfo, error) {
+	if f.GetAccountWithKeysCalled != nil {
+		return f.GetAccountWithKeysCalled(ctx, address, options, numKeys, iteratorState)
+	}
+
+	return api.AccountResponse{}, nil, api.BlockInfo{}, nil
 }
 
 // IterateKeys -
@@ -284,48 +295,48 @@ func (f *FacadeStub) GetESDTData(address string, key string, nonce uint64, optio
 }
 
 // GetESDTsRoles -
-func (f *FacadeStub) GetESDTsRoles(ctx context.Context, address string, options api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error) {
+func (f *FacadeStub) GetESDTsRoles(ctx context.Context, address string, options api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint) (map[string][]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
 	if f.GetESDTsRolesCalled != nil {
-		return f.GetESDTsRolesCalled(ctx, address, options)
+		return f.GetESDTsRolesCalled(ctx, address, options, numKeys, iteratorState)
 	}
 
-	return map[string][]string{}, api.BlockInfo{}, nil
+	return nil, nil, api.BlockInfo{}, nil
 }
 
 // GetAllESDTTokens -
-func (f *FacadeStub) GetAllESDTTokens(ctx context.Context, address string, options api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error) {
+func (f *FacadeStub) GetAllESDTTokens(ctx context.Context, address string, options api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint) (map[string]*esdt.ESDigitalToken, *checkpoint.Checkpoint, api.BlockInfo, error) {
 	if f.GetAllESDTTokensCalled != nil {
-		return f.GetAllESDTTokensCalled(ctx, address, options)
+		return f.GetAllESDTTokensCalled(ctx, address, options, numKeys, iteratorState)
 	}
 
-	return make(map[string]*esdt.ESDigitalToken), api.BlockInfo{}, nil
+	return make(map[string]*esdt.ESDigitalToken), nil, api.BlockInfo{}, nil
 }
 
 // GetNFTTokenIDsRegisteredByAddress -
-func (f *FacadeStub) GetNFTTokenIDsRegisteredByAddress(ctx context.Context, address string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error) {
+func (f *FacadeStub) GetNFTTokenIDsRegisteredByAddress(ctx context.Context, address string, options api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint) ([]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
 	if f.GetNFTTokenIDsRegisteredByAddressCalled != nil {
-		return f.GetNFTTokenIDsRegisteredByAddressCalled(ctx, address, options)
+		return f.GetNFTTokenIDsRegisteredByAddressCalled(ctx, address, options, numKeys, iteratorState)
 	}
 
-	return make([]string, 0), api.BlockInfo{}, nil
+	return nil, nil, api.BlockInfo{}, nil
 }
 
 // GetESDTsWithRole -
-func (f *FacadeStub) GetESDTsWithRole(ctx context.Context, address string, role string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error) {
+func (f *FacadeStub) GetESDTsWithRole(ctx context.Context, address string, role string, options api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint) ([]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
 	if f.GetESDTsWithRoleCalled != nil {
-		return f.GetESDTsWithRoleCalled(ctx, address, role, options)
+		return f.GetESDTsWithRoleCalled(ctx, address, role, options, numKeys, iteratorState)
 	}
 
-	return make([]string, 0), api.BlockInfo{}, nil
+	return nil, nil, api.BlockInfo{}, nil
 }
 
 // GetAllIssuedESDTs -
-func (f *FacadeStub) GetAllIssuedESDTs(ctx context.Context, tokenType string) ([]string, error) {
+func (f *FacadeStub) GetAllIssuedESDTs(ctx context.Context, tokenType string, options api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint) ([]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
 	if f.GetAllIssuedESDTsCalled != nil {
-		return f.GetAllIssuedESDTsCalled(ctx, tokenType)
+		return f.GetAllIssuedESDTsCalled(ctx, tokenType, options, numKeys, iteratorState)
 	}
 
-	return make([]string, 0), nil
+	return nil, nil, api.BlockInfo{}, nil
 }
 
 // GetAccount -

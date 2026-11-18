@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/checkpoint"
 	"github.com/multiversx/mx-chain-go/debug"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/heartbeat/data"
@@ -65,11 +66,12 @@ type Facade interface {
 	GetAccount(ctx context.Context, address string, options dataApi.AccountQueryOptions) (dataApi.AccountResponse, dataApi.BlockInfo, error)
 	GetAccounts(addresses []string, options dataApi.AccountQueryOptions) (map[string]*dataApi.AccountResponse, dataApi.BlockInfo, error)
 	GetESDTData(address string, key string, nonce uint64, options dataApi.AccountQueryOptions) (*esdt.ESDigitalToken, dataApi.BlockInfo, error)
-	GetNFTTokenIDsRegisteredByAddress(ctx context.Context, address string, options dataApi.AccountQueryOptions) ([]string, dataApi.BlockInfo, error)
-	GetESDTsWithRole(ctx context.Context, address string, role string, options dataApi.AccountQueryOptions) ([]string, dataApi.BlockInfo, error)
-	GetAllESDTTokens(ctx context.Context, address string, options dataApi.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, dataApi.BlockInfo, error)
-	GetESDTsRoles(ctx context.Context, address string, options dataApi.AccountQueryOptions) (map[string][]string, dataApi.BlockInfo, error)
-	GetKeyValuePairs(ctx context.Context, address string, options dataApi.AccountQueryOptions) (map[string]string, dataApi.BlockInfo, error)
+	GetNFTTokenIDsRegisteredByAddress(ctx context.Context, address string, options dataApi.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint) ([]string, *checkpoint.Checkpoint, dataApi.BlockInfo, error)
+	GetESDTsWithRole(ctx context.Context, address string, role string, options dataApi.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint) ([]string, *checkpoint.Checkpoint, dataApi.BlockInfo, error)
+	GetAllESDTTokens(ctx context.Context, address string, options dataApi.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint) (map[string]*esdt.ESDigitalToken, *checkpoint.Checkpoint, dataApi.BlockInfo, error)
+	GetESDTsRoles(ctx context.Context, address string, options dataApi.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint) (map[string][]string, *checkpoint.Checkpoint, dataApi.BlockInfo, error)
+	GetKeyValuePairs(ctx context.Context, address string, options dataApi.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint) (map[string]string, *checkpoint.Checkpoint, dataApi.BlockInfo, error)
+	GetAccountWithKeys(ctx context.Context, address string, options dataApi.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint) (dataApi.AccountResponse, *checkpoint.Checkpoint, dataApi.BlockInfo, error)
 	IterateKeys(ctx context.Context, address string, numKeys uint, iteratorState [][]byte, options dataApi.AccountQueryOptions) (map[string]string, [][]byte, dataApi.BlockInfo, error)
 	GetGuardianData(address string, options dataApi.AccountQueryOptions) (dataApi.GuardianData, dataApi.BlockInfo, error)
 	GetBlockByHash(hash string, options dataApi.BlockQueryOptions) (*dataApi.Block, error)
@@ -80,7 +82,7 @@ type Facade interface {
 	GetTotalStakedValue() (*dataApi.StakeValues, error)
 	GetDirectStakedList() ([]*dataApi.DirectStakedValue, error)
 	GetDelegatorsList() ([]*dataApi.Delegator, error)
-	GetAllIssuedESDTs(ctx context.Context, tokenType string) ([]string, error)
+	GetAllIssuedESDTs(ctx context.Context, tokenType string, options dataApi.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint) ([]string, *checkpoint.Checkpoint, dataApi.BlockInfo, error)
 	GetTokenSupply(token string) (*dataApi.ESDTSupply, error)
 	GetHeartbeats() ([]data.PubKeyHeartbeat, error)
 	StatusMetrics() external.StatusMetricsHandler

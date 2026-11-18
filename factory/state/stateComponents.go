@@ -121,7 +121,7 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 		return nil, err
 	}
 
-	trieLeavesRetriever, err := scf.createTrieLeavesRetriever(trieStorageManagers[dataRetriever.UserAccountsUnit.String()])
+	trieLeavesRetriever, err := scf.createTrieLeavesRetriever()
 	if err != nil {
 		return nil, err
 	}
@@ -140,16 +140,11 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 	}, nil
 }
 
-func (scf *stateComponentsFactory) createTrieLeavesRetriever(trieStorage common.TrieStorageInteractor) (common.TrieLeavesRetriever, error) {
-	if !scf.config.TrieLeavesRetrieverConfig.Enabled {
-		return leavesRetriever.NewDisabledLeavesRetriever(), nil
-	}
-
+func (scf *stateComponentsFactory) createTrieLeavesRetriever() (common.TrieLeavesRetriever, error) {
 	return leavesRetriever.NewLeavesRetriever(
-		trieStorage,
 		scf.core.InternalMarshalizer(),
 		scf.core.Hasher(),
-		scf.config.TrieLeavesRetrieverConfig.MaxSizeInBytes,
+		scf.config.TrieOperations.WithDefaults().MaxBytes,
 	)
 }
 

@@ -4,7 +4,12 @@ import "errors"
 
 var ErrTrieOperationsBusy = errors.New("too many concurrent trie operations")
 
-var ErrTrieLeavesRetrieverDisabled = errors.New("paginated trie retrieval is disabled")
+// ErrInvalidIteratorState signals that an invalid iterator state was provided
+var ErrInvalidIteratorState = errors.New("invalid iterator state")
+
+// ErrIteratorNodeUnavailable signals that a trie node needed to start or continue an iteration can not be read from
+// the storage: it was pruned, it never existed or the storage reported no data for it
+var ErrIteratorNodeUnavailable = errors.New("iterator node unavailable")
 
 // ErrInvalidTimeout signals that an invalid timeout period has been provided
 var ErrInvalidTimeout = errors.New("invalid timeout value")

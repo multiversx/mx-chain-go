@@ -731,9 +731,20 @@ func (tr *patriciaMerkleTrie) IsMigratedToLatestVersion() (bool, error) {
 	return version == versionForNewlyAddedData, nil
 }
 
-// GetNodeDataFromHash returns the node data for the given hash
+// GetNodeDataFromHash returns the node data for the given hash. A node that is not found in the storage is reported as
+// ErrIteratorNodeUnavailable, any other storage error is reported as a get node from db error
 func GetNodeDataFromHash(hash []byte, keyBuilder common.KeyBuilder, db common.TrieStorageInteractor, msh marshal.Marshalizer, hsh hashing.Hasher) ([]common.TrieNodeData, error) {
-	n, err := getNodeFromDBAndDecode(hash, db, msh, hsh)
+	encodedNode, err := db.Get(hash)
+	if err == ErrKeyNotFound {
+		return nil, fmt.Errorf("%w: %s", ErrIteratorNodeUnavailable, hex.EncodeToString(hash))
+	}
+	if err != nil {
+		treatLogError(log, err, hash)
+
+		return nil, core.NewGetNodeFromDBErrWithKey(hash, err, db.GetIdentifier())
+	}
+
+	n, err := decodeNode(encodedNode, msh, hsh)
 	if err != nil {
 		return nil, err
 	}

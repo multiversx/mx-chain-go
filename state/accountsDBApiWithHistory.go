@@ -5,6 +5,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
@@ -15,6 +16,7 @@ import (
 type accountsDBApiWithHistory struct {
 	innerAccountsAdapter    AccountsAdapter
 	latestRecreatedRootHash []byte
+	latestRecreatedEpoch    core.OptionalUint32
 	mutRecreateAndGet       sync.RWMutex
 }
 
@@ -160,7 +162,7 @@ func (accountsDB *accountsDBApiWithHistory) GetAccountWithBlockInfo(address []by
 
 	// First check to avoid re-creation:
 	accountsDB.mutRecreateAndGet.RLock()
-	if !accountsDB.shouldRecreateTrieUnprotected(rootHash) {
+	if !accountsDB.shouldRecreateTrieUnprotected(options) {
 		// Re-creation is not necessary, but make sure no other routine re-creates it.
 		defer accountsDB.mutRecreateAndGet.RUnlock()
 		return accountsDB.doGetAccountWithBlockInfoUnprotected(address, rootHash)
@@ -173,7 +175,7 @@ func (accountsDB *accountsDBApiWithHistory) GetAccountWithBlockInfo(address []by
 	defer accountsDB.mutRecreateAndGet.Unlock()
 
 	// Second check to avoid re-creation:
-	if accountsDB.shouldRecreateTrieUnprotected(rootHash) {
+	if accountsDB.shouldRecreateTrieUnprotected(options) {
 		err := accountsDB.recreateTrieUnprotected(options)
 		if err != nil {
 			return nil, nil, err
@@ -203,7 +205,7 @@ func (accountsDB *accountsDBApiWithHistory) GetCodeWithBlockInfo(codeHash []byte
 
 	// First check to avoid re-creation:
 	accountsDB.mutRecreateAndGet.RLock()
-	if !accountsDB.shouldRecreateTrieUnprotected(rootHash) {
+	if !accountsDB.shouldRecreateTrieUnprotected(options) {
 		// Re-creation is not necessary, but make sure no other routine re-creates it.
 		defer accountsDB.mutRecreateAndGet.RUnlock()
 		return accountsDB.doGetCodeWithBlockInfoUnprotected(codeHash, rootHash)
@@ -216,7 +218,7 @@ func (accountsDB *accountsDBApiWithHistory) GetCodeWithBlockInfo(codeHash []byte
 	defer accountsDB.mutRecreateAndGet.Unlock()
 
 	// Second check to avoid re-creation:
-	if accountsDB.shouldRecreateTrieUnprotected(rootHash) {
+	if accountsDB.shouldRecreateTrieUnprotected(options) {
 		err := accountsDB.recreateTrieUnprotected(options)
 		if err != nil {
 			return nil, nil, err
@@ -232,8 +234,11 @@ func (accountsDB *accountsDBApiWithHistory) doGetCodeWithBlockInfoUnprotected(co
 	return code, blockInfo, nil
 }
 
-func (accountsDB *accountsDBApiWithHistory) shouldRecreateTrieUnprotected(rootHash []byte) bool {
-	return !bytes.Equal(accountsDB.latestRecreatedRootHash, rootHash)
+// shouldRecreateTrieUnprotected returns true when the trie was not recreated at the given root hash, or was recreated
+// at it from another epoch storage
+func (accountsDB *accountsDBApiWithHistory) shouldRecreateTrieUnprotected(options common.RootHashHolder) bool {
+	return !bytes.Equal(accountsDB.latestRecreatedRootHash, options.GetRootHash()) ||
+		accountsDB.latestRecreatedEpoch != options.GetEpoch()
 }
 
 func (accountsDB *accountsDBApiWithHistory) recreateTrieUnprotected(options common.RootHashHolder) error {
@@ -243,6 +248,7 @@ func (accountsDB *accountsDBApiWithHistory) recreateTrieUnprotected(options comm
 	}
 
 	accountsDB.latestRecreatedRootHash = options.GetRootHash()
+	accountsDB.latestRecreatedEpoch = options.GetEpoch()
 	return nil
 }
 

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/process"
@@ -219,7 +220,7 @@ func TestQueries_Metachain(t *testing.T) {
 	require.NoError(t, err)
 	network.Continue(t, 5)
 
-	tokens, err := network.MetachainNode.Node.GetAllIssuedESDTs(core.FungibleESDT, context.Background())
+	tokens, _, _, err := network.MetachainNode.Node.GetAllIssuedESDTs(core.FungibleESDT, api.AccountQueryOptions{}, 0, nil, context.Background())
 	require.NoError(t, err)
 	require.Len(t, tokens, 1)
 

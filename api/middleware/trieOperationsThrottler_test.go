@@ -51,11 +51,11 @@ func TestTrieHTTPAdmissionCoversResponseAndRoutes(t *testing.T) {
 	r := gin.New()
 	installTrieLimiters(r, config.TrieOperationsConfig{MaxConcurrentRequests: 1})
 	handler := func(c *gin.Context) { c.JSON(http.StatusOK, gin.H{"ok": true}) }
-	paths := []string{"/address/:address/keys", "/address/:address/esdt", "/address/:address/esdts/roles", "/address/:address/esdts-with-role/:role", "/address/:address/registered-nfts", "/network/esdts", "/network/esdt/fungible-tokens", "/network/esdt/semi-fungible-tokens", "/network/esdt/non-fungible-tokens", "/address/:address"}
+	paths := []string{"/address/:address/keys", "/address/:address/esdt", "/address/:address/esdts/roles", "/address/:address/esdts-with-role/:role", "/address/:address/registered-nfts", "/network/esdts", "/network/esdt/fungible-tokens", "/network/esdt/semi-fungible-tokens", "/network/esdt/non-fungible-tokens", "/network/economics", "/network/direct-staked-info", "/network/delegated-info", "/address/:address", "/address/iterate-keys"} // economics is registered but not throttled
 	for _, path := range paths {
 		r.GET(path, handler)
+		r.POST(path, handler)
 	}
-	r.POST("/address/iterate-keys", handler)
 	w := &blockedTrieResponse{deadlineRecorder: newDeadlineRecorder(), started: make(chan struct{}), release: make(chan struct{})}
 	done := make(chan struct{})
 	go func() {
@@ -68,19 +68,25 @@ func TestTrieHTTPAdmissionCoversResponseAndRoutes(t *testing.T) {
 		t.Fatal("response did not start")
 	}
 	for _, path := range []string{"/address/bob/keys", "/address/bob/esdt", "/address/bob/esdts/roles", "/address/bob/esdts-with-role/role", "/address/bob/registered-nfts", "/network/esdts", "/network/esdt/fungible-tokens", "/network/esdt/semi-fungible-tokens", "/network/esdt/non-fungible-tokens", "/address/bob?withKeys=true", "/address/bob?withKeys=1", "/address/iterate-keys"} {
-		method := http.MethodGet
-		if path == "/address/iterate-keys" {
-			method = http.MethodPost
+		for _, method := range []string{http.MethodGet, http.MethodPost} {
+			recorder := newDeadlineRecorder()
+			r.ServeHTTP(recorder, httptest.NewRequest(method, path, nil))
+			require.Equal(t, http.StatusTooManyRequests, recorder.Code, method+" "+path)
+			require.Contains(t, recorder.Body.String(), "system_busy")
 		}
-		recorder := newDeadlineRecorder()
-		r.ServeHTTP(recorder, httptest.NewRequest(method, path, nil))
-		require.Equal(t, http.StatusTooManyRequests, recorder.Code, path)
-		require.Contains(t, recorder.Body.String(), "system_busy")
 	}
-	for _, path := range []string{"/address/bob", "/address/bob?withKeys=false"} {
+	for _, path := range []string{"/address/bob", "/address/bob?withKeys=false"} { // the POST route of the account exists for paging only
 		recorder := newDeadlineRecorder()
+		r.ServeHTTP(recorder, httptest.NewRequest(http.MethodPost, path, nil))
+		require.Equal(t, http.StatusTooManyRequests, recorder.Code, path)
+		recorder = newDeadlineRecorder()
 		r.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, path, nil))
-		require.Equal(t, http.StatusOK, recorder.Code)
+		require.Equal(t, http.StatusOK, recorder.Code, path)
+	}
+	for _, method := range []string{http.MethodGet, http.MethodPost} {
+		recorder := newDeadlineRecorder()
+		r.ServeHTTP(recorder, httptest.NewRequest(method, "/network/economics", nil))
+		require.Equal(t, http.StatusOK, recorder.Code, method)
 	}
 	close(w.release)
 	select {
@@ -263,4 +269,26 @@ func TestTrieAdmissionHeldThroughFinalFlush(t *testing.T) {
 	r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/network/esdts", nil))
 	require.Positive(t, checks)
 	require.Empty(t, limiter.slots)
+}
+
+func TestTrieHTTPContextDeadlineReserve(t *testing.T) {
+	for _, reserveMs := range []uint32{400, 1000, 1500} {
+		r := gin.New()
+		installTrieLimiters(r, config.TrieOperationsConfig{HTTPTimeoutMilliseconds: 1000, DeadlineReserveMilliseconds: reserveMs})
+		w := newDeadlineRecorder()
+		var contextDeadline, writeDeadline time.Time
+		r.GET("/network/esdts", func(c *gin.Context) {
+			contextDeadline, _ = c.Request.Context().Deadline()
+			writeDeadline = w.writeDeadline
+			c.Status(http.StatusOK)
+		})
+		r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/network/esdts", nil))
+		require.Equal(t, http.StatusOK, w.Code)
+		expectedReserve := time.Duration(reserveMs) * time.Millisecond
+		if reserveMs >= 1000 {
+			expectedReserve = 0
+		}
+		require.False(t, writeDeadline.IsZero())
+		require.Equal(t, expectedReserve, writeDeadline.Sub(contextDeadline), "reserve %d", reserveMs)
+	}
 }
