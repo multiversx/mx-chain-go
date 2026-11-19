@@ -73,6 +73,9 @@ func (dth *triesHolder) Reset() {
 // MarkAsDirty does nothing in this implementation
 func (dth *triesHolder) MarkAsDirty(_ []byte) {}
 
+// MarkAllAsCommitted does nothing because this container does not track dirty tries.
+func (dth *triesHolder) MarkAllAsCommitted() {}
+
 // IsInterfaceNil returns true if underlying object is nil
 func (dth *triesHolder) IsInterfaceNil() bool {
 	return dth == nil

@@ -425,6 +425,10 @@ func (sc *scProcessor) executeSmartContractCall(
 
 	var vmOutput *vmcommon.VMOutput
 	vmOutput, err = vmExec.RunSmartContractCall(vmInput)
+	if loadError := scrCommon.GetDataTrieLoadError(vmExec, err); loadError != nil {
+		sc.arwenChangeLocker.RUnlock()
+		return nil, loadError
+	}
 
 	sc.arwenChangeLocker.RUnlock()
 	if err != nil {
@@ -1175,6 +1179,9 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 
 	vmOutput, err := sc.blockChainHook.ProcessBuiltInFunction(vmInput)
 	if err != nil {
+		if errors.Is(err, state.ErrDataTrieLoadFailed) {
+			return nil, err
+		}
 		vmOutput = &vmcommon.VMOutput{
 			ReturnCode:    vmcommon.UserError,
 			ReturnMessage: err.Error(),
@@ -1859,6 +1866,10 @@ func (sc *scProcessor) doDeploySmartContract(
 	}
 
 	vmOutput, err = vmExec.RunSmartContractCreate(vmInput)
+	if loadError := scrCommon.GetDataTrieLoadError(vmExec, err); loadError != nil {
+		sc.arwenChangeLocker.RUnlock()
+		return vmcommon.ExecutionFailed, loadError
+	}
 	sc.arwenChangeLocker.RUnlock()
 	if err != nil {
 		log.Debug("VM error", "error", err.Error())

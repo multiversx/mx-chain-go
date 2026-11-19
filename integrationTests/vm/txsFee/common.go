@@ -152,7 +152,9 @@ func getAccount(tb testing.TB, testContext *vm.VMTestContext, scAddress []byte) 
 
 func getAccountDataTrie(tb testing.TB, testContext *vm.VMTestContext, address []byte) common.Trie {
 	acc := getAccount(tb, testContext, address)
-	dataTrieInstance, ok := acc.DataTrie().(common.Trie)
+	dataTrie, err := acc.DataTrie()
+	require.NoError(tb, err)
+	dataTrieInstance, ok := dataTrie.(common.Trie)
 	require.True(tb, ok)
 
 	return dataTrieInstance

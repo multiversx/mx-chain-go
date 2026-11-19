@@ -34,6 +34,7 @@ type vmContext struct {
 	returnMessage string
 	output        [][]byte
 	logs          []*vmcommon.LogEntry
+	storageError  error
 
 	enableEpochsHandler common.EnableEpochsHandler
 	crtTransferIndex    uint32
@@ -148,6 +149,10 @@ func (host *vmContext) GetStorageFromAddress(address []byte, key []byte) []byte 
 
 	data, _, err := host.blockChainHook.GetStorageData(address, key)
 	if err != nil {
+		// The contract gets an empty value, so preserve the failure for the VM to return.
+		if host.storageError == nil && errors.Is(err, state.ErrDataTrieLoadFailed) {
+			host.storageError = err
+		}
 		return nil
 	}
 
@@ -683,6 +688,7 @@ func (host *vmContext) CryptoHook() vmcommon.CryptoHook {
 
 // CleanCache cleans the current vmContext
 func (host *vmContext) CleanCache() {
+	host.storageError = nil
 	host.storageUpdate = make(map[string]map[string][]byte)
 	host.outputAccounts = make(map[string]*vmcommon.OutputAccount)
 	host.output = make([][]byte, 0)
@@ -690,6 +696,11 @@ func (host *vmContext) CleanCache() {
 	host.gasRemaining = 0
 	host.logs = make([]*vmcommon.LogEntry, 0)
 	host.crtTransferIndex = 1
+}
+
+// GetStorageError returns the collected storage error
+func (host *vmContext) GetStorageError() error {
+	return host.storageError
 }
 
 // SetGasProvided sets the provided gas

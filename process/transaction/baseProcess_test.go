@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
@@ -181,8 +182,8 @@ func Test_checkGuardedAccountUnguardedTxPermission(t *testing.T) {
 
 		baseProcLocal := baseProc
 		baseProcLocal.guardianChecker = &guardianMocks.GuardedAccountHandlerStub{
-			HasPendingGuardianCalled: func(uah state.UserAccountHandler) bool {
-				return true
+			HasPendingGuardianCalled: func(uah state.UserAccountHandler) (bool, error) {
+				return true, nil
 			},
 		}
 
@@ -364,4 +365,40 @@ func Test_CheckSetGuardianExecutable(t *testing.T) {
 		err := baseProc.CheckSetGuardianExecutable(tx)
 		require.Nil(t, err)
 	})
+}
+
+func TestLazyDataTrieLoad_GuardianValidation(t *testing.T) {
+	cause := core.NewGetNodeFromDBErrWithKey([]byte("root"), errors.New("missing"), "test")
+	for _, path := range []string{"active", "pending", "executable"} {
+		for _, marked := range []bool{false, true} {
+			name := path + "/legacy"
+			var storageErr error = cause
+			if marked {
+				name = path + "/lazy-root"
+				storageErr = &state.DataTrieLoadError{Cause: cause}
+			}
+			t.Run(name, func(t *testing.T) {
+				proc := createMockBaseTxProcessor()
+				proc.txVersionChecker = &testscommon.TxVersionCheckerStub{IsGuardedTransactionCalled: func(*transaction.Transaction) bool { return path == "active" }}
+				proc.guardianChecker = &guardianMocks.GuardedAccountHandlerStub{
+					GetActiveGuardianCalled:  func(vmcommon.UserAccountHandler) ([]byte, error) { return nil, storageErr },
+					HasPendingGuardianCalled: func(state.UserAccountHandler) (bool, error) { return false, storageErr },
+				}
+				if path == "executable" {
+					proc.scProcessor = &testscommon.SCProcessorMock{CheckBuiltinFunctionIsExecutableCalled: func(string, data.TransactionHandler) error { return storageErr }}
+				}
+				account := &stateMock.UserAccountStub{IsGuardedCalled: func() bool { return true }}
+				err := proc.VerifyGuardian(&transaction.Transaction{Data: []byte(core.BuiltInFunctionSetGuardian + "@")}, account)
+				if marked {
+					require.Same(t, storageErr, err)
+					require.Same(t, cause, core.UnwrapGetNodeFromDBErr(err))
+					require.NotErrorIs(t, err, process.ErrTransactionNotExecutable)
+				} else if path == "pending" {
+					require.NoError(t, err)
+				} else {
+					require.ErrorIs(t, err, process.ErrTransactionNotExecutable)
+				}
+			})
+		}
+	}
 }

@@ -123,17 +123,16 @@ func (tdt *trackableDataTrie) loadTrie() error {
 	}
 
 	// try to recreate the trie from db
-	if common.IsEmptyTrie(tdt.rootHash) {
+	if len(tdt.rootHash) == 0 {
 		return state.ErrNilTrie
 	}
 
 	tr, err := tdt.dataTrieCreator.Recreate(holders.NewDefaultRootHashesHolder(tdt.rootHash))
 	if err != nil {
-		return err
+		return &state.DataTrieLoadError{Cause: err}
 	}
 
-	tdt.tr = tr
-	tdt.dataTriesHolder.Put(tdt.identifier, tr)
+	tdt.tr = cacheDataTrie(tdt.dataTriesHolder, tdt.identifier, tr)
 
 	return nil
 }
@@ -289,13 +288,32 @@ func (tdt *trackableDataTrie) SetRootHash(rootHash []byte) {
 	tdt.rootHash = rootHash
 }
 
-// DataTrie sets the internal data trie
-func (tdt *trackableDataTrie) DataTrie() common.DataTrieHandler {
+// SetDataTrieCreator binds a historical account's storage context and cache root
+// before its first data-trie access.
+func (tdt *trackableDataTrie) SetDataTrieCreator(creator common.DataTrieCreator) {
+	tdt.dataTrieCreator = creator
+	tdt.EnableDataTrieRootValidation()
+}
+
+// EnableDataTrieRootValidation binds cache hits to this read-only account's root
+// before its first data-trie access.
+func (tdt *trackableDataTrie) EnableDataTrieRootValidation() {
+	tdt.dataTriesHolder = &rootValidatedDataTriesHolder{
+		TriesHolder: tdt.dataTriesHolder,
+		rootHash:    bytes.Clone(tdt.rootHash),
+	}
+}
+
+// DataTrie returns the data trie, or nil without an error if the account has no trie.
+func (tdt *trackableDataTrie) DataTrie() (common.DataTrieHandler, error) {
 	err := tdt.loadTrie()
 	if err != nil {
-		log.Error("failed to load data trie", "error", err, "account", tdt.identifier)
+		if err == state.ErrNilTrie {
+			return nil, nil
+		}
+		return nil, err
 	}
-	return tdt.tr
+	return tdt.tr, nil
 }
 
 // SaveDirtyData saved the dirty data to the trie

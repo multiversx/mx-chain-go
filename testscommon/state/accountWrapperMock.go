@@ -227,7 +227,7 @@ func (awm *AccountWrapMock) AddressBytes() []byte {
 }
 
 // DataTrie -
-func (awm *AccountWrapMock) DataTrie() common.DataTrieHandler {
+func (awm *AccountWrapMock) DataTrie() (common.DataTrieHandler, error) {
 	return awm.trackableDataTrie.DataTrie()
 }
 
@@ -267,4 +267,14 @@ func (awm *AccountWrapMock) IsGuarded() bool {
 // GetAllLeaves -
 func (awm *AccountWrapMock) GetAllLeaves(_ *common.TrieIteratorChannels, _ context.Context) error {
 	return nil
+}
+
+// SetDataTrieCreator -
+func (awm *AccountWrapMock) SetDataTrieCreator(creator common.DataTrieCreator) {
+	awm.trackableDataTrie.SetDataTrieCreator(creator)
+}
+
+// EnableDataTrieRootValidation -
+func (awm *AccountWrapMock) EnableDataTrieRootValidation() {
+	awm.trackableDataTrie.EnableDataTrieRootValidation()
 }

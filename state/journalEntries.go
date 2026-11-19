@@ -8,6 +8,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 type journalEntryCode struct {
@@ -172,9 +174,13 @@ func NewJournalEntryDataTrieUpdates(trieUpdates []core.TrieData, account baseAcc
 
 // Revert applies undo operation
 func (jedtu *journalEntryDataTrieUpdates) Revert() (vmcommon.AccountHandler, error) {
-	trie, ok := jedtu.account.DataTrie().(DataTrie)
+	dataTrie, err := jedtu.account.DataTrie()
+	if err != nil {
+		return nil, err
+	}
+	trie, ok := dataTrie.(DataTrie)
 	if !ok {
-		return nil, fmt.Errorf("invalid trie, type is %T", jedtu.account.DataTrie())
+		return nil, fmt.Errorf("invalid trie, type is %T", dataTrie)
 	}
 
 	for i := len(jedtu.trieUpdates) - 1; i >= 0; i-- {
@@ -207,10 +213,12 @@ func (jedtu *journalEntryDataTrieUpdates) IsInterfaceNil() bool {
 	return jedtu == nil
 }
 
-// journalEntryDataTrieRemove cancels the eviction of the hashes from the data trie with the given root hash
 type journalEntryDataTrieRemove struct {
 	rootHash               []byte
 	obsoleteDataTrieHashes map[string][][]byte
+	address                []byte
+	trie                   common.Trie
+	holder                 common.TriesHolder
 }
 
 // NewJournalEntryDataTrieRemove outputs a new journalEntryDataTrieRemove implementation used to cancel
@@ -233,6 +241,14 @@ func NewJournalEntryDataTrieRemove(rootHash []byte, obsoleteDataTrieHashes map[s
 func (jedtr *journalEntryDataTrieRemove) Revert() (vmcommon.AccountHandler, error) {
 	delete(jedtr.obsoleteDataTrieHashes, string(jedtr.rootHash))
 
+	if !check.IfNil(jedtr.holder) {
+		jedtr.holder.Remove(jedtr.address)
+		if !check.IfNil(jedtr.trie) {
+			// Older journal entries rewind this same object. Keep it pending
+			// so its restored, uncommitted nodes are persisted at Commit.
+			jedtr.holder.Put(jedtr.address, jedtr.trie)
+		}
+	}
 	return nil, nil
 }
 

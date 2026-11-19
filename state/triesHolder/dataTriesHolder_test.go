@@ -2,6 +2,7 @@ package triesHolder
 
 import (
 	"errors"
+	"math"
 	"strconv"
 	"sync"
 	"testing"
@@ -9,7 +10,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
+	storageCommon "github.com/multiversx/mx-chain-storage-go/common"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -36,6 +39,14 @@ func getTestTries(numTries int) []testTries {
 	return tries
 }
 
+func cachedTrieKeys(cache *dataTrieCache) []string {
+	keys := make([]string, 0, cache.order.Len())
+	for element := cache.order.Back(); element != nil; element = element.Prev() {
+		keys = append(keys, element.Value.(*dataTrieCacheEntry).key)
+	}
+	return keys
+}
+
 func TestNewDataTriesHolder(t *testing.T) {
 	t.Parallel()
 
@@ -56,8 +67,8 @@ func TestNewDataTriesHolder(t *testing.T) {
 		assert.NotNil(t, dth.evictedBuffer)
 		assert.NotNil(t, dth.dirtyTries)
 		assert.NotNil(t, dth.touchedTries)
-		assert.Equal(t, uint64(0), dth.cacher.SizeInBytesContained())
-		assert.Equal(t, 0, dth.cacher.Len())
+		assert.Equal(t, uint64(0), dth.cacher.size)
+		assert.Equal(t, 0, dth.cacher.order.Len())
 	})
 }
 
@@ -71,8 +82,8 @@ func TestDataTriesHolder_Put(t *testing.T) {
 
 		dth.Put([]byte("key"), nil)
 		dth.Put(nil, &trieMock.TrieStub{})
-		assert.Equal(t, uint64(0), dth.cacher.SizeInBytesContained())
-		assert.Equal(t, 0, dth.cacher.Len())
+		assert.Equal(t, uint64(0), dth.cacher.size)
+		assert.Equal(t, 0, dth.cacher.order.Len())
 		assert.Equal(t, 0, len(dth.dirtyTries))
 		assert.Equal(t, 0, len(dth.touchedTries))
 		assert.Equal(t, 0, len(dth.evictedBuffer))
@@ -85,14 +96,10 @@ func TestDataTriesHolder_Put(t *testing.T) {
 
 		dth.Put(entry.key, entry.trie)
 
-		assert.Equal(t, 1, dth.cacher.Len())
+		assert.Equal(t, 1, dth.cacher.order.Len())
 		assert.Equal(t, 1, len(dth.dirtyTries))
-		retrievedEntry, ok := dth.cacher.Get(string(entry.key))
-		assert.True(t, ok)
-		tr, ok := retrievedEntry.(common.Trie)
-		assert.True(t, ok)
-		assert.Equal(t, tr, entry.trie)
-		assert.Equal(t, uint64(oneKB), dth.cacher.SizeInBytesContained())
+		assert.Same(t, entry.trie, dth.cacher.get(string(entry.key)))
+		assert.Equal(t, uint64(oneKB), dth.cacher.size)
 		assert.Equal(t, 1, len(dth.dirtyTries))
 		assert.Equal(t, 1, len(dth.touchedTries))
 		assert.Equal(t, 0, len(dth.evictedBuffer))
@@ -107,19 +114,15 @@ func TestDataTriesHolder_Put(t *testing.T) {
 			dth.Put(entries[i].key, entries[i].trie)
 		}
 
-		assert.Equal(t, numEntries, dth.cacher.Len())
+		assert.Equal(t, numEntries, dth.cacher.order.Len())
 		assert.Equal(t, numEntries, len(dth.dirtyTries))
 		assert.Equal(t, numEntries, len(dth.touchedTries))
 		assert.Equal(t, 0, len(dth.evictedBuffer))
-		assert.Equal(t, uint64(numEntries*oneKB), dth.cacher.SizeInBytesContained())
-		cacherKeys := dth.cacher.Keys()
+		assert.Equal(t, uint64(numEntries*oneKB), dth.cacher.size)
+		cacherKeys := cachedTrieKeys(&dth.cacher)
 		assert.Equal(t, numEntries, len(cacherKeys))
 		for i := 0; i < numEntries; i++ {
-			retrievedEntry, ok := dth.cacher.Get(cacherKeys[i])
-			assert.True(t, ok)
-			tr, ok := retrievedEntry.(common.Trie)
-			assert.True(t, ok)
-			assert.Equal(t, tr, entries[i].trie)
+			assert.Same(t, entries[i].trie, dth.cacher.get(cacherKeys[i]))
 			assert.Equal(t, cacherKeys[i], string(entries[i].key))
 		}
 	})
@@ -135,12 +138,12 @@ func TestDataTriesHolder_Put(t *testing.T) {
 
 		dth.Put(entries[0].key, entries[0].trie)
 
-		assert.Equal(t, numEntries, dth.cacher.Len())
+		assert.Equal(t, numEntries, dth.cacher.order.Len())
 		assert.Equal(t, numEntries, len(dth.dirtyTries))
 		assert.Equal(t, numEntries, len(dth.touchedTries))
 		assert.Equal(t, 0, len(dth.evictedBuffer))
-		assert.Equal(t, uint64(numEntries*oneKB), dth.cacher.SizeInBytesContained())
-		keys := dth.cacher.Keys()
+		assert.Equal(t, uint64(numEntries*oneKB), dth.cacher.size)
+		keys := cachedTrieKeys(&dth.cacher)
 		assert.Equal(t, string(entries[0].key), keys[numEntries-1])
 	})
 	t.Run("put existing trie moves to newest used", func(t *testing.T) {
@@ -156,12 +159,12 @@ func TestDataTriesHolder_Put(t *testing.T) {
 		triePos := 2
 		dth.Put(entries[triePos].key, entries[triePos].trie)
 
-		assert.Equal(t, numEntries, dth.cacher.Len())
+		assert.Equal(t, numEntries, dth.cacher.order.Len())
 		assert.Equal(t, numEntries, len(dth.dirtyTries))
 		assert.Equal(t, numEntries, len(dth.touchedTries))
 		assert.Equal(t, 0, len(dth.evictedBuffer))
-		assert.Equal(t, uint64(numEntries*oneKB), dth.cacher.SizeInBytesContained())
-		keys := dth.cacher.Keys()
+		assert.Equal(t, uint64(numEntries*oneKB), dth.cacher.size)
+		keys := cachedTrieKeys(&dth.cacher)
 		assert.Equal(t, string(entries[triePos].key), keys[numEntries-1])
 	})
 	t.Run("put with eviction - evicted dirty tries should be in eviction buffer", func(t *testing.T) {
@@ -183,11 +186,11 @@ func TestDataTriesHolder_Put(t *testing.T) {
 
 		dth.Put(key, tr)
 
-		assert.Equal(t, 1, dth.cacher.Len())
+		assert.Equal(t, 1, dth.cacher.order.Len())
 		assert.Equal(t, numEntries+1, len(dth.dirtyTries))
 		assert.Equal(t, numEntries+1, len(dth.touchedTries))
 		assert.Equal(t, numEntries, len(dth.evictedBuffer))
-		assert.Equal(t, uint64(dthSize), dth.cacher.SizeInBytesContained())
+		assert.Equal(t, uint64(dthSize), dth.cacher.size)
 	})
 	t.Run("put with eviction - not dirty tries should evict", func(t *testing.T) {
 		t.Parallel()
@@ -211,11 +214,11 @@ func TestDataTriesHolder_Put(t *testing.T) {
 		dth.Put(key, tr)
 		numEvictedTries := 2
 
-		assert.Equal(t, numEntries-numEvictedTries+1, dth.cacher.Len())
+		assert.Equal(t, numEntries-numEvictedTries+1, dth.cacher.order.Len())
 		assert.Equal(t, 1, len(dth.dirtyTries))
 		assert.Equal(t, numEntries+1, len(dth.touchedTries))
 		assert.Equal(t, 0, len(dth.evictedBuffer))
-		assert.Equal(t, uint64(dthSize), dth.cacher.SizeInBytesContained())
+		assert.Equal(t, uint64(dthSize), dth.cacher.size)
 	})
 }
 
@@ -228,7 +231,7 @@ func TestDataTriesHolder_Get(t *testing.T) {
 		dth, _ := NewDataTriesHolder(dthSize)
 		tr := dth.Get([]byte("notExistingKey"))
 		assert.Nil(t, tr)
-		assert.Equal(t, 0, dth.cacher.Len())
+		assert.Equal(t, 0, dth.cacher.order.Len())
 	})
 	t.Run("get existing trie should move to newest used", func(t *testing.T) {
 		t.Parallel()
@@ -242,10 +245,10 @@ func TestDataTriesHolder_Get(t *testing.T) {
 
 		tr := dth.Get(entries[1].key)
 		assert.Equal(t, entries[1].trie, tr)
-		assert.Equal(t, numEntries, dth.cacher.Len())
-		keys := dth.cacher.Keys()
+		assert.Equal(t, numEntries, dth.cacher.order.Len())
+		keys := cachedTrieKeys(&dth.cacher)
 		assert.Equal(t, string(entries[1].key), keys[numEntries-1])
-		assert.Equal(t, uint64(numEntries*oneKB), dth.cacher.SizeInBytesContained())
+		assert.Equal(t, uint64(numEntries*oneKB), dth.cacher.size)
 	})
 	t.Run("get from evicted buffer should put back in cache", func(t *testing.T) {
 		t.Parallel()
@@ -266,7 +269,7 @@ func TestDataTriesHolder_Get(t *testing.T) {
 		key := []byte("trieEvict")
 		dth.Put(key, tr)
 		assert.Equal(t, numEntries, len(dth.evictedBuffer))
-		assert.Equal(t, 1, dth.cacher.Len())
+		assert.Equal(t, 1, dth.cacher.order.Len())
 
 		numGetFromTrie := 3
 		for i := 0; i < numGetFromTrie; i++ {
@@ -274,7 +277,7 @@ func TestDataTriesHolder_Get(t *testing.T) {
 		}
 
 		assert.Equal(t, 3, len(dth.evictedBuffer)) // 2 original tries + trieEvict
-		assert.Equal(t, numGetFromTrie, dth.cacher.Len())
+		assert.Equal(t, numGetFromTrie, dth.cacher.order.Len())
 	})
 }
 
@@ -290,13 +293,13 @@ func TestDataTriesHolder_GetAll(t *testing.T) {
 		for i := 0; i < numEntries; i++ {
 			dth.Put(entries[i].key, entries[i].trie)
 		}
-		dth.cacher.Remove(string(entries[0].key))
+		dth.cacher.remove(string(entries[0].key))
 
 		dirtyTries := dth.GetAll()
 		assert.Equal(t, numEntries-1, len(dirtyTries))
-		assert.Equal(t, 0, len(dth.dirtyTries))
+		assert.Equal(t, numEntries, len(dth.dirtyTries))
 	})
-	t.Run("trie size is correctly computed after GetAll and eviction", func(t *testing.T) {
+	t.Run("trie size is correctly computed after acknowledgment and eviction", func(t *testing.T) {
 		t.Parallel()
 
 		dth, _ := NewDataTriesHolder(dthSize)
@@ -306,12 +309,13 @@ func TestDataTriesHolder_GetAll(t *testing.T) {
 			dth.Put(entries[i].key, entries[i].trie)
 		}
 
-		assert.Equal(t, uint64(numEntries*oneKB), dth.cacher.SizeInBytesContained())
+		assert.Equal(t, uint64(numEntries*oneKB), dth.cacher.size)
 
 		dirtyTries := dth.GetAll()
+		dth.MarkAllAsCommitted()
 		assert.Equal(t, numEntries, len(dirtyTries))
 		assert.Equal(t, 0, len(dth.dirtyTries))
-		assert.Equal(t, uint64(numEntries*oneKB), dth.cacher.SizeInBytesContained())
+		assert.Equal(t, uint64(numEntries*oneKB), dth.cacher.size)
 
 		trieSize := dthSize - ((numEntries + 1) * oneKB)
 		tr := &trieMock.TrieStub{
@@ -321,23 +325,24 @@ func TestDataTriesHolder_GetAll(t *testing.T) {
 		}
 		key := []byte("newTrie")
 		dth.Put(key, tr)
-		assert.Equal(t, numEntries+1, dth.cacher.Len())
-		assert.Equal(t, uint64(numEntries*oneKB+trieSize), dth.cacher.SizeInBytesContained())
+		assert.Equal(t, numEntries+1, dth.cacher.order.Len())
+		assert.Equal(t, uint64(numEntries*oneKB+trieSize), dth.cacher.size)
 		dth.dirtyTries = make(map[string]struct{}) // reset dirty tries
 
 		// get a trie and "resolve" some nodes, thus increasing its size in memory
 		_ = dth.Get(key)
 		originalSize := trieSize
 		trieSize = trieSize + oneKB
-		assert.Equal(t, uint64(numEntries*oneKB+originalSize), dth.cacher.SizeInBytesContained()) // size is not updated
-		assert.Equal(t, numEntries+1, dth.cacher.Len())                                           // no eviction
+		assert.Equal(t, uint64(numEntries*oneKB+originalSize), dth.cacher.size)
+		assert.Equal(t, numEntries+1, dth.cacher.order.Len())
 		assert.Equal(t, 1, len(dth.touchedTries))
 
 		dirtyTries = dth.GetAll()
+		dth.MarkAllAsCommitted()
 		assert.Equal(t, 0, len(dirtyTries))
 		assert.Equal(t, 0, len(dth.dirtyTries))
-		assert.Equal(t, uint64(dthSize), dth.cacher.SizeInBytesContained()) // size is updated
-		assert.Equal(t, numEntries+1, dth.cacher.Len())                     // no eviction
+		assert.Equal(t, uint64(dthSize), dth.cacher.size)
+		assert.Equal(t, numEntries+1, dth.cacher.order.Len())
 		assert.Equal(t, 0, len(dth.touchedTries))
 
 		// put again the same trie, now with increased size triggering eviction
@@ -345,14 +350,15 @@ func TestDataTriesHolder_GetAll(t *testing.T) {
 		assert.Equal(t, 1, len(dth.touchedTries))
 		trieSize = trieSize + oneKB/2
 		assert.Equal(t, 0, len(dth.dirtyTries))
-		assert.Equal(t, uint64(dthSize), dth.cacher.SizeInBytesContained()) // size is  not updated
-		assert.Equal(t, numEntries+1, dth.cacher.Len())                     // no eviction
+		assert.Equal(t, uint64(dthSize), dth.cacher.size)
+		assert.Equal(t, numEntries+1, dth.cacher.order.Len())
 
 		dirtyTries = dth.GetAll()
+		dth.MarkAllAsCommitted()
 		assert.Equal(t, 0, len(dirtyTries))
 		assert.Equal(t, 0, len(dth.dirtyTries))
-		assert.Equal(t, uint64(dthSize-oneKB/2), dth.cacher.SizeInBytesContained()) // size is updated
-		assert.Equal(t, numEntries, dth.cacher.Len())                               // eviction
+		assert.Equal(t, uint64(dthSize-oneKB/2), dth.cacher.size)
+		assert.Equal(t, numEntries, dth.cacher.order.Len())
 		assert.Equal(t, 0, len(dth.touchedTries))
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -367,7 +373,7 @@ func TestDataTriesHolder_GetAll(t *testing.T) {
 
 		dirtyTries := dth.GetAll()
 		assert.Equal(t, numEntries, len(dirtyTries))
-		assert.Equal(t, 0, len(dth.dirtyTries))
+		assert.Equal(t, numEntries, len(dth.dirtyTries))
 	})
 }
 
@@ -382,8 +388,8 @@ func TestDataTriesHolder_Reset(t *testing.T) {
 	}
 
 	dth.Reset()
-	assert.Equal(t, 0, dth.cacher.Len())
-	assert.Equal(t, uint64(0), dth.cacher.SizeInBytesContained())
+	assert.Equal(t, 0, dth.cacher.order.Len())
+	assert.Equal(t, uint64(0), dth.cacher.size)
 	assert.Equal(t, 0, len(dth.dirtyTries))
 	assert.Equal(t, 0, len(dth.touchedTries))
 	assert.Equal(t, 0, len(dth.evictedBuffer))
@@ -408,6 +414,9 @@ func TestDataTriesHolder_MarkAsDirty(t *testing.T) {
 
 		dirtyTries := dth.GetAll()
 		assert.Equal(t, []common.Trie{entry.trie}, dirtyTries)
+		assert.Equal(t, 1, len(dth.dirtyTries))
+		assert.Equal(t, 1, len(dth.touchedTries))
+		dth.MarkAllAsCommitted()
 		assert.Equal(t, 0, len(dth.dirtyTries))
 		assert.Equal(t, 0, len(dth.touchedTries))
 	})
@@ -432,9 +441,9 @@ func TestDataTriesHolder_Concurrency(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, numEntries, dth.cacher.Len())
+	assert.Equal(t, numEntries, dth.cacher.order.Len())
 	assert.Equal(t, numEntries, len(dth.dirtyTries))
-	assert.Equal(t, uint64(numEntries*oneKB), dth.cacher.SizeInBytesContained())
+	assert.Equal(t, uint64(numEntries*oneKB), dth.cacher.size)
 }
 
 func BenchmarkDataTriesHolder_PutWithEviction(b *testing.B) {
@@ -495,4 +504,67 @@ func BenchmarkDataTriesHolder_GetAll(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		_ = dth.GetAll()
 	}
+}
+
+func TestDataTriesHolder_CommitKeepsAccessOrder(t *testing.T) {
+	const size = 300 << 10
+	for range 16 {
+		holder, err := NewDataTriesHolder(maxTrieSizeMinValue)
+		require.NoError(t, err)
+		for _, key := range []string{"A", "B", "C"} {
+			holder.Put([]byte(key), &trieMock.TrieStub{SizeInMemoryCalled: func() int { return size }})
+		}
+		require.Len(t, holder.GetAll(), 3)
+		holder.MarkAllAsCommitted()
+
+		holder.Put([]byte("D"), &trieMock.TrieStub{SizeInMemoryCalled: func() int { return size }})
+		require.Nil(t, holder.Get([]byte("A")))
+		require.NotNil(t, holder.Get([]byte("B")))
+		require.NotNil(t, holder.Get([]byte("C")))
+	}
+}
+
+func TestDataTriesHolder_ListingPendingTriesKeepsAccessOrder(t *testing.T) {
+	const size = 300 << 10
+	holder, err := NewDataTriesHolder(maxTrieSizeMinValue)
+	require.NoError(t, err)
+	oldest := &trieMock.TrieStub{SizeInMemoryCalled: func() int { return size }}
+	holder.Put([]byte("A"), oldest)
+	for _, key := range []string{"B", "C"} {
+		holder.Put([]byte(key), &trieMock.TrieStub{SizeInMemoryCalled: func() int { return size }})
+	}
+	holder.MarkAllAsCommitted()
+
+	for _, key := range []string{"A", "B", "C"} {
+		require.NotNil(t, holder.Get([]byte(key)))
+	}
+	holder.MarkAsDirty([]byte("A"))
+	require.Equal(t, []common.Trie{oldest}, holder.GetAll())
+
+	holder.Put([]byte("D"), &trieMock.TrieStub{SizeInMemoryCalled: func() int { return size }})
+	require.Same(t, oldest, holder.evictedBuffer["A"], "the oldest trie still needs to be persisted")
+	require.NotNil(t, holder.Get([]byte("B")))
+	require.NotNil(t, holder.Get([]byte("C")))
+}
+
+func TestDataTriesHolder_ReplacingEntryRetainsEvictedPendingTrie(t *testing.T) {
+	holder, err := NewDataTriesHolder(maxTrieSizeMinValue)
+	require.NoError(t, err)
+	oldest := &trieMock.TrieStub{SizeInMemoryCalled: func() int { return maxTrieSizeMinValue / 2 }}
+	newest := &trieMock.TrieStub{SizeInMemoryCalled: func() int { return maxTrieSizeMinValue / 2 }}
+	holder.Put([]byte("A"), oldest)
+	holder.Put([]byte("B"), newest)
+	replacement := &trieMock.TrieStub{SizeInMemoryCalled: func() int { return maxTrieSizeMinValue + 1 }}
+	holder.Put([]byte("B"), replacement)
+	require.Same(t, oldest, holder.evictedBuffer["A"])
+	require.ElementsMatch(t, []common.Trie{oldest, replacement}, holder.GetAll())
+	holder.MarkAllAsCommitted()
+	require.Nil(t, holder.Get([]byte("A")))
+	require.Same(t, replacement, holder.Get([]byte("B")), "the oversized singleton stays available")
+}
+
+func TestNewDataTriesHolder_RejectsOverflowingBudget(t *testing.T) {
+	holder, err := NewDataTriesHolder(math.MaxUint64)
+	require.Nil(t, holder)
+	require.ErrorIs(t, err, storageCommon.ErrCacheCapacityInvalid)
 }

@@ -10,6 +10,7 @@ import (
 
 // SystemEIStub -
 type SystemEIStub struct {
+	GetStorageErrorCalled               func() error
 	TransferCalled                      func(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64)
 	GetBalanceCalled                    func(addr []byte) *big.Int
 	SetStorageCalled                    func(key []byte, value []byte)
@@ -41,6 +42,13 @@ type SystemEIStub struct {
 	AddLogEntryCalled                   func(entry *vmcommon.LogEntry)
 	SetOwnerOperatingOnAccountCalled    func(newOwner []byte) error
 	UpdateCodeDeployerAddressCalled     func(scAddress string, newOwner []byte) error
+}
+
+func (s *SystemEIStub) GetStorageError() error {
+	if s.GetStorageErrorCalled != nil {
+		return s.GetStorageErrorCalled()
+	}
+	return nil
 }
 
 // AddLogEntry -

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewDisabledCollapseManager(t *testing.T) {
@@ -65,4 +66,11 @@ func TestDisabledCollapseManager_CloneWithoutState(t *testing.T) {
 	clone := dcm.CloneWithoutState()
 
 	assert.False(t, clone.IsInterfaceNil())
+}
+
+func TestDisabledCollapseManager_Reset(t *testing.T) {
+	manager := NewDisabledCollapseManager()
+	manager.Reset()
+	require.Zero(t, manager.GetSizeInMemory())
+	require.False(t, manager.ShouldCollapseTrie())
 }
