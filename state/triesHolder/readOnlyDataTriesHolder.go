@@ -48,6 +48,11 @@ func NewReadOnlyDataTriesHolder(maxTriesSize uint64) (*readOnlyDataTriesHolder, 
 	return &readOnlyDataTriesHolder{cacher: cacher, maxTriesSize: int64(maxTriesSize)}, nil
 }
 
+// SkipsEmptyTries lets callers bypass the address cache for a known empty root.
+func (dth *readOnlyDataTriesHolder) SkipsEmptyTries() bool {
+	return true
+}
+
 // Put caches a persisted trie. Evicted tries need no pending-commit retention.
 func (dth *readOnlyDataTriesHolder) Put(key []byte, tr common.Trie) {
 	dth.PutAndTrack(key, tr)

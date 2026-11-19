@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state/trackableDataTrie"
+	"github.com/multiversx/mx-chain-go/state/triesHolder"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/stretchr/testify/require"
 )
@@ -62,4 +63,32 @@ func TestTrackableDataTrie_EnableDataTrieRootValidationKeepsCreatorAndLaziness(t
 			require.Equal(t, expectedRecreations, puts)
 		})
 	}
+}
+
+func TestTrackableDataTrie_RootValidationReusesEmptyTrieWithWritableHolder(t *testing.T) {
+	holder, err := triesHolder.NewDataTriesHolder(common.TenMbSize)
+	require.NoError(t, err)
+	args := getDefaultArgs()
+	args.DataTriesHolder = holder
+	recreations := 0
+	args.DataTrieCreator = &trieMock.TrieStub{RecreateCalled: func(options common.RootHashHolder) (common.Trie, error) {
+		require.Equal(t, common.EmptyTrieHash, options.GetRootHash())
+		recreations++
+		return &trieMock.TrieStub{RootCalled: func() ([]byte, error) { return common.EmptyTrieHash, nil }}, nil
+	}}
+
+	load := func() common.DataTrieHandler {
+		tracker, newErr := trackableDataTrie.NewTrackableDataTrie(args)
+		require.NoError(t, newErr)
+		tracker.SetRootHash(common.EmptyTrieHash)
+		tracker.SetDataTrieCreator(args.DataTrieCreator)
+		tracker.EnableDataTrieRootValidation()
+		dataTrie, loadErr := tracker.DataTrie()
+		require.NoError(t, loadErr)
+		return dataTrie
+	}
+
+	first := load()
+	require.Same(t, first, load())
+	require.Equal(t, 1, recreations)
 }

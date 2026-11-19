@@ -30,6 +30,11 @@ type rootValidatedDataTriesHolder struct {
 }
 
 func (holder *rootValidatedDataTriesHolder) Get(address []byte) common.Trie {
+	if common.IsEmptyTrie(holder.rootHash) && holder.SkipsEmptyTries() {
+		// Empty tries bypass the cache. A lookup would refresh an older entry.
+		return nil
+	}
+
 	tr := holder.TriesHolder.Get(address)
 	if check.IfNil(tr) {
 		return nil
@@ -43,6 +48,11 @@ func (holder *rootValidatedDataTriesHolder) Get(address []byte) common.Trie {
 
 func (holder *rootValidatedDataTriesHolder) PutAndTrack(address []byte, tr common.Trie) common.Trie {
 	return cacheDataTrie(holder.TriesHolder, address, tr)
+}
+
+func (holder *rootValidatedDataTriesHolder) SkipsEmptyTries() bool {
+	policy, ok := holder.TriesHolder.(interface{ SkipsEmptyTries() bool })
+	return ok && policy.SkipsEmptyTries()
 }
 
 func (holder *rootValidatedDataTriesHolder) IsInterfaceNil() bool {

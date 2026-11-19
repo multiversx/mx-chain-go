@@ -135,6 +135,44 @@ func TestAccountsAdapters_APIReadsDoNotCacheEmptyDataTries(t *testing.T) {
 	}
 }
 
+func TestAccountsAdapters_APIReadsDoNotPromoteOlderTriesForEmptyRoots(t *testing.T) {
+	for _, view := range []string{"current", "final", "historical"} {
+		for _, version := range []core.TrieNodeVersion{core.NotSpecified, core.AutoBalanceEnabled} {
+			t.Run(fmt.Sprintf("%s/version-%d", view, version), func(t *testing.T) {
+				const leafSize = 400 << 10
+				f := newAPIDataTrieCacheFixture(t, view, version)
+				for id := byte(1); id <= 3; id++ {
+					f.save(t, id, leafSize, 1)
+				}
+				f.commit(t)
+				delayed := f.account(t, 1)
+
+				processing := f.adapters.accountsAdapter
+				account, err := processing.LoadAccount(bytes.Repeat([]byte{1}, 32))
+				require.NoError(t, err)
+				user := account.(state.UserAccountHandler)
+				require.NoError(t, user.SaveKeyValue([]byte("key-0"), nil))
+				require.NoError(t, processing.SaveAccount(user))
+				f.commit(t)
+
+				// Select the new root before the delayed request populates the cache.
+				empty := f.account(t, 1)
+				require.Equal(t, common.EmptyTrieHash, empty.GetRootHash())
+				requireAPIDataTrieValue(t, delayed, 1, 0, leafSize)
+				_, recent := f.attach(t, 2)
+				value, _, err := empty.RetrieveValue([]byte("key-0"))
+				require.NoError(t, err)
+				require.Empty(t, value)
+
+				// The budget fits two tries. The older trie should be evicted first.
+				f.attach(t, 3)
+				_, cached := f.attach(t, 2)
+				require.Same(t, recent, cached)
+			})
+		}
+	}
+}
+
 func TestAccountsAdapters_APIReadsReleaseOversizedDataTries(t *testing.T) {
 	for _, view := range []string{"current", "final", "historical"} {
 		for _, version := range []core.TrieNodeVersion{core.NotSpecified, core.AutoBalanceEnabled} {
