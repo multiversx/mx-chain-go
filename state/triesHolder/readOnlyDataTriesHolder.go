@@ -60,8 +60,8 @@ func (dth *readOnlyDataTriesHolder) PutAndTrack(key []byte, tr common.Trie) comm
 		return tr
 	}
 	size := int64(tr.SizeInMemory())
-	if size > dth.maxTriesSize {
-		// The LRU otherwise keeps a single entry regardless of its size.
+	if size == 0 || size > dth.maxTriesSize {
+		// Zero-size entries bypass the byte budget, and the LRU keeps an oversized singleton.
 		return tr
 	}
 

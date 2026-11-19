@@ -284,7 +284,10 @@ func TestReadOnlyDataTriesHolder_OutOfOrderGrowthCannotReduceWeight(t *testing.T
 	holder, err := NewReadOnlyDataTriesHolder(maxTrieSizeMinValue)
 	require.NoError(t, err)
 	key := []byte("account")
-	cacheEntry := holder.PutAndTrack(key, &growthReportingTrieStub{}).(*trackedReadOnlyTrie)
+	tr := &growthReportingTrieStub{
+		TrieStub: trieMock.TrieStub{SizeInMemoryCalled: func() int { return 64 }},
+	}
+	cacheEntry := holder.PutAndTrack(key, tr).(*trackedReadOnlyTrie)
 	for _, size := range []int64{100, 300, 200} {
 		holder.updateSize(cacheEntry, size)
 	}

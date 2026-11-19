@@ -100,6 +100,41 @@ func TestAccountsAdapters_APIReadsEvictGrowingDataTries(t *testing.T) {
 	}
 }
 
+func TestAccountsAdapters_APIReadsDoNotCacheEmptyDataTries(t *testing.T) {
+	for _, view := range []string{"current", "final", "historical"} {
+		for _, version := range []core.TrieNodeVersion{core.NotSpecified, core.AutoBalanceEnabled} {
+			t.Run(fmt.Sprintf("%s/version-%d", view, version), func(t *testing.T) {
+				f := newAPIDataTrieCacheFixture(t, view, version)
+				f.save(t, 1, 16, 1)
+				f.save(t, 2, 16, 1)
+				f.commit(t)
+
+				processing := f.adapters.accountsAdapter
+				account, err := processing.LoadAccount(bytes.Repeat([]byte{1}, 32))
+				require.NoError(t, err)
+				user := account.(state.UserAccountHandler)
+				require.NoError(t, user.SaveKeyValue([]byte("key-0"), nil))
+				require.NoError(t, processing.SaveAccount(user))
+				f.commit(t)
+
+				_, nonempty := f.attach(t, 2)
+				emptyAccount, emptyTrie := f.attach(t, 1)
+				require.Equal(t, common.EmptyTrieHash, emptyAccount.GetRootHash())
+				require.Zero(t, emptyTrie.SizeInMemory())
+				value, _, err := emptyAccount.RetrieveValue([]byte("key-0"))
+				require.NoError(t, err)
+				require.Empty(t, value)
+				require.Same(t, emptyTrie, requireAccountDataTrie(t, emptyAccount))
+
+				_, reopened := f.attach(t, 1)
+				require.NotSame(t, emptyTrie, reopened)
+				_, cached := f.attach(t, 2)
+				require.Same(t, nonempty, cached)
+			})
+		}
+	}
+}
+
 func TestAccountsAdapters_APIReadsReleaseOversizedDataTries(t *testing.T) {
 	for _, view := range []string{"current", "final", "historical"} {
 		for _, version := range []core.TrieNodeVersion{core.NotSpecified, core.AutoBalanceEnabled} {
@@ -161,7 +196,6 @@ func newAPIDataTrieCacheFixture(t *testing.T, view string, version core.TrieNode
 	if version == core.AutoBalanceEnabled {
 		flags.AddActiveFlags(common.AutoBalanceDataTriesFlag)
 	}
-	// The shared factory fixture disables size tracking.
 	trieKey := []byte(dataRetriever.UserAccountsUnit.String())
 	manager, err := collapseManager.NewCollapseManager(budget, 100)
 	require.NoError(t, err)

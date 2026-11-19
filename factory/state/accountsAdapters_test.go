@@ -57,12 +57,14 @@ func newAccountsViewsFactory(t *testing.T) (*stateComponentsFactory, common.Trie
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, storageManager.Close()) })
-	mainTrie, err := trie.NewTrie(storageManager, marshaller, hasher, flags, collapseManager.NewDisabledCollapseManager())
+	cfg := testscommon.GetGeneralConfig()
+	cfg.StateTriesConfig.SnapshotsEnabled = false
+	manager, err := collapseManager.NewCollapseManager(cfg.StateTriesConfig.MaxUserTrieSizeInMemory, cfg.StateTriesConfig.NumLeavesToCollapseSingleRun)
+	require.NoError(t, err)
+	mainTrie, err := trie.NewTrie(storageManager, marshaller, hasher, flags, manager)
 	require.NoError(t, err)
 	tries := triesHolder.NewTriesHolder()
 	tries.Put([]byte(dataRetriever.UserAccountsUnit.String()), mainTrie)
-	cfg := testscommon.GetGeneralConfig()
-	cfg.StateTriesConfig.SnapshotsEnabled = false
 	scf := &stateComponentsFactory{
 		config: cfg,
 		core: &factoryMock.CoreComponentsHolderStub{
