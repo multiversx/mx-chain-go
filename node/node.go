@@ -222,7 +222,11 @@ func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]strin
 	}
 
 	tokens := make([]string, 0)
-	if check.IfNil(userAccount.DataTrie()) {
+	dataTrie, err := userAccount.DataTrie()
+	if err != nil {
+		return nil, err
+	}
+	if check.IfNil(dataTrie) {
 		return tokens, nil
 	}
 
@@ -295,7 +299,11 @@ func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions,
 		return nil, api.BlockInfo{}, err
 	}
 
-	if check.IfNil(userAccount.DataTrie()) {
+	dataTrie, err := userAccount.DataTrie()
+	if err != nil {
+		return nil, api.BlockInfo{}, err
+	}
+	if check.IfNil(dataTrie) {
 		return map[string]string{}, blockInfo, nil
 	}
 
@@ -327,7 +335,11 @@ func (n *Node) IterateKeys(address string, numKeys uint, iteratorState [][]byte,
 		return nil, nil, api.BlockInfo{}, err
 	}
 
-	if check.IfNil(userAccount.DataTrie()) {
+	dataTrie, err := userAccount.DataTrie()
+	if err != nil {
+		return nil, nil, api.BlockInfo{}, err
+	}
+	if check.IfNil(dataTrie) {
 		return map[string]string{}, nil, blockInfo, nil
 	}
 
@@ -492,7 +504,11 @@ func (n *Node) getTokensIDsWithFilter(
 	}
 
 	tokens := make([]string, 0)
-	if check.IfNil(userAccount.DataTrie()) {
+	dataTrie, err := userAccount.DataTrie()
+	if err != nil {
+		return nil, api.BlockInfo{}, err
+	}
+	if check.IfNil(dataTrie) {
 		return tokens, api.BlockInfo{}, nil
 	}
 
@@ -616,7 +632,11 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 	}
 
 	allESDTs := make(map[string]*esdt.ESDigitalToken)
-	if check.IfNil(userAccount.DataTrie()) {
+	dataTrie, err := userAccount.DataTrie()
+	if err != nil {
+		return nil, api.BlockInfo{}, err
+	}
+	if check.IfNil(dataTrie) {
 		return allESDTs, api.BlockInfo{}, nil
 	}
 
@@ -1001,7 +1021,14 @@ func (n *Node) GetAccountWithKeys(address string, options api.AccountQueryOption
 
 	var keys map[string]string
 	if options.WithKeys {
-		if accInfo.account == nil || accInfo.account.DataTrie() == nil {
+		if accInfo.account == nil {
+			return accInfo.accountResponse, accInfo.block, nil
+		}
+		dataTrie, loadErr := accInfo.account.DataTrie()
+		if loadErr != nil {
+			return api.AccountResponse{}, api.BlockInfo{}, loadErr
+		}
+		if check.IfNil(dataTrie) {
 			return accInfo.accountResponse, accInfo.block, nil
 		}
 

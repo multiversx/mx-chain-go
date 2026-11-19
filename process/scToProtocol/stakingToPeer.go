@@ -3,6 +3,7 @@ package scToProtocol
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"math"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -142,12 +143,15 @@ func (stp *stakingToPeer) getUserAccount(key []byte) (state.UserAccountHandler, 
 	return userAcc, nil
 }
 
-func (stp *stakingToPeer) getStorageFromAccount(userAcc state.UserAccountHandler, key []byte) []byte {
+func (stp *stakingToPeer) getStorageFromAccount(userAcc state.UserAccountHandler, key []byte) ([]byte, error) {
 	value, _, err := userAcc.RetrieveValue(key)
-	if err != nil {
-		return nil
+	if errors.Is(err, state.ErrDataTrieLoadFailed) {
+		return nil, err
 	}
-	return value
+	if err != nil {
+		return nil, nil
+	}
+	return value, nil
 }
 
 // UpdateProtocol applies changes from staking smart contract to peer state and creates the actual peer changes
@@ -174,7 +178,10 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 		blsPubKey := []byte(key)
 		log.Trace("get on StakingScAddress called", "blsKey", blsPubKey)
 
-		buff := stp.getStorageFromAccount(stakingSCAccount, blsPubKey)
+		buff, err := stp.getStorageFromAccount(stakingSCAccount, blsPubKey)
+		if err != nil {
+			return err
+		}
 		// no data under key -> peer can be deleted from trie
 		var existingAcc vmcommon.AccountHandler
 		existingAcc, err = stp.peerState.GetExistingAccount(blsPubKey)

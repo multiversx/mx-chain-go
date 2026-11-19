@@ -31,6 +31,7 @@ import (
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -257,4 +258,183 @@ func TestCreateStateViewAccountsDBArgs_IndependentCacheBudgets(t *testing.T) {
 		}
 		holder.Reset()
 	}
+}
+
+func TestAccountsAdapters_CommitEvictsByFinalWeightsAndAccessOrder(t *testing.T) {
+	for _, version := range []core.TrieNodeVersion{core.NotSpecified, core.AutoBalanceEnabled} {
+		for _, shrink := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s/shrink-%t", version, shrink), func(t *testing.T) {
+				testAccountsCommitTriesByAccessOrder(t, version, shrink)
+			})
+		}
+	}
+}
+
+func testAccountsCommitTriesByAccessOrder(t *testing.T, version core.TrieNodeVersion, shrink bool) {
+	t.Helper()
+	scf, container := newAccountsViewsFactory(t)
+	scf.config.StateTriesConfig.DataTriesSizeInMemory = 1 << 20
+	key := []byte(dataRetriever.UserAccountsUnit.String())
+	original := container.Get(key)
+	flags := scf.core.EnableEpochsHandler().(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
+	flags.AddActiveFlags(common.FixDataTrieLeafValidationFlag)
+	if version == core.AutoBalanceEnabled {
+		flags.AddActiveFlags(common.AutoBalanceDataTriesFlag)
+	}
+	manager, err := collapseManager.NewCollapseManager(4<<20, 100)
+	require.NoError(t, err)
+	tr, err := trie.NewTrie(original.GetStorageManager(), scf.core.InternalMarshalizer(), scf.core.Hasher(), flags, manager)
+	require.NoError(t, err)
+	container.Put(key, tr)
+	adapters, err := scf.createAccountsAdapters(container, disabled.NewDisabledStateAccessesCollector())
+	require.NoError(t, err)
+	adb := adapters.accountsAdapter
+	storageKey := []byte("stored key")
+	load := func(i byte) state.UserAccountHandler {
+		acc, loadErr := adb.LoadAccount(bytes.Repeat([]byte{i}, 32))
+		require.NoError(t, loadErr)
+		return acc.(state.UserAccountHandler)
+	}
+	save := func(i byte, size int) state.UserAccountHandler {
+		acc := load(i)
+		require.NoError(t, acc.SaveKeyValue(storageKey, bytes.Repeat([]byte{i}, size)))
+		require.NoError(t, adb.SaveAccount(acc))
+		return acc
+	}
+	read := func(i byte, size int) state.UserAccountHandler {
+		acc := load(i)
+		value, _, readErr := acc.RetrieveValue(storageKey)
+		require.NoError(t, readErr)
+		require.Equal(t, bytes.Repeat([]byte{i}, size), value)
+		return acc
+	}
+	for i := byte(1); i <= 3; i++ {
+		save(i, 300<<10)
+	}
+	_, err = adb.Commit()
+	require.NoError(t, err)
+	first := save(1, 500<<10)
+	second := read(2, 300<<10)
+	thirdSize := 300 << 10
+	var third state.UserAccountHandler
+	if shrink {
+		thirdSize = 175 << 10
+		third = save(3, thirdSize)
+	} else {
+		third = read(3, thirdSize)
+	}
+	firstTrie, secondTrie, thirdTrie := requireAccountDataTrie(t, first), requireAccountDataTrie(t, second), requireAccountDataTrie(t, third)
+	root, err := adb.Commit()
+	require.NoError(t, err)
+	// Check the hotter tries first. Reopening an evicted trie can itself evict another entry.
+	heldB := requireAccountDataTrie(t, load(2)) == secondTrie
+	heldC := requireAccountDataTrie(t, load(3)) == thirdTrie
+	heldA := requireAccountDataTrie(t, load(1)) == firstTrie
+	require.NoError(t, adb.RecreateTrie(holders.NewDefaultRootHashesHolder(root)))
+	read(1, 500<<10)
+	read(2, 300<<10)
+	read(3, thirdSize)
+	require.True(t, heldB, "retain the newer B")
+	require.True(t, heldC, "retain the newest C")
+	require.Equal(t, shrink, heldA, "evict the oldest only if the final weights exceed budget")
+}
+
+func TestAccountsAdapters_DataTrieSizeAcrossCommitsAndRevert(t *testing.T) {
+	for _, version := range []core.TrieNodeVersion{core.NotSpecified, core.AutoBalanceEnabled} {
+		t.Run(fmt.Sprint(version), func(t *testing.T) {
+			fixture := newAPIDataTrieCacheFixture(t, "current", version)
+			db := fixture.adapters.accountsAdapter
+			address, another := bytes.Repeat([]byte{1}, 32), bytes.Repeat([]byte{2}, 32)
+			keys := make([][]byte, 0, 4)
+			usedSlots := make(map[byte]bool)
+			hasher := blake2b.NewBlake2b()
+			// Distinct physical root slots keep the branch in place on deletion.
+			for i := 0; i < 256 && len(keys) < 4; i++ {
+				key := []byte(fmt.Sprintf("key-%d", i))
+				physicalKey := key
+				if version == core.AutoBalanceEnabled {
+					physicalKey = hasher.Compute(string(key))
+				}
+				slot := physicalKey[len(physicalKey)-1] & 0xf
+				if !usedSlots[slot] {
+					keys = append(keys, key)
+					usedSlots[slot] = true
+				}
+			}
+			require.Len(t, keys, 4)
+
+			load := func(addr []byte) state.UserAccountHandler {
+				account, err := db.LoadAccount(addr)
+				require.NoError(t, err)
+				return account.(state.UserAccountHandler)
+			}
+			commit := func() []byte {
+				root, err := db.Commit()
+				require.NoError(t, err)
+				return root
+			}
+			write := func(key, value []byte) state.UserAccountHandler {
+				user := load(address)
+				require.NoError(t, user.SaveKeyValue(key, value))
+				require.NoError(t, db.SaveAccount(user))
+				return user
+			}
+			requireValue := func(user state.UserAccountHandler, key, value []byte) {
+				got, _, err := user.RetrieveValue(key)
+				require.NoError(t, err)
+				require.Equal(t, value, got)
+			}
+			val := []byte("committed value")
+			seed := load(address)
+			for _, key := range keys[:3] {
+				require.NoError(t, seed.SaveKeyValue(key, val))
+			}
+			require.NoError(t, db.SaveAccount(seed))
+			baseRoot := commit()
+			require.NoError(t, db.RecreateTrie(holders.NewDefaultRootHashesHolder(baseRoot)))
+			user := load(address)
+			for _, key := range keys[:3] {
+				requireValue(user, key, val)
+			}
+			resident := requireAccountDataTrie(t, user).(common.Trie)
+			dataRoot := user.GetRootHash()
+			before := resident.SizeInMemory()
+			for range 5 {
+				write(keys[3], val)
+				require.NotEqual(t, baseRoot, commit())
+				requireValue(load(address), keys[3], val)
+				current := write(keys[3], nil)
+				require.Equal(t, baseRoot, commit())
+				require.Equal(t, dataRoot, current.GetRootHash())
+				require.Same(t, resident, requireAccountDataTrie(t, current))
+				requireValue(current, keys[3], nil)
+			}
+			assert.Equal(t, before, resident.SizeInMemory(), "write and clear across blocks restore the original size")
+
+			// Use a nonzero snapshot to replay the journal on the same trie.
+			earlier := load(another)
+			earlier.IncreaseNonce(1)
+			require.NoError(t, db.SaveAccount(earlier))
+			snapshot := db.JournalLen()
+			require.Positive(t, snapshot)
+			beforeWriteRoot, err := db.RootHash()
+			require.NoError(t, err)
+			write(keys[3], val)
+			require.NoError(t, db.RevertToSnapshot(snapshot))
+			afterRevertRoot, err := db.RootHash()
+			require.NoError(t, err)
+			require.Equal(t, beforeWriteRoot, afterRevertRoot)
+			after := load(address)
+			require.Same(t, resident, requireAccountDataTrie(t, after))
+			requireValue(after, keys[3], nil)
+			assert.Equal(t, before, resident.SizeInMemory(), "rolling back a write restores the original size")
+		})
+	}
+}
+
+func requireAccountDataTrie(t *testing.T, account state.UserAccountHandler) common.DataTrieHandler {
+	t.Helper()
+	dataTrie, err := account.DataTrie()
+	require.NoError(t, err)
+	return dataTrie
 }

@@ -52,8 +52,11 @@ func TestTrackableDataTrie_EnableDataTrieRootValidationKeepsCreatorAndLaziness(t
 			if !matching {
 				expected, expectedRecreations = recreated, 1
 			}
-			require.Same(t, expected, tracker.DataTrie())
-			require.Same(t, expected, tracker.DataTrie())
+			for range 2 {
+				dataTrie, err := tracker.DataTrie()
+				require.NoError(t, err)
+				require.Same(t, expected, dataTrie)
+			}
 			require.Equal(t, 1, rootChecks, "only initial attachment checks the cache root")
 			require.Equal(t, expectedRecreations, recreations)
 			require.Equal(t, expectedRecreations, puts)

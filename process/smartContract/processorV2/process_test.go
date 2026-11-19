@@ -3,6 +3,7 @@ package processorV2
 import (
 	"bytes"
 	"encoding/hex"
+	stdErrors "errors"
 	"fmt"
 	"math"
 	"math/big"
@@ -4922,4 +4923,97 @@ func TestSmartContractProcessor_UseLastTransferAsAsyncCallBack_ReturnDataFlag(t 
 		require.True(t, len(callArgs) >= 2)
 		require.Equal(t, returnDataValue, callArgs[len(callArgs)-1])
 	})
+}
+
+func TestLazyDataTrieLoad_V2BuiltinBoundary(t *testing.T) {
+	for _, marked := range []bool{false, true} {
+		name := "legacy"
+		readErr := stdErrors.New("ordinary builtin error")
+		failure := readErr
+		if marked {
+			name = "lazy-root"
+			failure = &state.DataTrieLoadError{Cause: readErr}
+		}
+		t.Run(name, func(t *testing.T) {
+			args := createMockSmartContractProcessorArguments()
+			args.BlockChainHook = &testscommon.BlockChainHookStub{ProcessBuiltInFunctionCalled: func(*vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) { return nil, failure }}
+			processor, err := NewSmartContractProcessorV2(args)
+			require.NoError(t, err)
+			output, err := processor.resolveBuiltInFunctions(&vmcommon.ContractCallInput{})
+			if marked {
+				require.Same(t, failure, err)
+				require.Nil(t, output)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, vmcommon.UserError, output.ReturnCode)
+			}
+		})
+	}
+}
+
+type lazyLoadRuntimeVM struct {
+	mock.VMExecutionHandlerStub
+	runtimeErr error
+}
+
+func (vm *lazyLoadRuntimeVM) GetRuntimeErrors() error { return vm.runtimeErr }
+func TestLazyDataTrieLoad_ProcessorCallBoundary(t *testing.T) {
+	for _, path := range []string{"direct", "runtime", "handled-nested-call"} {
+		t.Run(path, func(t *testing.T) {
+			cause := core.NewGetNodeFromDBErrWithKey([]byte("root"), stdErrors.New("missing"), "test")
+			loadErr := &state.DataTrieLoadError{Cause: cause}
+			executor := &lazyLoadRuntimeVM{}
+			executor.RunSmartContractCallCalled = func(*vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+				if path == "direct" {
+					return nil, loadErr
+				}
+				executor.runtimeErr = vmhost.WrapError(stdErrors.New("earlier failure")).WrapWithError(loadErr)
+				code := vmcommon.ExecutionFailed
+				if path == "handled-nested-call" {
+					code = vmcommon.Ok
+				}
+				return &vmcommon.VMOutput{ReturnCode: code}, nil
+			}
+			args := createMockSmartContractProcessorArguments()
+			args.VmContainer = &mock.VMContainerMock{GetCalled: func([]byte) (vmcommon.VMExecutionHandler, error) { return executor, nil }}
+			processor, err := NewSmartContractProcessorV2(args)
+			require.NoError(t, err)
+			address := make([]byte, 32)
+			address[8] = 5
+			tx := &transaction.Transaction{SndAddr: []byte("sender"), RcvAddr: address, Value: big.NewInt(0)}
+			sender, destination := createAccounts(tx)
+			input := &vmcommon.ContractCallInput{RecipientAddr: address}
+			output, err := processor.executeSmartContractCall(input, tx, nil, sender, destination, NewFailureContext())
+			require.Same(t, loadErr, err)
+			require.Nil(t, output)
+			require.Same(t, cause, core.UnwrapGetNodeFromDBErr(err))
+		})
+	}
+}
+func TestLazyDataTrieLoad_ProcessorDeployBoundary(t *testing.T) {
+	for _, path := range []string{"direct", "runtime"} {
+		t.Run(path, func(t *testing.T) {
+			loadErr := &state.DataTrieLoadError{Cause: stdErrors.New("invalid encoded root")}
+			executor := &lazyLoadRuntimeVM{}
+			called := false
+			executor.RunSmartContractCreateCalled = func(*vmcommon.ContractCreateInput) (*vmcommon.VMOutput, error) {
+				called = true
+				if path == "direct" {
+					return nil, loadErr
+				}
+				executor.runtimeErr = loadErr
+				return &vmcommon.VMOutput{ReturnCode: vmcommon.ExecutionFailed}, nil
+			}
+			args := createMockSmartContractProcessorArguments()
+			args.VmContainer = &mock.VMContainerMock{GetCalled: func([]byte) (vmcommon.VMExecutionHandler, error) { return executor, nil }}
+			args.ArgsParser = smartContract.NewArgumentParser()
+			processor, err := NewSmartContractProcessorV2(args)
+			require.NoError(t, err)
+			tx := &transaction.Transaction{SndAddr: []byte("sender"), RcvAddr: make([]byte, processor.pubkeyConv.Len()), Data: []byte("abba@0500@0000"), Value: big.NewInt(45)}
+			sender, _ := createAccounts(tx)
+			_, err = processor.DeploySmartContract(tx, sender)
+			require.True(t, called)
+			require.Same(t, loadErr, err)
+		})
+	}
 }

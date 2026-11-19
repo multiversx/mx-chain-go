@@ -61,8 +61,12 @@ func TestTrackableDataTrie_HistoricalCacheValidatesRoots(t *testing.T) {
 			if scenario == "matching root" {
 				expected = cached
 			}
-			require.Same(t, expected, tracker.DataTrie())
-			require.Same(t, expected, tracker.DataTrie(), "an attached trie must remain pinned to its account")
+			dataTrie, err := tracker.DataTrie()
+			require.NoError(t, err)
+			require.Same(t, expected, dataTrie)
+			dataTrie, err = tracker.DataTrie()
+			require.NoError(t, err)
+			require.Same(t, expected, dataTrie, "an attached trie must remain pinned to its account")
 			if scenario == "nil trie" || scenario == "typed nil trie" {
 				require.Zero(t, rootChecks)
 			} else {
@@ -133,5 +137,7 @@ func TestTrackableDataTrie_ExecutionCacheDoesNotValidateRoots(t *testing.T) {
 	tracker, err := trackableDataTrie.NewTrackableDataTrie(args)
 	require.NoError(t, err)
 	tracker.SetRootHash([]byte("previously committed root"))
-	require.Same(t, cached, tracker.DataTrie())
+	dataTrie, err := tracker.DataTrie()
+	require.NoError(t, err)
+	require.Same(t, cached, dataTrie)
 }

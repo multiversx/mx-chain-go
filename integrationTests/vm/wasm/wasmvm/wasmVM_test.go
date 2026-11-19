@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -33,12 +36,16 @@ import (
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
+	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
+	syncDisabled "github.com/multiversx/mx-chain-go/process/sync/disabled"
 	processTransaction "github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 )
 
 var log = logger.GetOrCreate("wasmVMtest")
@@ -1161,4 +1168,203 @@ func TestDeployDNSV2SetDeleteUserNames(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, returnCode, vmcommon.Ok)
 	vm.TestAccountUsername(t, testContext.Accounts, senderAddressBytes, []byte("userName3"))
+}
+
+type removalVMFixture struct {
+	context *vm.VMTestContext
+	owner   []byte
+	sender  []byte
+	address []byte
+	token   []byte
+}
+
+func newRemovalVMFixture(t *testing.T) *removalVMFixture {
+	t.Helper()
+	context, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
+	require.NoError(t, err)
+	t.Cleanup(context.Close)
+	fixture := &removalVMFixture{
+		context: context,
+		owner:   []byte("12345678901234567890123456789011"),
+		sender:  []byte("12345678901234567890123456789012"),
+		token:   []byte("TKN-abcdef"),
+	}
+	balance := new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
+	_, err = vm.CreateAccount(context.Accounts, fixture.owner, 0, balance)
+	require.NoError(t, err)
+	utils.CreateAccountWithESDTBalance(t, context.Accounts, fixture.sender, balance,
+		fixture.token, 0, big.NewInt(1000000), uint32(core.Fungible))
+	code := wasm.GetSCCode("../testdata/counter/output/counter.wasm")
+	transaction := vm.CreateTransaction(0, big.NewInt(0), fixture.owner,
+		vm.CreateEmptyAddress(), 10, 100000, []byte(wasm.CreateDeployTxData(code)))
+	result, err := context.TxProcessor.ProcessTransaction(transaction)
+	require.NoError(t, err)
+	require.Equal(t, vmcommon.Ok, result)
+	_, err = context.Accounts.Commit()
+	require.NoError(t, err)
+	fixture.address, err = context.BlockchainHook.NewAddress(fixture.owner, 0, factory.WasmVirtualMachine)
+	require.NoError(t, err)
+	fixture.requireCounter(t, 1)
+	return fixture
+}
+
+func (fixture *removalVMFixture) call(t *testing.T, nonce uint64, function string) {
+	t.Helper()
+	transaction := vm.CreateTransaction(nonce, big.NewInt(0), fixture.owner,
+		fixture.address, 10, 100000, []byte(function))
+	result, err := fixture.context.TxProcessor.ProcessTransaction(transaction)
+	require.NoError(t, err)
+	require.Equal(t, vmcommon.Ok, result)
+}
+
+func (fixture *removalVMFixture) requireCounter(t *testing.T, expected byte) {
+	t.Helper()
+	account, err := fixture.context.Accounts.GetExistingAccount(fixture.address)
+	require.NoError(t, err)
+	key := append([]byte("mycounter"), make([]byte, 23)...)
+	value, _, err := account.(state.UserAccountHandler).RetrieveValue(key)
+	require.NoError(t, err)
+	require.Equal(t, []byte{expected}, value)
+}
+
+func TestDeleteContractMiniblockRevertRestoresStorage(t *testing.T) {
+	for _, failedRecreation := range []bool{false, true} {
+		name := "delete-only"
+		if failedRecreation {
+			name = "failed-esdt-call-after-delete"
+		}
+		t.Run(name, func(t *testing.T) {
+			fixture := newRemovalVMFixture(t)
+			// Earlier work in the block makes this a nonzero miniblock snapshot.
+			transaction := vm.CreateTransaction(1, big.NewInt(1), fixture.owner,
+				[]byte("12345678901234567890123456789014"), 10, 50000, nil)
+			result, err := fixture.context.TxProcessor.ProcessTransaction(transaction)
+			require.NoError(t, err)
+			require.Equal(t, vmcommon.Ok, result)
+			snapshot := fixture.context.Accounts.JournalLen()
+			require.Positive(t, snapshot)
+			fixture.call(t, 2, "deleteContract")
+			if failedRecreation {
+				// The built-in credits storage, but the function fails because
+				// the deleted contract has no code. Its transaction is reverted.
+				transaction = utils.CreateESDTTransferTx(0, fixture.sender, fixture.address,
+					fixture.token, big.NewInt(100), 10, 200000)
+				transaction.Data = append(transaction.Data, []byte("@"+hex.EncodeToString([]byte("increment")))...)
+				result, err = fixture.context.TxProcessor.ProcessTransaction(transaction)
+				require.NoError(t, err)
+				require.Equal(t, vmcommon.UserError, result)
+			}
+			// Use the miniblock snapshot to exercise the legacy coordinator's rollback boundary.
+			require.NoError(t, fixture.context.Accounts.RevertToSnapshot(snapshot))
+			fixture.requireCounter(t, 1) // Assert before C-01's commit cleanup.
+			_, err = fixture.context.Accounts.Commit()
+			require.NoError(t, err)
+			fixture.call(t, 2, "increment")
+			fixture.requireCounter(t, 2)
+		})
+	}
+}
+
+func TestDeleteContractMiniblockRevertPersistsEarlierStorage(t *testing.T) {
+	fixture := newRemovalVMFixture(t)
+	fixture.call(t, 1, "increment")
+	fixture.requireCounter(t, 2)
+	snapshot := fixture.context.Accounts.JournalLen()
+	require.Positive(t, snapshot)
+	// The delete needs an on-disk root while rollback needs the earlier dirty trie.
+	fixture.call(t, 2, "decrement")
+	fixture.call(t, 3, "deleteContract")
+	require.NoError(t, fixture.context.Accounts.RevertToSnapshot(snapshot))
+	fixture.requireCounter(t, 2)
+	root, err := fixture.context.Accounts.Commit()
+	require.NoError(t, err)
+	require.NoError(t, fixture.context.Accounts.RecreateTrie(holders.NewDefaultRootHashesHolder(root)))
+	fixture.requireCounter(t, 2)
+	fixture.call(t, 2, "increment")
+	fixture.requireCounter(t, 3)
+}
+
+func TestLazyDataTrieLoad_WASMExecutionAndQuery(t *testing.T) {
+	for _, processor := range []int{1, 2} {
+		for _, version := range []int{0, 1} {
+			t.Run(fmt.Sprintf("processor-%d/trie-%d", processor, version), func(t *testing.T) {
+				epochs := config.EnableEpochs{}
+				if processor == 1 {
+					epochs.SCProcessorV2EnableEpoch = math.MaxUint32
+				}
+				if version == 0 {
+					epochs.AutoBalanceDataTriesEnableEpoch = math.MaxUint32
+				}
+				ctx, err := vm.CreatePreparedTxProcessorWithVMs(epochs, 1)
+				require.NoError(t, err)
+				t.Cleanup(ctx.Close)
+				owner := []byte("12345678901234567890123456789011")
+				_, err = vm.CreateAccount(ctx.Accounts, owner, 0, new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil))
+				require.NoError(t, err)
+				code := wasm.GetSCCode("../testdata/counter/output/counter.wasm")
+				tx := vm.CreateTransaction(0, big.NewInt(0), owner, vm.CreateEmptyAddress(), 10, 100000, []byte(wasm.CreateDeployTxData(code)))
+				result, err := ctx.TxProcessor.ProcessTransaction(tx)
+				require.NoError(t, err)
+				require.Equal(t, vmcommon.Ok, result)
+				root, err := ctx.Accounts.Commit()
+				require.NoError(t, err)
+				address, err := ctx.BlockchainHook.NewAddress(owner, 0, factory.WasmVirtualMachine)
+				require.NoError(t, err)
+				acc, err := ctx.Accounts.GetExistingAccount(address)
+				require.NoError(t, err)
+				dataRoot := acc.(state.UserAccountHandler).GetRootHash()
+				tr, err := ctx.Accounts.GetTrie(root)
+				require.NoError(t, err)
+				storage := tr.GetStorageManager()
+				encodedRoot, err := storage.Get(dataRoot)
+				require.NoError(t, err)
+				vmExec, err := ctx.VMContainer.Get(factory.WasmVirtualMachine)
+				require.NoError(t, err)
+				input := &vmcommon.ContractCallInput{VMInput: vmcommon.VMInput{CallerAddr: owner, CallValue: big.NewInt(0), GasProvided: 1000000}, RecipientAddr: address, Function: "get"}
+				output, err := vmExec.RunSmartContractCall(input)
+				require.NoError(t, err)
+				require.Equal(t, vmcommon.Ok, output.ReturnCode)
+				require.Equal(t, [][]byte{{1}}, output.ReturnData)
+				require.NoError(t, scrCommon.GetDataTrieLoadError(vmExec, nil))
+				require.NoError(t, storage.Remove(dataRoot))
+				require.NoError(t, ctx.Accounts.RecreateTrie(holders.NewDefaultRootHashesHolder(root)))
+				// The real VM turns a hook error into ExecutionFailed with a nil Go error.
+				output, err = vmExec.RunSmartContractCall(input)
+				require.NoError(t, err)
+				require.Equal(t, vmcommon.ExecutionFailed, output.ReturnCode)
+				loadErr := scrCommon.GetDataTrieLoadError(vmExec, err)
+				require.ErrorIs(t, loadErr, state.ErrDataTrieLoadFailed)
+				require.Equal(t, dataRoot, core.UnwrapGetNodeFromDBErr(loadErr).GetKey())
+				// A read-only method isolates the VM fault from any later SaveAccount error.
+				tx = vm.CreateTransaction(1, big.NewInt(0), owner, address, 10, 100000, []byte("get"))
+				_, err = ctx.TxProcessor.ProcessTransaction(tx)
+				require.ErrorIs(t, err, state.ErrDataTrieLoadFailed)
+				require.Equal(t, dataRoot, core.UnwrapGetNodeFromDBErr(err).GetKey())
+				require.NoError(t, ctx.Accounts.RecreateTrie(holders.NewDefaultRootHashesHolder(root)))
+				queryService, err := smartContract.NewSCQueryService(smartContract.ArgsNewSCQueryService{
+					VmContainer: ctx.VMContainer, EconomicsFee: &economicsmocks.EconomicsHandlerMock{},
+					BlockChainHook: ctx.BlockchainHook.(process.BlockChainHookWithAccountsAdapter),
+					MainBlockChain: &testscommon.ChainHandlerStub{}, APIBlockChain: &testscommon.ChainHandlerStub{},
+					WasmVMChangeLocker: &sync.RWMutex{}, Bootstrapper: syncDisabled.NewDisabledBootstrapper(),
+					AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(), HistoryRepository: &dblookupext.HistoryRepositoryStub{},
+					ShardCoordinator: testscommon.NewMultiShardsCoordinatorMock(1), StorageService: &storageStubs.ChainStorerStub{},
+					Marshaller: integrationtests.TestMarshalizer, Hasher: integrationtests.TestHasher, Uint64ByteSliceConverter: uint64ByteSlice.NewBigEndianConverter(),
+				})
+				require.NoError(t, err)
+				query := &process.SCQuery{ScAddress: address, FuncName: "get", CallValue: big.NewInt(0)}
+				output, _, err = queryService.ExecuteQuery(query)
+				require.ErrorIs(t, err, state.ErrDataTrieLoadFailed)
+				require.Nil(t, output)
+				// Repair the node, then retry on the same VM to detect stale runtime failures.
+				require.NoError(t, storage.Put(dataRoot, encodedRoot))
+				output, _, err = queryService.ExecuteQuery(query)
+				require.NoError(t, err)
+				require.Equal(t, vmcommon.Ok, output.ReturnCode)
+				require.Equal(t, [][]byte{{1}}, output.ReturnData)
+				result, err = ctx.TxProcessor.ProcessTransaction(tx)
+				require.NoError(t, err)
+				require.Equal(t, vmcommon.Ok, result)
+			})
+		}
+	}
 }

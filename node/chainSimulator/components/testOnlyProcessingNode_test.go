@@ -1,6 +1,8 @@
 package components
 
 import (
+	"bytes"
+	"encoding/base64"
 	"errors"
 	"math/big"
 	"strings"
@@ -15,13 +17,18 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/heartbeat"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
+	factorymock "github.com/multiversx/mx-chain-go/node/mock/factory"
+	accountsState "github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
 	"github.com/multiversx/mx-chain-go/testscommon/state"
 )
 
@@ -602,4 +609,164 @@ func TestTestOnlyProcessingNode_SetBlockchainRootHashWithShardExecutionResult(t 
 	capturedShardResult, ok := capturedResult.(*block.ExecutionResult)
 	require.True(t, ok)
 	require.Equal(t, expectedRootHash, capturedShardResult.BaseExecutionResult.RootHash)
+}
+
+func newNodeForSetStateRootHashTest(t *testing.T) (*testOnlyProcessingNode, *accountsState.AccountsDB) {
+	t.Helper()
+	flags := enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.FixDataTrieLeafValidationFlag)
+	accounts := integrationtests.CreateAccountsDB(integrationtests.CreateMemUnit(), flags)
+	t.Cleanup(func() {
+		require.NoError(t, accounts.Close())
+	})
+	node := &testOnlyProcessingNode{
+		StateComponentsHolder: &factory.StateComponentsMock{Accounts: accounts},
+		CoreComponentsHolder: &factorymock.CoreComponentsMock{
+			EnableRoundsHandlerField: testscommon.NewEnableRoundsHandlerStub(),
+		},
+	}
+	return node, accounts
+}
+
+func setStateRootHashTestContractAddress() []byte {
+	address := bytes.Repeat([]byte{0x07}, 32)
+	clear(address[:8])
+	address[8], address[9] = 0x05, 0x00
+	return address
+}
+
+func TestSetStateForAddress_InvalidRootDoesNotCreateAccount(t *testing.T) {
+	tests := []struct {
+		name     string
+		rootHash string
+		wantErr  string
+	}{
+		{
+			name:     "malformed",
+			rootHash: "invalid root hash",
+			wantErr:  "illegal base64 data",
+		},
+		{
+			name:     "mismatch",
+			rootHash: base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{0xaa}, 32)),
+			wantErr:  "account root hash does not match",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			node, accounts := newNodeForSetStateRootHashTest(t)
+			address := setStateRootHashTestContractAddress()
+			before, err := accounts.RootHash()
+			require.NoError(t, err)
+
+			nonce := uint64(9)
+			err = node.SetStateForAddress(address, &dtos.AddressState{
+				Nonce:    &nonce,
+				Balance:  "123",
+				Code:     "abcdef",
+				Pairs:    map[string]string{"01": "02"},
+				RootHash: test.rootHash,
+			})
+			require.ErrorContains(t, err, test.wantErr)
+
+			after, err := accounts.RootHash()
+			require.NoError(t, err)
+			require.Equal(t, before, after)
+			require.Zero(t, accounts.JournalLen())
+
+			unrelated := bytes.Repeat([]byte{0x02}, 32)
+			require.NoError(t, node.SetStateForAddress(unrelated, &dtos.AddressState{Balance: "1"}))
+			committed, err := accounts.RootHash()
+			require.NoError(t, err)
+			require.NoError(t, accounts.RecreateTrie(holders.NewDefaultRootHashesHolder(committed)))
+			_, err = accounts.GetExistingAccount(address)
+			require.ErrorIs(t, err, accountsState.ErrAccNotFound)
+			codeHash := integrationtests.TestHasher.Compute(string([]byte{0xab, 0xcd, 0xef}))
+			require.Empty(t, accounts.GetCode(codeHash))
+		})
+	}
+}
+
+func TestSetStateForAddress_RootMismatchPreservesPendingWrites(t *testing.T) {
+	node, accounts := newNodeForSetStateRootHashTest(t)
+	address := setStateRootHashTestContractAddress()
+	require.NoError(t, node.SetStateForAddress(address, &dtos.AddressState{
+		Balance: "5",
+		Code:    "abcdef",
+		Pairs:   map[string]string{"01": "02"},
+	}))
+
+	pendingAddress := bytes.Repeat([]byte{0x03}, 32)
+	pending, err := node.getUserAccount(pendingAddress)
+	require.NoError(t, err)
+	require.NoError(t, pending.AddToBalance(big.NewInt(4)))
+	require.NoError(t, pending.SaveKeyValue([]byte{0x01}, []byte{0x05}))
+	require.NoError(t, accounts.SaveAccount(pending))
+	snapshot := accounts.JournalLen()
+	require.Positive(t, snapshot)
+	before, err := accounts.RootHash()
+	require.NoError(t, err)
+
+	nonce := uint64(9)
+	err = node.SetStateForAddress(address, &dtos.AddressState{
+		Nonce:    &nonce,
+		Balance:  "123",
+		Code:     "fedcba",
+		Pairs:    map[string]string{"01": "03", "02": "04"},
+		RootHash: base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{0xaa}, 32)),
+	})
+	require.ErrorContains(t, err, "account root hash does not match")
+	require.Equal(t, snapshot, accounts.JournalLen())
+	after, err := accounts.RootHash()
+	require.NoError(t, err)
+	require.Equal(t, before, after)
+
+	committed, err := accounts.Commit()
+	require.NoError(t, err)
+	require.NoError(t, accounts.RecreateTrie(holders.NewDefaultRootHashesHolder(committed)))
+	existing, err := accounts.GetExistingAccount(address)
+	require.NoError(t, err)
+	contract := existing.(accountsState.UserAccountHandler)
+	require.Zero(t, contract.GetNonce())
+	require.Equal(t, big.NewInt(5), contract.GetBalance())
+	require.Equal(t, []byte{0xab, 0xcd, 0xef}, accounts.GetCode(contract.GetCodeHash()))
+	value, _, err := contract.RetrieveValue([]byte{0x01})
+	require.NoError(t, err)
+	require.Equal(t, []byte{0x02}, value)
+
+	existing, err = accounts.GetExistingAccount(pendingAddress)
+	require.NoError(t, err)
+	persisted := existing.(accountsState.UserAccountHandler)
+	require.Equal(t, big.NewInt(4), persisted.GetBalance())
+	value, _, err = persisted.RetrieveValue([]byte{0x01})
+	require.NoError(t, err)
+	require.Equal(t, []byte{0x05}, value)
+}
+
+func TestSetStateForAddress_MatchingRootCommits(t *testing.T) {
+	node, accounts := newNodeForSetStateRootHashTest(t)
+	address := bytes.Repeat([]byte{0x06}, 32)
+	require.NoError(t, node.SetStateForAddress(address, &dtos.AddressState{
+		Balance: "1",
+		Pairs:   map[string]string{"01": "02"},
+	}))
+
+	existing, err := accounts.GetExistingAccount(address)
+	require.NoError(t, err)
+	root := existing.(accountsState.UserAccountHandler).GetRootHash()
+	require.NotEmpty(t, root)
+	require.NoError(t, node.SetStateForAddress(address, &dtos.AddressState{
+		Balance:  "2",
+		RootHash: base64.StdEncoding.EncodeToString(root),
+	}))
+	require.Zero(t, accounts.JournalLen())
+
+	committed, err := accounts.RootHash()
+	require.NoError(t, err)
+	require.NoError(t, accounts.RecreateTrie(holders.NewDefaultRootHashesHolder(committed)))
+	existing, err = accounts.GetExistingAccount(address)
+	require.NoError(t, err)
+	account := existing.(accountsState.UserAccountHandler)
+	require.Equal(t, big.NewInt(2), account.GetBalance())
+	require.Equal(t, root, account.GetRootHash())
 }

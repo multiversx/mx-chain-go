@@ -122,7 +122,7 @@ func TestTokensSuppliesProcessor_HandleTrieAccountIteration(t *testing.T) {
 		expectedErr := errors.New("error")
 
 		userAcc, _ := accounts.NewUserAccount([]byte("addr"), &trie.DataTrieTrackerStub{
-			DataTrieCalled: func() common.Trie {
+			DataTrieCalled: func() (common.DataTrieHandler, error) {
 				return &trie.TrieStub{
 					GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder, leafParser common.TrieLeafParser) error {
 						return expectedErr
@@ -130,7 +130,7 @@ func TestTokensSuppliesProcessor_HandleTrieAccountIteration(t *testing.T) {
 					RootCalled: func() ([]byte, error) {
 						return []byte("rootHash"), nil
 					},
-				}
+				}, nil
 			},
 		}, &trie.TrieLeafParserStub{})
 		userAcc.SetRootHash([]byte("rootHash"))
@@ -147,7 +147,7 @@ func TestTokensSuppliesProcessor_HandleTrieAccountIteration(t *testing.T) {
 		tsp, _ := NewTokensSuppliesProcessor(args)
 
 		userAcc, _ := accounts.NewUserAccount([]byte("addr"), &trie.DataTrieTrackerStub{
-			DataTrieCalled: func() common.Trie {
+			DataTrieCalled: func() (common.DataTrieHandler, error) {
 				return &trie.TrieStub{
 					GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder, leafParser common.TrieLeafParser) error {
 						leavesChannels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("not a token key"), []byte("not a token value"))
@@ -158,7 +158,7 @@ func TestTokensSuppliesProcessor_HandleTrieAccountIteration(t *testing.T) {
 					RootCalled: func() ([]byte, error) {
 						return []byte("rootHash"), nil
 					},
-				}
+				}, nil
 			},
 		}, &trie.TrieLeafParserStub{})
 		userAcc.SetRootHash([]byte("rootHash"))
@@ -175,7 +175,7 @@ func TestTokensSuppliesProcessor_HandleTrieAccountIteration(t *testing.T) {
 		tsp, _ := NewTokensSuppliesProcessor(args)
 
 		userAcc, _ := accounts.NewUserAccount(vmcommon.SystemAccountAddress, &trie.DataTrieTrackerStub{
-			DataTrieCalled: func() common.Trie {
+			DataTrieCalled: func() (common.DataTrieHandler, error) {
 				return &trie.TrieStub{
 					GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder, leafParser common.TrieLeafParser) error {
 						esToken := &esdt.ESDigitalToken{
@@ -190,7 +190,7 @@ func TestTokensSuppliesProcessor_HandleTrieAccountIteration(t *testing.T) {
 						close(leavesChannels.LeavesChan)
 						return nil
 					},
-				}
+				}, nil
 			},
 		}, &trie.TrieLeafParserStub{})
 		userAcc.SetRootHash([]byte("rootHash"))

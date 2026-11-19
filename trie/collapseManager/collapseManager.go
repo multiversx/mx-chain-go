@@ -11,16 +11,16 @@ import (
 var log = logger.GetOrCreate("trie/collapseManager")
 
 const (
-	// TODO calibrate these values
 	defaultNumLeavesToCollapseSingleRun = 100
-	minNumLeavesToCollapseTrie          = 1000
 	minSizeInMemory                     = 1048576 // 1 MB
 )
 
 type collapseManager struct {
-	accessedKeys                 map[string]*list.Element
-	orderAccess                  *list.List
-	sizeInMemory                 int
+	accessedKeys map[string]*list.Element
+	orderAccess  *list.List
+	sizeInMemory int
+
+	// Immutable after construction so CloneWithoutState can read these without the trie lock.
 	maxSizeInMem                 uint64
 	numLeavesToCollapseSingleRun int
 }
@@ -91,15 +91,8 @@ func (cm *collapseManager) GetSizeInMemory() int {
 	return cm.sizeInMemory
 }
 
-// ShouldCollapseTrie determines if the trie should be collapsed based on memory usage and accessed keys
 func (cm *collapseManager) ShouldCollapseTrie() bool {
-	// we collapse only if we are over the memory limit and there are not enough accessed keys to
-	// free memory by collapsing only leaves
-	if uint64(cm.sizeInMemory) > cm.maxSizeInMem && len(cm.accessedKeys) < minNumLeavesToCollapseTrie {
-		return true
-	}
-
-	return false
+	return uint64(cm.sizeInMemory) > cm.maxSizeInMem
 }
 
 // GetCollapsibleLeaves returns a list of keys that can be collapsed to free memory
@@ -139,6 +132,13 @@ func (cm *collapseManager) CloneWithoutState() common.TrieCollapseManager {
 		maxSizeInMem:                 cm.maxSizeInMem,
 		numLeavesToCollapseSingleRun: cm.numLeavesToCollapseSingleRun,
 	}
+}
+
+func (cm *collapseManager) Reset() {
+	// Replace the map to release its retained capacity.
+	cm.accessedKeys = make(map[string]*list.Element)
+	cm.orderAccess.Init()
+	cm.sizeInMemory = 0
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

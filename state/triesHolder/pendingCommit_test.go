@@ -40,7 +40,7 @@ func TestDataTriesHolder_GetAllDoesNotEvictGrowingPendingTrie(t *testing.T) {
 	size = dthSize
 	for attempt := 0; attempt < 3; attempt++ {
 		require.ElementsMatch(t, []common.Trie{first, second}, dth.GetAll())
-		require.Equal(t, uint64(dthSize), dth.cacher.SizeInBytesContained())
+		require.Equal(t, uint64(dthSize), dth.cacher.size)
 	}
 }
 
@@ -71,7 +71,7 @@ func TestDataTriesHolder_MarkAllAsCommittedAcrossGrowingBatches(t *testing.T) {
 		require.Same(t, last, dth.Get(lastKey), "acknowledgment must keep clean resident tries warm")
 		dth.MarkAllAsCommitted()
 		require.Empty(t, dth.GetAll(), "duplicate acknowledgment must not reintroduce pending work")
-		require.LessOrEqual(t, dth.cacher.SizeInBytesContained(), uint64(dthSize))
+		require.LessOrEqual(t, dth.cacher.size, uint64(dthSize))
 	}
 }
 
@@ -89,7 +89,7 @@ func TestDataTriesHolder_MarkAllAsCommittedUsesPostCommitSize(t *testing.T) {
 	size = oneKB
 	dth.MarkAllAsCommitted()
 	require.Empty(t, dth.GetAll())
-	require.Equal(t, uint64(dthSize/2+oneKB), dth.cacher.SizeInBytesContained())
+	require.Equal(t, uint64(dthSize/2+oneKB), dth.cacher.size)
 	require.Same(t, first, dth.Get([]byte("first")))
 	require.Same(t, second, dth.Get([]byte("second")))
 }
@@ -106,5 +106,5 @@ func TestDataTriesHolder_ResetDiscardsUnacknowledgedBatch(t *testing.T) {
 	require.Empty(t, dth.GetAll())
 	require.Empty(t, dth.evictedBuffer)
 	require.Empty(t, dth.touchedTries)
-	require.Zero(t, dth.cacher.SizeInBytesContained())
+	require.Zero(t, dth.cacher.size)
 }

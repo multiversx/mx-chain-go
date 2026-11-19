@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -49,7 +50,9 @@ func TestNewAccountsDBApi(t *testing.T) {
 	t.Run("nil block info provider should error", func(t *testing.T) {
 		t.Parallel()
 
-		accountsApi, err := state.NewAccountsDBApi(&mockState.AccountsStub{}, nil)
+		accountsApi, err := state.NewAccountsDBApi(&mockState.AccountsStub{
+			GetTrieCalled: func(_ []byte) (common.Trie, error) { return &testTrie.TrieStub{}, nil },
+		}, nil)
 
 		assert.True(t, check.IfNil(accountsApi))
 		assert.Equal(t, state.ErrNilBlockInfoProvider, err)
@@ -57,7 +60,9 @@ func TestNewAccountsDBApi(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		accountsApi, err := state.NewAccountsDBApi(&mockState.AccountsStub{}, &testscommon.BlockInfoProviderStub{})
+		accountsApi, err := state.NewAccountsDBApi(&mockState.AccountsStub{
+			GetTrieCalled: func(_ []byte) (common.Trie, error) { return &testTrie.TrieStub{}, nil },
+		}, &testscommon.BlockInfoProviderStub{})
 
 		assert.False(t, check.IfNil(accountsApi))
 		assert.Nil(t, err)
@@ -73,6 +78,7 @@ func TestAccountsDBAPi_recreateTrieIfNecessary(t *testing.T) {
 		t.Parallel()
 
 		accountsAdapter := &mockState.AccountsStub{
+			GetTrieCalled: func(_ []byte) (common.Trie, error) { return &testTrie.TrieStub{}, nil },
 			RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
 				require.Fail(t, "should have not called RecreateAllTriesCalled")
 
@@ -111,6 +117,7 @@ func TestAccountsDBAPi_recreateTrieIfNecessary(t *testing.T) {
 		t.Parallel()
 
 		accountsAdapter := &mockState.AccountsStub{
+			GetTrieCalled: func(_ []byte) (common.Trie, error) { return &testTrie.TrieStub{}, nil },
 			RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
 				require.Fail(t, "should have not called RecreateAllTriesCalled")
 
@@ -128,6 +135,7 @@ func TestAccountsDBAPi_recreateTrieIfNecessary(t *testing.T) {
 
 		oldRootHash := []byte("old root hash")
 		accountsAdapter := &mockState.AccountsStub{
+			GetTrieCalled: func(_ []byte) (common.Trie, error) { return &testTrie.TrieStub{}, nil },
 			RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
 				assert.Equal(t, rootHash, rootHash)
 
@@ -148,6 +156,7 @@ func TestAccountsDBAPi_recreateTrieIfNecessary(t *testing.T) {
 
 		oldRootHash := []byte("old root hash")
 		accountsAdapter := &mockState.AccountsStub{
+			GetTrieCalled: func(_ []byte) (common.Trie, error) { return &testTrie.TrieStub{}, nil },
 			RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
 				assert.Equal(t, rootHash, rootHash)
 
@@ -171,6 +180,7 @@ func TestAccountsDBAPi_doRecreateTrieWhenReEntranceHappened(t *testing.T) {
 	targetRootHash := []byte("root hash")
 	numCalled := 0
 	accountsAdapter := &mockState.AccountsStub{
+		GetTrieCalled: func(_ []byte) (common.Trie, error) { return &testTrie.TrieStub{}, nil },
 		RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
 			numCalled++
 			return nil
@@ -193,7 +203,9 @@ func TestAccountsDBApi_NotPermittedOperations(t *testing.T) {
 		}
 	}()
 
-	accountsApi, _ := state.NewAccountsDBApi(&mockState.AccountsStub{}, createBlockInfoProviderStub(dummyRootHash))
+	accountsApi, _ := state.NewAccountsDBApi(&mockState.AccountsStub{
+		GetTrieCalled: func(_ []byte) (common.Trie, error) { return &testTrie.TrieStub{}, nil },
+	}, createBlockInfoProviderStub(dummyRootHash))
 
 	assert.Equal(t, state.ErrOperationNotPermitted, accountsApi.SaveAccount(nil))
 	assert.Equal(t, state.ErrOperationNotPermitted, accountsApi.RemoveAccount(nil))
@@ -218,6 +230,7 @@ func TestAccountsDBApi_RecreateTrie(t *testing.T) {
 	t.Run("should error if the roothash holder is nil", func(t *testing.T) {
 		t.Parallel()
 		accountsApi, _ := state.NewAccountsDBApi(&mockState.AccountsStub{
+			GetTrieCalled: func(_ []byte) (common.Trie, error) { return &testTrie.TrieStub{}, nil },
 			RecreateTrieCalled: func(options common.RootHashHolder) error {
 				assert.Fail(t, "should have not called accountsApi.RecreateTrie")
 
@@ -252,6 +265,7 @@ func TestAccountsDBApi_RecreateTrie(t *testing.T) {
 		t.Parallel()
 		currentHash := []byte("hash1")
 		accountsApi, _ := state.NewAccountsDBApi(&mockState.AccountsStub{
+			GetTrieCalled: func(_ []byte) (common.Trie, error) { return &testTrie.TrieStub{}, nil },
 			RecreateTrieIfNeededCalled: func(options common.RootHashHolder) error {
 				assert.Fail(t, "should have not called accountsApi.RecreateTrieIfNeeded")
 
@@ -268,6 +282,7 @@ func TestAccountsDBApi_RecreateTrie(t *testing.T) {
 		t.Parallel()
 		wasCalled := false
 		accountsApi, _ := state.NewAccountsDBApi(&mockState.AccountsStub{
+			GetTrieCalled: func(_ []byte) (common.Trie, error) { return &testTrie.TrieStub{}, nil },
 			RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
 				wasCalled = true
 				return nil
@@ -286,6 +301,7 @@ func TestAccountsDB_RecreateTrieIfNeeded(t *testing.T) {
 	t.Run("should error if the roothash holder is nil", func(t *testing.T) {
 		t.Parallel()
 		accountsApi, _ := state.NewAccountsDBApi(&mockState.AccountsStub{
+			GetTrieCalled: func(_ []byte) (common.Trie, error) { return &testTrie.TrieStub{}, nil },
 			RecreateTrieIfNeededCalled: func(options common.RootHashHolder) error {
 				assert.Fail(t, "should have not called accountsApi.RecreateTrieIfNeeded")
 
@@ -339,15 +355,24 @@ func TestAccountsDB_RecreateTrieIfNeeded(t *testing.T) {
 		currentHash := []byte("hash1")
 		newHash := []byte("hash2")
 		recreatedCalled := false
+		recreatedTrie := &testTrie.TrieStub{
+			RecreateCalled: func(options common.RootHashHolder) (common.Trie, error) {
+				require.Empty(t, options.GetRootHash())
+				return &testTrie.TrieStub{}, nil
+			},
+		}
 
 		// mock trie to check whether RecreateTrie was triggered
 		trieStub := &testTrie.TrieStub{
 			RootCalled: func() ([]byte, error) {
 				return currentHash, nil
 			},
-			RecreateCalled: func(_ common.RootHashHolder) (common.Trie, error) {
+			RecreateCalled: func(options common.RootHashHolder) (common.Trie, error) {
+				if len(options.GetRootHash()) == 0 {
+					return &testTrie.TrieStub{}, nil
+				}
 				recreatedCalled = true
-				return &testTrie.TrieStub{}, nil
+				return recreatedTrie, nil
 			},
 		}
 
@@ -373,6 +398,7 @@ func TestAccountsDBApi_RecreateTrieFromEpoch(t *testing.T) {
 
 	t.Run("should error if the roothash holder is nil", func(t *testing.T) {
 		accountsApi, _ := state.NewAccountsDBApi(&mockState.AccountsStub{
+			GetTrieCalled: func(_ []byte) (common.Trie, error) { return &testTrie.TrieStub{}, nil },
 			RecreateTrieCalled: func(options common.RootHashHolder) error {
 				assert.Fail(t, "should have not called accountsApi.RecreateTrieFromEpochCalled")
 
@@ -388,6 +414,7 @@ func TestAccountsDBApi_RecreateTrieFromEpoch(t *testing.T) {
 		rootHash := []byte("root hash")
 		epoch := core.OptionalUint32{Value: 37, HasValue: true}
 		accountsApi, _ := state.NewAccountsDBApi(&mockState.AccountsStub{
+			GetTrieCalled: func(_ []byte) (common.Trie, error) { return &testTrie.TrieStub{}, nil },
 			RecreateTrieCalled: func(options common.RootHashHolder) error {
 				wasCalled = true
 				assert.Equal(t, rootHash, options.GetRootHash())
@@ -413,7 +440,9 @@ func TestAccountsDBApi_EmptyMethodsShouldNotPanic(t *testing.T) {
 		}
 	}()
 
-	accountsApi, _ := state.NewAccountsDBApi(&mockState.AccountsStub{}, createBlockInfoProviderStub(dummyRootHash))
+	accountsApi, _ := state.NewAccountsDBApi(&mockState.AccountsStub{
+		GetTrieCalled: func(_ []byte) (common.Trie, error) { return &testTrie.TrieStub{}, nil },
+	}, createBlockInfoProviderStub(dummyRootHash))
 
 	accountsApi.PruneTrie(nil, 0, state.NewPruningHandler(state.EnableDataRemoval))
 	accountsApi.CancelPrune(nil, 0)
@@ -477,6 +506,7 @@ func TestAccountsDBApi_GetExistingAccount(t *testing.T) {
 		t.Parallel()
 
 		accountsAdapter := &mockState.AccountsStub{
+			GetTrieCalled: func(_ []byte) (common.Trie, error) { return &testTrie.TrieStub{}, nil },
 			RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
 				return expectedErr
 			},
@@ -496,6 +526,7 @@ func TestAccountsDBApi_GetExistingAccount(t *testing.T) {
 
 		recreateTrieCalled := false
 		accountsAdapter := &mockState.AccountsStub{
+			GetTrieCalled: func(_ []byte) (common.Trie, error) { return &testTrie.TrieStub{}, nil },
 			RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
 				recreateTrieCalled = true
 				return nil
@@ -521,6 +552,7 @@ func TestAccountsDBApi_GetAccountFromBytes(t *testing.T) {
 		t.Parallel()
 
 		accountsAdapter := &mockState.AccountsStub{
+			GetTrieCalled: func(_ []byte) (common.Trie, error) { return &testTrie.TrieStub{}, nil },
 			RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
 				return expectedErr
 			},
@@ -540,6 +572,7 @@ func TestAccountsDBApi_GetAccountFromBytes(t *testing.T) {
 
 		recreateTrieCalled := false
 		accountsAdapter := &mockState.AccountsStub{
+			GetTrieCalled: func(_ []byte) (common.Trie, error) { return &testTrie.TrieStub{}, nil },
 			RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
 				recreateTrieCalled = true
 				return nil
@@ -565,6 +598,7 @@ func TestAccountsDBApi_LoadAccount(t *testing.T) {
 		t.Parallel()
 
 		accountsAdapter := &mockState.AccountsStub{
+			GetTrieCalled: func(_ []byte) (common.Trie, error) { return &testTrie.TrieStub{}, nil },
 			RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
 				return expectedErr
 			},
@@ -584,6 +618,7 @@ func TestAccountsDBApi_LoadAccount(t *testing.T) {
 
 		recreateTrieCalled := false
 		accountsAdapter := &mockState.AccountsStub{
+			GetTrieCalled: func(_ []byte) (common.Trie, error) { return &testTrie.TrieStub{}, nil },
 			RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
 				recreateTrieCalled = true
 				return nil
@@ -609,6 +644,7 @@ func TestAccountsDBApi_GetCode(t *testing.T) {
 		t.Parallel()
 
 		accountsAdapter := &mockState.AccountsStub{
+			GetTrieCalled: func(_ []byte) (common.Trie, error) { return &testTrie.TrieStub{}, nil },
 			RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
 				return expectedErr
 			},
@@ -628,6 +664,7 @@ func TestAccountsDBApi_GetCode(t *testing.T) {
 		providedCode := []byte("code")
 		recreateTrieCalled := false
 		accountsAdapter := &mockState.AccountsStub{
+			GetTrieCalled: func(_ []byte) (common.Trie, error) { return &testTrie.TrieStub{}, nil },
 			RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
 				recreateTrieCalled = true
 				return nil
@@ -652,6 +689,7 @@ func TestAccountsDBApi_GetAllLeaves(t *testing.T) {
 		t.Parallel()
 
 		accountsAdapter := &mockState.AccountsStub{
+			GetTrieCalled: func(_ []byte) (common.Trie, error) { return &testTrie.TrieStub{}, nil },
 			RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
 				return expectedErr
 			},
@@ -671,6 +709,7 @@ func TestAccountsDBApi_GetAllLeaves(t *testing.T) {
 		providedChan := &common.TrieIteratorChannels{LeavesChan: make(chan core.KeyValueHolder)}
 		recreateTrieCalled := false
 		accountsAdapter := &mockState.AccountsStub{
+			GetTrieCalled: func(_ []byte) (common.Trie, error) { return &testTrie.TrieStub{}, nil },
 			RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
 				recreateTrieCalled = true
 				return nil
@@ -696,6 +735,7 @@ func TestAccountsDBApi_GetAccountWithBlockInfoWhenHighConcurrency(t *testing.T) 
 		var currentBlockInfoMutex sync.RWMutex
 
 		accountsAdapter := &mockState.AccountsStub{
+			GetTrieCalled: func(_ []byte) (common.Trie, error) { return &testTrie.TrieStub{}, nil },
 			RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
 				dummyAccountMutex.Lock()
 				defer dummyAccountMutex.Unlock()
@@ -764,4 +804,296 @@ func createDummyBlockInfoWithNonce(nonce uint64) common.BlockInfo {
 	dummyBlockInfo := holders.NewBlockInfo(nonceBytes, nonce, nonceBytes)
 
 	return dummyBlockInfo
+}
+
+func TestAccountsDBApi_PreparesDataTrieCreatorOncePerSelection(t *testing.T) {
+	for _, method := range []string{"existing", "load", "bytes"} {
+		t.Run(method, func(t *testing.T) {
+			creator := &testTrie.TrieStub{}
+			preparations, bindings := 0, 0
+			inner := &mockState.AccountsStub{
+				RecreateTrieCalled: func(common.RootHashHolder) error { return nil },
+				GetTrieCalled: func(root []byte) (common.Trie, error) {
+					require.Empty(t, root)
+					preparations++
+					return creator, nil
+				},
+			}
+			load := func([]byte) (vmcommon.AccountHandler, error) {
+				return &mockState.UserAccountStub{
+					SetDataTrieCreatorCalled: func(actual common.DataTrieCreator) {
+						require.Same(t, creator, actual)
+						bindings++
+					},
+				}, nil
+			}
+			inner.GetExistingAccountCalled, inner.LoadAccountCalled = load, load
+			inner.GetAccountFromBytesCalled = func(address, _ []byte) (vmcommon.AccountHandler, error) { return load(address) }
+			adapter, err := state.NewAccountsDBApi(inner, createBlockInfoProviderStub(dummyRootHash))
+			require.NoError(t, err)
+			for i := 0; i < 5; i++ {
+				_, err = creatorTestAccount(adapter, method)
+				require.NoError(t, err)
+			}
+			require.Equal(t, 1, preparations)
+			require.Equal(t, 5, bindings)
+		})
+	}
+}
+
+func creatorTestAccount(adapter state.AccountsAdapterAPI, method string) (vmcommon.AccountHandler, error) {
+	switch method {
+	case "load":
+		return adapter.LoadAccount([]byte("address"))
+	case "bytes":
+		return adapter.GetAccountFromBytes([]byte("address"), []byte("account bytes"))
+	default:
+		return adapter.GetExistingAccount([]byte("address"))
+	}
+}
+
+func TestAccountsDBApi_FailedCreatorPreparationInvalidatesSelection(t *testing.T) {
+	for _, method := range []string{"recreate", "if-needed", "block-info"} {
+		for _, failure := range []string{"recreate error", "creator error", "nil creator"} {
+			t.Run(method+"/"+failure, func(t *testing.T) {
+				creator := &testTrie.TrieStub{}
+				expected := errors.New("injected selection error")
+				fail := false
+				recreations := 0
+				recreate := func(common.RootHashHolder) error {
+					recreations++
+					if fail && failure == "recreate error" {
+						return expected
+					}
+					return nil
+				}
+				inner := &mockState.AccountsStub{
+					RecreateTrieCalled: recreate, RecreateTrieIfNeededCalled: recreate,
+					GetTrieCalled: func([]byte) (common.Trie, error) {
+						if fail && failure == "creator error" {
+							return nil, expected
+						}
+						if fail && failure == "nil creator" {
+							return nil, nil
+						}
+						return creator, nil
+					},
+				}
+				adapter, err := state.NewAccountsDBApi(inner, createBlockInfoProviderStub(dummyRootHash))
+				require.NoError(t, err)
+				selectRoot := func(root []byte) error {
+					switch method {
+					case "if-needed":
+						return adapter.RecreateTrieIfNeeded(holders.NewDefaultRootHashesHolder(root))
+					case "block-info":
+						return adapter.DoRecreateTrieWithBlockInfo(holders.NewBlockInfo(nil, 0, root))
+					default:
+						return adapter.RecreateTrie(holders.NewDefaultRootHashesHolder(root))
+					}
+				}
+				require.NoError(t, selectRoot([]byte("root-A")))
+				fail = true
+				err = selectRoot([]byte("root-B"))
+				if failure == "nil creator" {
+					require.ErrorIs(t, err, state.ErrNilTrie)
+				} else {
+					require.ErrorIs(t, err, expected)
+				}
+				root, err := adapter.RootHash()
+				require.ErrorIs(t, err, state.ErrNilRootHash)
+				require.Nil(t, root)
+				fail = false
+				require.NoError(t, selectRoot([]byte("root-B")))
+				root, err = adapter.RootHash()
+				require.NoError(t, err)
+				require.Equal(t, []byte("root-B"), root)
+				require.Equal(t, 3, recreations, "failed preparation must not make a same-root retry skip recreation")
+			})
+		}
+	}
+}
+
+func TestAccountsDBApi_CreatorBindingIsProtectedFromConcurrentRecreation(t *testing.T) {
+	for _, method := range []string{"existing", "load", "bytes"} {
+		t.Run(method, func(t *testing.T) {
+			creators := []common.Trie{&testTrie.TrieStub{}, &testTrie.TrieStub{}}
+			selected := 0
+			readerStarted, releaseReader := make(chan struct{}), make(chan struct{})
+			bound := make(chan common.DataTrieCreator, 1)
+			inner := &mockState.AccountsStub{
+				RecreateTrieCalled: func(options common.RootHashHolder) error {
+					if string(options.GetRootHash()) == "root-B" {
+						selected = 1
+					}
+					return nil
+				},
+				GetTrieCalled: func([]byte) (common.Trie, error) { return creators[selected], nil },
+			}
+			load := func([]byte) (vmcommon.AccountHandler, error) {
+				close(readerStarted)
+				<-releaseReader
+				return &mockState.UserAccountStub{SetDataTrieCreatorCalled: func(creator common.DataTrieCreator) { bound <- creator }}, nil
+			}
+			inner.GetExistingAccountCalled, inner.LoadAccountCalled = load, load
+			inner.GetAccountFromBytesCalled = func(address, _ []byte) (vmcommon.AccountHandler, error) { return load(address) }
+			adapter, err := state.NewAccountsDBApi(inner, createBlockInfoProviderStub([]byte("root-A")))
+			require.NoError(t, err)
+			readDone := make(chan error, 1)
+			go func() { _, readErr := creatorTestAccount(adapter, method); readDone <- readErr }()
+			<-readerStarted
+			writeDone, writerStarted := make(chan error, 1), make(chan struct{})
+			go func() {
+				close(writerStarted)
+				writeDone <- adapter.RecreateTrie(holders.NewDefaultRootHashesHolder([]byte("root-B")))
+			}()
+			<-writerStarted
+			crossed := false
+			var writeErr error
+			select {
+			case writeErr = <-writeDone:
+				crossed = true
+			case <-time.After(25 * time.Millisecond):
+			}
+			close(releaseReader)
+			require.NoError(t, <-readDone)
+			if !crossed {
+				require.NoError(t, <-writeDone)
+			}
+			require.NoError(t, writeErr)
+			require.False(t, crossed, "recreation crossed account retrieval")
+			select {
+			case creator := <-bound:
+				require.Same(t, creators[0], creator)
+			default:
+				t.Fatalf("%s did not bind its selected creator", method)
+			}
+		})
+	}
+}
+
+type creatorSelectionBlockInfo struct {
+	common.BlockInfo
+	equal func(common.BlockInfo) bool
+}
+
+func (info *creatorSelectionBlockInfo) Equal(other common.BlockInfo) bool {
+	return info.equal(other)
+}
+
+func TestAccountsDBApi_RejectsSelectionThatFailedBeforeAccountLock(t *testing.T) {
+	for _, method := range []string{"existing", "load", "bytes"} {
+		t.Run(method, func(t *testing.T) {
+			expected := errors.New("other recreation failed")
+			accountCalls := 0
+			load := func([]byte) (vmcommon.AccountHandler, error) {
+				accountCalls++
+				return &mockState.UserAccountStub{}, nil
+			}
+			inner := &mockState.AccountsStub{
+				RecreateTrieCalled: func(options common.RootHashHolder) error {
+					if string(options.GetRootHash()) == "root-B" {
+						return expected
+					}
+					return nil
+				},
+				GetTrieCalled:            func([]byte) (common.Trie, error) { return &testTrie.TrieStub{}, nil },
+				GetExistingAccountCalled: load, LoadAccountCalled: load,
+				GetAccountFromBytesCalled: func(address, _ []byte) (vmcommon.AccountHandler, error) { return load(address) },
+			}
+			info := &creatorSelectionBlockInfo{BlockInfo: holders.NewBlockInfo(nil, 0, []byte("root-A"))}
+			adapter, err := state.NewAccountsDBApi(inner, &testscommon.BlockInfoProviderStub{
+				GetBlockInfoCalled: func() common.BlockInfo { return info },
+			})
+			require.NoError(t, err)
+			require.NoError(t, adapter.RecreateTrie(holders.NewDefaultRootHashesHolder([]byte("root-A"))))
+			info.equal = func(common.BlockInfo) bool {
+				// Equality runs after the initial selection read lock is released.
+				// Reproduce another caller failing before the account lock is taken.
+				require.ErrorIs(t, adapter.RecreateTrie(holders.NewDefaultRootHashesHolder([]byte("root-B"))), expected)
+				return true
+			}
+			account, err := creatorTestAccount(adapter, method)
+			require.ErrorIs(t, err, state.ErrNilRootHash)
+			require.Nil(t, account)
+			require.Zero(t, accountCalls)
+		})
+	}
+}
+
+func TestAccountsDBApi_AccountEntryPointsBindRootValidation(t *testing.T) {
+	t.Parallel()
+
+	for _, method := range []string{"GetAccountFromBytes", "LoadAccount"} {
+		t.Run(method, func(t *testing.T) {
+			t.Parallel()
+
+			for _, scenario := range []string{"user account", "peer account", "nil account", "inner error"} {
+				t.Run(scenario, func(t *testing.T) {
+					t.Parallel()
+
+					address, accountBytes := []byte("address"), []byte("serialized account")
+					validations, innerCalls := 0, 0
+					var expected vmcommon.AccountHandler
+					var innerErr error
+					switch scenario {
+					case "user account":
+						expected = &mockState.UserAccountStub{
+							EnableDataTrieRootValidationCalled: func() { validations++ },
+							RetrieveValueCalled: func([]byte) ([]byte, uint32, error) {
+								t.Fatal("returning an account must not read its storage")
+								return nil, 0, nil
+							},
+						}
+					case "peer account":
+						expected = &mockState.PeerAccountHandlerMock{}
+					case "inner error":
+						innerErr = errors.New("account load failed")
+					}
+
+					inner := &mockState.AccountsStub{
+						GetTrieCalled: func(_ []byte) (common.Trie, error) { return &testTrie.TrieStub{}, nil },
+						RecreateTrieCalled: func(options common.RootHashHolder) error {
+							require.Equal(t, dummyRootHash, options.GetRootHash())
+							return nil
+						},
+						GetAccountFromBytesCalled: func(gotAddress, gotBytes []byte) (vmcommon.AccountHandler, error) {
+							require.Equal(t, "GetAccountFromBytes", method)
+							require.Equal(t, address, gotAddress)
+							require.Equal(t, accountBytes, gotBytes)
+							innerCalls++
+							return expected, innerErr
+						},
+						LoadAccountCalled: func(gotAddress []byte) (vmcommon.AccountHandler, error) {
+							require.Equal(t, "LoadAccount", method)
+							require.Equal(t, address, gotAddress)
+							innerCalls++
+							return expected, innerErr
+						},
+					}
+					adapter, err := state.NewAccountsDBApi(inner, createBlockInfoProviderStub(dummyRootHash))
+					require.NoError(t, err)
+
+					var account vmcommon.AccountHandler
+					if method == "GetAccountFromBytes" {
+						account, err = adapter.GetAccountFromBytes(address, accountBytes)
+					} else {
+						account, err = adapter.LoadAccount(address)
+					}
+					require.Equal(t, 1, innerCalls)
+					if innerErr != nil {
+						require.ErrorIs(t, err, innerErr)
+						require.Nil(t, account)
+					} else {
+						require.NoError(t, err)
+						require.Equal(t, expected, account)
+					}
+					expectedValidations := 0
+					if scenario == "user account" {
+						expectedValidations = 1
+					}
+					require.Equal(t, expectedValidations, validations, "bind validation before publishing a user account")
+				})
+			}
+		})
+	}
 }

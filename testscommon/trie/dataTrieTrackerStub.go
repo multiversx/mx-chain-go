@@ -18,7 +18,7 @@ type DataTrieTrackerStub struct {
 	RetrieveValueCalled         func(key []byte) ([]byte, uint32, error)
 	SaveKeyValueCalled          func(key []byte, value []byte) error
 	SetRootHashCalled           func(rootHash []byte)
-	DataTrieCalled              func() common.Trie
+	DataTrieCalled              func() (common.DataTrieHandler, error)
 	SaveDirtyDataCalled         func(trie common.Trie) ([]*stateChange.DataTrieChange, []core.TrieData, error)
 	SaveTrieDataCalled          func(trieData core.TrieData) error
 	MigrateDataTrieLeavesCalled func(args vmcommon.ArgsMigrateDataTrieLeaves) error
@@ -50,16 +50,16 @@ func (dtts *DataTrieTrackerStub) SetRootHash(rootHash []byte) {
 }
 
 // DataTrie -
-func (dtts *DataTrieTrackerStub) DataTrie() common.DataTrieHandler {
+func (dtts *DataTrieTrackerStub) DataTrie() (common.DataTrieHandler, error) {
 	if dtts.DataTrieCalled != nil {
 		return dtts.DataTrieCalled()
 	}
 
 	if !check.IfNil(dtts.dataTrie) {
-		return dtts.dataTrie
+		return dtts.dataTrie, nil
 	}
 
-	return nil
+	return nil, nil
 }
 
 // SaveDirtyData -

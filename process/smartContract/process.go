@@ -413,6 +413,10 @@ func (sc *scProcessor) executeSmartContractCall(
 
 	var vmOutput *vmcommon.VMOutput
 	vmOutput, err = vmExec.RunSmartContractCall(vmInput)
+	if loadError := scrCommon.GetDataTrieLoadError(vmExec, err); loadError != nil {
+		sc.wasmVMChangeLocker.RUnlock()
+		return nil, loadError
+	}
 
 	sc.wasmVMChangeLocker.RUnlock()
 	if err != nil {
@@ -1767,6 +1771,10 @@ func (sc *scProcessor) doDeploySmartContract(
 	}
 
 	vmOutput, err = vmExec.RunSmartContractCreate(vmInput)
+	if loadError := scrCommon.GetDataTrieLoadError(vmExec, err); loadError != nil {
+		sc.wasmVMChangeLocker.RUnlock()
+		return vmcommon.ExecutionFailed, loadError
+	}
 	sc.wasmVMChangeLocker.RUnlock()
 	if err != nil {
 		log.Debug("VM error", "error", err.Error())

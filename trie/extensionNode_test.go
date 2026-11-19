@@ -521,7 +521,7 @@ func TestExtensionNode_insert(t *testing.T) {
 	assert.Nil(t, err)
 	newData.Key = newData.Key[2:]
 	newLn, _ := newLeafNode(newData, en.marsh, en.hasher)
-	assert.Equal(t, newLn.sizeInBytes(), tmc.GetSizeLoadedInMem())
+	assert.Equal(t, newLn.sizeInBytes()+hashSizeInBytes, tmc.GetSizeLoadedInMem())
 
 	val, _, _ := newNode.tryGetWithVersion(key, trieMetricsCollector.NewTrieMetricsCollector(), nil)
 	assert.Equal(t, []byte("dogs"), val)
@@ -544,7 +544,7 @@ func TestExtensionNode_insertCollapsedNode(t *testing.T) {
 	assert.Nil(t, err)
 	newData.Key = newData.Key[2:]
 	newLn, _ := newLeafNode(newData, en.marsh, en.hasher)
-	expectedSize := newLn.sizeInBytes() + en.child.sizeInBytes()
+	expectedSize := newLn.sizeInBytes() + hashSizeInBytes + en.child.sizeInBytes()
 	assert.Equal(t, expectedSize, tmc.GetSizeLoadedInMem())
 
 	val, _, _ := newNode.tryGetWithVersion(key, trieMetricsCollector.NewTrieMetricsCollector(), db)
@@ -574,7 +574,7 @@ func TestExtensionNode_insertInStoredEnSameKey(t *testing.T) {
 	assert.Equal(t, expectedHashes, oldHashes)
 	newData.Key = newData.Key[2:]
 	newLn, _ := newLeafNode(newData, en.marsh, en.hasher)
-	assert.Equal(t, newLn.sizeInBytes(), tmc.GetSizeLoadedInMem())
+	assert.Equal(t, newLn.sizeInBytes()+hashSizeInBytes, tmc.GetSizeLoadedInMem())
 }
 
 func TestExtensionNode_insertInStoredEnDifferentKey(t *testing.T) {
@@ -614,8 +614,9 @@ func TestExtensionNode_insertInDirtyEnSameKey(t *testing.T) {
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{}, oldHashes)
+	newData.Key = newData.Key[2:] // The extension and the branch store these two nibbles.
 	newLn, _ := newLeafNode(newData, en.marsh, en.hasher)
-	expectedSize := newLn.sizeInBytes() - 2 // 2 because of the parts of the key that is added to the parents
+	expectedSize := newLn.sizeInBytes() + hashSizeInBytes
 	assert.Equal(t, expectedSize, tmc.GetSizeLoadedInMem())
 }
 

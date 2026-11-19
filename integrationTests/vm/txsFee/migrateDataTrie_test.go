@@ -139,7 +139,9 @@ func TestMigrateDataTrieBuiltInFunc(t *testing.T) {
 		nonMigratedKeys := allKeys[1:]
 
 		acc := getAccount(t, testContext, sndAddr)
-		dtr, ok := acc.DataTrie().(common.Trie)
+		dataTrie, err := acc.DataTrie()
+		require.NoError(t, err)
+		dtr, ok := dataTrie.(common.Trie)
 		require.True(t, ok)
 		stats, ok := dtr.(statsCollector)
 		require.True(t, ok)

@@ -74,8 +74,8 @@ func (uam *UserAccountMock) GetRootHash() []byte {
 }
 
 // DataTrie -
-func (uam *UserAccountMock) DataTrie() common.DataTrieHandler {
-	return nil
+func (uam *UserAccountMock) DataTrie() (common.DataTrieHandler, error) {
+	return nil, nil
 }
 
 // RetrieveValue -

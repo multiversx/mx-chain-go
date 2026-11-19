@@ -1,6 +1,7 @@
 package triesHolder
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"sync"
@@ -107,16 +108,19 @@ func TestReadOnlyDataTriesHolder_RespectsAccessOrderAndReplacementSizes(t *testi
 	require.Zero(t, holder.cacher.SizeInBytesContained())
 }
 
-func TestReadOnlyDataTriesHolder_KeepsSingleOversizedEntryLikeCapacityLRU(t *testing.T) {
+func TestReadOnlyDataTriesHolder_SkipsOversizedEntries(t *testing.T) {
 	t.Parallel()
 
 	holder, err := NewReadOnlyDataTriesHolder(maxTrieSizeMinValue)
 	require.NoError(t, err)
 	oversized := &trieMock.TrieStub{SizeInMemoryCalled: func() int { return 2 * maxTrieSizeMinValue }}
 	holder.Put([]byte("large"), oversized)
-	require.Same(t, oversized, holder.Get([]byte("large")))
+	require.Nil(t, holder.Get([]byte("large")))
+	require.Zero(t, holder.cacher.SizeInBytesContained())
+
 	small := &trieMock.TrieStub{SizeInMemoryCalled: func() int { return 1 }}
 	holder.Put([]byte("small"), small)
+	holder.Put([]byte("large"), oversized)
 	require.Nil(t, holder.Get([]byte("large")))
 	require.Same(t, small, holder.Get([]byte("small")))
 	require.Empty(t, holder.GetAll())
@@ -147,4 +151,169 @@ func TestReadOnlyDataTriesHolder_ConcurrentReadsEvictionsAndResets(t *testing.T)
 	workers.Wait()
 	require.Empty(t, holder.GetAll())
 	require.LessOrEqual(t, holder.cacher.SizeInBytesContained(), uint64(maxTrieSizeMinValue))
+}
+
+type growthReportingTrieStub struct {
+	trieMock.TrieStub
+	read func(key []byte) ([]byte, uint32, uint32, int, error)
+}
+
+func (tr *growthReportingTrieStub) GetWithVersionAndSizeOnGrowth(key []byte) ([]byte, uint32, uint32, int, error) {
+	return tr.read(key)
+}
+
+func TestReadOnlyDataTriesHolder_ReportsGrowthOnMissAndError(t *testing.T) {
+	t.Parallel()
+
+	holder, err := NewReadOnlyDataTriesHolder(maxTrieSizeMinValue)
+	require.NoError(t, err)
+	key := []byte("account")
+	sizeSamples := 0
+	readErr := errors.New("descendant unreadable")
+	tr := &growthReportingTrieStub{
+		TrieStub: trieMock.TrieStub{
+			SizeInMemoryCalled: func() int {
+				sizeSamples++
+				return 100
+			},
+		},
+		read: func(key []byte) ([]byte, uint32, uint32, int, error) {
+			switch string(key) {
+			case "miss":
+				return nil, 2, 0, 200, nil
+			case "failure":
+				return nil, 3, 0, 300, readErr
+			default:
+				return []byte("warm"), 3, 1, 0, nil
+			}
+		},
+	}
+	cached := holder.PutAndTrack(key, tr)
+	require.Same(t, cached, holder.Get(key))
+	require.EqualValues(t, 100, holder.cacher.SizeInBytesContained())
+
+	value, depth, err := cached.Get([]byte("miss"))
+	require.NoError(t, err)
+	require.Nil(t, value)
+	require.EqualValues(t, 2, depth)
+	require.EqualValues(t, 200, holder.cacher.SizeInBytesContained())
+
+	value, depth, version, err := cached.GetWithVersion([]byte("failure"))
+	require.ErrorIs(t, err, readErr)
+	require.Nil(t, value)
+	require.EqualValues(t, 3, depth)
+	require.Zero(t, version)
+	require.EqualValues(t, 300, holder.cacher.SizeInBytesContained())
+
+	value, depth, version, err = cached.GetWithVersion([]byte("success"))
+	require.NoError(t, err)
+	require.Equal(t, []byte("warm"), value)
+	require.EqualValues(t, 3, depth)
+	require.EqualValues(t, 1, version)
+	require.EqualValues(t, 300, holder.cacher.SizeInBytesContained())
+	require.Equal(t, 1, sizeSamples, "only admission should sample SizeInMemory")
+}
+
+func TestReadOnlyDataTriesHolder_DiscardsLateGrowthFromDetachedTries(t *testing.T) {
+	t.Parallel()
+
+	for _, action := range []string{"remove", "reset", "replace", "replace-oversized", "evict"} {
+		t.Run(action, func(t *testing.T) {
+			holder, err := NewReadOnlyDataTriesHolder(maxTrieSizeMinValue)
+			require.NoError(t, err)
+			key := []byte("account")
+			reportedSize := 768 << 10
+			if action == "replace-oversized" {
+				reportedSize = maxTrieSizeMinValue + 1
+			}
+			readStarted, finishRead, readFinished := make(chan struct{}), make(chan struct{}), make(chan struct{})
+			tr := &growthReportingTrieStub{
+				TrieStub: trieMock.TrieStub{SizeInMemoryCalled: func() int { return 512 << 10 }},
+				read: func(_ []byte) ([]byte, uint32, uint32, int, error) {
+					close(readStarted)
+					<-finishRead
+					return []byte("original value"), 1, 0, reportedSize, nil
+				},
+			}
+			original := holder.PutAndTrack(key, tr)
+			var readValue []byte
+			var readErr error
+			go func() {
+				defer close(readFinished)
+				readValue, _, _, readErr = original.GetWithVersion([]byte("key"))
+			}()
+			<-readStarted
+
+			replacement := &trieMock.TrieStub{SizeInMemoryCalled: func() int { return 600 << 10 }}
+			switch action {
+			case "remove":
+				holder.Remove(key)
+			case "reset":
+				holder.Reset()
+			case "replace", "replace-oversized":
+				holder.Put(key, replacement)
+			case "evict":
+				holder.Put([]byte("other account"), replacement)
+			}
+			close(finishRead)
+			<-readFinished
+			require.NoError(t, readErr)
+			require.Equal(t, []byte("original value"), readValue)
+
+			replaced := action == "replace" || action == "replace-oversized"
+			if replaced {
+				require.Same(t, replacement, holder.Get(key))
+			} else {
+				require.Nil(t, holder.Get(key))
+			}
+			if action == "evict" {
+				require.Same(t, replacement, holder.Get([]byte("other account")))
+			}
+			if replaced || action == "evict" {
+				require.EqualValues(t, 600<<10, holder.cacher.SizeInBytesContained())
+			} else {
+				require.Zero(t, holder.cacher.SizeInBytesContained())
+			}
+		})
+	}
+}
+
+func TestReadOnlyDataTriesHolder_OutOfOrderGrowthCannotReduceWeight(t *testing.T) {
+	t.Parallel()
+
+	holder, err := NewReadOnlyDataTriesHolder(maxTrieSizeMinValue)
+	require.NoError(t, err)
+	key := []byte("account")
+	cacheEntry := holder.PutAndTrack(key, &growthReportingTrieStub{}).(*trackedReadOnlyTrie)
+	for _, size := range []int64{100, 300, 200} {
+		holder.updateSize(cacheEntry, size)
+	}
+	require.Same(t, cacheEntry, holder.Get(key))
+	require.EqualValues(t, 300, holder.cacher.SizeInBytesContained())
+}
+
+func TestReadOnlyDataTriesHolder_GrowthRetainsWholeEntriesOnly(t *testing.T) {
+	t.Parallel()
+
+	holder, err := NewReadOnlyDataTriesHolder(maxTrieSizeMinValue)
+	require.NoError(t, err)
+	var entries []*trackedReadOnlyTrie
+	for i := 0; i < 3; i++ {
+		key := []byte(fmt.Sprint(i))
+		tr := &growthReportingTrieStub{
+			TrieStub: trieMock.TrieStub{SizeInMemoryCalled: func() int { return 256 << 10 }},
+		}
+		entries = append(entries, holder.PutAndTrack(key, tr).(*trackedReadOnlyTrie))
+	}
+	holder.updateSize(entries[2], 700<<10)
+	require.Nil(t, holder.Get([]byte("0")))
+	require.Same(t, entries[1], holder.Get([]byte("1")))
+	require.Same(t, entries[2], holder.Get([]byte("2")))
+	require.EqualValues(t, (256+700)<<10, holder.cacher.SizeInBytesContained())
+
+	holder.updateSize(entries[2], maxTrieSizeMinValue+1)
+	require.Nil(t, holder.Get([]byte("2")))
+	require.Same(t, entries[1], holder.Get([]byte("1")))
+	require.EqualValues(t, 256<<10, holder.cacher.SizeInBytesContained())
+	require.Empty(t, holder.GetAll())
 }

@@ -2,12 +2,16 @@ package trackableDataTrie_test
 
 import (
 	"bytes"
+	"encoding/hex"
+	stdErrors "errors"
+	"sync/atomic"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/stateChange"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -1208,7 +1212,9 @@ func TestTrackableDataTrie_SetAndGetDataTrie(t *testing.T) {
 	}
 	tdt, _ := trackableDataTrie.NewTrackableDataTrie(argsTdt)
 
-	assert.Equal(t, newTrie, tdt.DataTrie())
+	loadedTrie, err := tdt.DataTrie()
+	require.NoError(t, err)
+	assert.Equal(t, newTrie, loadedTrie)
 }
 
 func TestTrackableDataTrie_SaveDirtyDataShouldRollbackPreviousUpdateWhenLaterGetFails(t *testing.T) {
@@ -1684,7 +1690,8 @@ func TestTrackableDataTrie_loadTrie(t *testing.T) {
 		tdt, err := trackableDataTrie.NewTrackableDataTrie(argsTdt)
 		assert.Nil(t, err)
 
-		loadedTrie := tdt.DataTrie()
+		loadedTrie, err := tdt.DataTrie()
+		require.NoError(t, err)
 		assert.Equal(t, cachedTrie, loadedTrie)
 		assert.Equal(t, cachedTrie, tdt.GetDataTrie())
 
@@ -1779,7 +1786,8 @@ func TestTrackableDataTrie_loadTrie(t *testing.T) {
 		assert.Nil(t, tdt.GetDataTrie())
 
 		_, _, err = tdt.RetrieveValue([]byte("key"))
-		assert.Equal(t, errExpected, err)
+		assert.ErrorIs(t, err, errExpected)
+		assert.ErrorIs(t, err, state.ErrDataTrieLoadFailed)
 		assert.Equal(t, 1, numRecreateCalls)
 		assert.Equal(t, 0, numPutCalls)
 		assert.Nil(t, tdt.GetDataTrie())
@@ -1815,7 +1823,8 @@ func TestTrackableDataTrie_loadTrie(t *testing.T) {
 		tdt.SetRootHash(expectedRootHash)
 		assert.Nil(t, tdt.GetDataTrie())
 
-		loadedTrie := tdt.DataTrie()
+		loadedTrie, err := tdt.DataTrie()
+		require.NoError(t, err)
 		assert.Equal(t, recreatedTrie, loadedTrie)
 		assert.Equal(t, 1, numRecreateCalls)
 		assert.Equal(t, 1, numPutCalls)
@@ -1846,4 +1855,93 @@ func TestTrackableDataTrie_SetDataTrieCreatorPreservesLazyLoading(t *testing.T) 
 	_, _, err = tracker.RetrieveValue([]byte("key"))
 	require.ErrorIs(t, err, expectedErr)
 	require.Equal(t, 1, calls)
+}
+
+type dataTrieLogObserver struct {
+	accountHex   []byte
+	sawLoadError atomic.Bool
+}
+
+func (obs *dataTrieLogObserver) Write(data []byte) (int, error) {
+	if bytes.Contains(data, []byte("failed to load data trie")) && bytes.Contains(data, obs.accountHex) {
+		obs.sawLoadError.Store(true)
+	}
+	return len(data), nil
+}
+
+func TestDataTrieAccessor_AbsentStorageDoesNotLog(t *testing.T) {
+	address := []byte("c09-test-account")
+	observer := &dataTrieLogObserver{accountHex: []byte(hex.EncodeToString(address))}
+	require.NoError(t, logger.AddLogObserver(observer, &logger.PlainFormatter{}))
+	t.Cleanup(func() { require.NoError(t, logger.RemoveLogObserver(observer)) })
+	oldLevel := logger.GetLogLevelPattern()
+	require.NoError(t, logger.SetLogLevel("state/trackableDataTrie:ERROR"))
+	t.Cleanup(func() { require.NoError(t, logger.SetLogLevel(oldLevel)) })
+
+	args := getDefaultArgs()
+	args.Identifier = address
+	args.DataTrieCreator = &trieMock.TrieStub{RecreateCalled: func(common.RootHashHolder) (common.Trie, error) {
+		return nil, state.ErrNilTrie
+	}}
+	tracker, err := trackableDataTrie.NewTrackableDataTrie(args)
+	require.NoError(t, err)
+	dataTrie, err := tracker.DataTrie()
+	require.NoError(t, err)
+	require.Nil(t, dataTrie)
+	require.False(t, observer.sawLoadError.Load())
+
+	// A recreation failure is still an error even if its cause matches the
+	// no-trie sentinel.
+	tracker.SetRootHash([]byte("persisted root"))
+	dataTrie, err = tracker.DataTrie()
+	require.Nil(t, dataTrie)
+	require.ErrorIs(t, err, state.ErrDataTrieLoadFailed)
+	require.ErrorIs(t, err, state.ErrNilTrie)
+	require.False(t, observer.sawLoadError.Load())
+}
+
+func TestDataTrieAccessor_ReusesLoadedTrie(t *testing.T) {
+	expected := &trieMock.TrieStub{}
+	loads := 0
+	args := getDefaultArgs()
+	args.DataTrieCreator = &trieMock.TrieStub{RecreateCalled: func(root common.RootHashHolder) (common.Trie, error) {
+		require.Equal(t, common.EmptyTrieHash, root.GetRootHash())
+		loads++
+		return expected, nil
+	}}
+	tracker, err := trackableDataTrie.NewTrackableDataTrie(args)
+	require.NoError(t, err)
+	tracker.SetRootHash(common.EmptyTrieHash)
+	for range 2 {
+		dataTrie, errLoad := tracker.DataTrie()
+		require.NoError(t, errLoad)
+		require.Same(t, expected, dataTrie)
+	}
+	require.Equal(t, 1, loads)
+}
+
+func TestLazyDataTrieLoad_ErrorClassification(t *testing.T) {
+	root := []byte("root")
+	for _, cause := range []error{core.NewGetNodeFromDBErrWithKey(root, stdErrors.New("missing"), "test"), stdErrors.New("invalid encoded root")} {
+		t.Run(cause.Error(), func(t *testing.T) {
+			args := getDefaultArgs()
+			args.DataTrieCreator = &trieMock.TrieStub{RecreateCalled: func(common.RootHashHolder) (common.Trie, error) { return nil, cause }}
+			tracker, err := trackableDataTrie.NewTrackableDataTrie(args)
+			require.NoError(t, err)
+			tracker.SetRootHash(root)
+			_, _, err = tracker.RetrieveValue([]byte("key"))
+			require.ErrorIs(t, err, state.ErrDataTrieLoadFailed)
+			require.ErrorIs(t, err, cause)
+			if core.IsGetNodeFromDBError(cause) {
+				require.Same(t, core.UnwrapGetNodeFromDBErr(cause), core.UnwrapGetNodeFromDBErr(err))
+			}
+		})
+	}
+	t.Run("absent-trie-is-not-a-load-failure", func(t *testing.T) {
+		tracker, err := trackableDataTrie.NewTrackableDataTrie(getDefaultArgs())
+		require.NoError(t, err)
+		_, _, err = tracker.RetrieveValue([]byte("key"))
+		require.ErrorIs(t, err, state.ErrNilTrie)
+		require.NotErrorIs(t, err, state.ErrDataTrieLoadFailed)
+	})
 }

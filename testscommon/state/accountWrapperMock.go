@@ -227,7 +227,7 @@ func (awm *AccountWrapMock) AddressBytes() []byte {
 }
 
 // DataTrie -
-func (awm *AccountWrapMock) DataTrie() common.DataTrieHandler {
+func (awm *AccountWrapMock) DataTrie() (common.DataTrieHandler, error) {
 	return awm.trackableDataTrie.DataTrie()
 }
 

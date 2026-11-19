@@ -536,18 +536,27 @@ func (node *testOnlyProcessingNode) SetStateForAddress(address []byte, addressSt
 		return err
 	}
 
+	rootHash, err := base64.StdEncoding.DecodeString(addressState.RootHash)
+	if err != nil {
+		return err
+	}
+
 	accountsAdapter := node.StateComponentsHolder.AccountsAdapter()
+	var snapshot int
+	if len(rootHash) != 0 {
+		snapshot = accountsAdapter.JournalLen()
+	}
 	err = accountsAdapter.SaveAccount(userAccount)
 	if err != nil {
 		return err
 	}
 
-	rootHash, err := base64.StdEncoding.DecodeString(addressState.RootHash)
-	if err != nil {
-		return err
-	}
-	if !bytes.Equal(userAccount.GetRootHash(), rootHash) && len(rootHash) != 0 {
-		return fmt.Errorf("account root hash does not match the provided one, expected: %s, got: %s", rootHash, userAccount.GetRootHash())
+	if len(rootHash) != 0 && !bytes.Equal(userAccount.GetRootHash(), rootHash) {
+		mismatchErr := fmt.Errorf("account root hash does not match the provided one, expected: %s, got: %s", rootHash, userAccount.GetRootHash())
+		if revertErr := accountsAdapter.RevertToSnapshot(snapshot); revertErr != nil {
+			return errors.Join(mismatchErr, fmt.Errorf("could not revert rejected account state: %w", revertErr))
+		}
+		return mismatchErr
 	}
 
 	newRootHash, err := accountsAdapter.Commit()

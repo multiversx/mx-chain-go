@@ -424,25 +424,25 @@ func (en *extensionNode) insertInNewBn(newData core.TrieData, keyMatchLen int, t
 }
 
 func (en *extensionNode) insertOldChildInBn(bn *branchNode, oldChildPos byte, keyMatchLen int, tmc MetricsCollector) error {
-	keyReminder := en.Key[keyMatchLen+1:]
+	remainingKey := en.Key[keyMatchLen+1:]
 	childVersion, err := en.child.getVersion()
 	if err != nil {
 		return err
 	}
 	bn.setVersionForChild(childVersion, oldChildPos)
 
-	if len(keyReminder) < 1 {
+	if len(remainingKey) == 0 {
 		tmc.AddSizeLoadedInMem(-en.sizeInBytes())
 		bn.children[oldChildPos] = en.child
 		return nil
 	}
 
-	tmc.AddSizeLoadedInMem(-keyMatchLen)
-	followingExtensionNode, err := newExtensionNode(en.Key[keyMatchLen+1:], en.child, en.marsh, en.hasher)
+	followingExtensionNode, err := newExtensionNode(remainingKey, en.child, en.marsh, en.hasher)
 	if err != nil {
 		return err
 	}
 
+	tmc.AddSizeLoadedInMem(len(remainingKey) - len(en.Key))
 	bn.children[oldChildPos] = followingExtensionNode
 	return nil
 }

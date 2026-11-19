@@ -22,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/configs/dto"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/forking"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
@@ -52,6 +53,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
@@ -2483,4 +2485,29 @@ func createValidatorInfo(pubKey []byte, list common.PeerType, previousList commo
 		Rating:          rating,
 		TempRating:      rating,
 	}
+}
+
+func TestLegacyValidatorDataTrieLoadPreservesFailure(t *testing.T) {
+	db := testscommon.CreateMemUnit()
+	accounts := integrationtests.CreateAccountsDB(db, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
+	t.Cleanup(func() { require.NoError(t, accounts.Close()) })
+	processor := &legacySystemSCProcessor{userAccountsDB: accounts}
+	_, err := processor.getValidatorSystemAccount()
+	require.ErrorIs(t, err, epochStart.ErrNilDataTrie)
+
+	acc, err := accounts.LoadAccount(vm.ValidatorSCAddress)
+	require.NoError(t, err)
+	user := acc.(state.UserAccountHandler)
+	require.NoError(t, user.SaveKeyValue([]byte("validator"), []byte("record")))
+	require.NoError(t, accounts.SaveAccount(user))
+	root, err := accounts.Commit()
+	require.NoError(t, err)
+	dataRoot := user.GetRootHash()
+	require.NoError(t, db.Remove(dataRoot))
+	require.NoError(t, accounts.RecreateTrie(holders.NewDefaultRootHashesHolder(root)))
+	_, err = processor.getValidatorSystemAccount()
+	require.ErrorIs(t, err, state.ErrDataTrieLoadFailed)
+	cause := core.UnwrapGetNodeFromDBErr(err)
+	require.NotNil(t, cause)
+	require.Equal(t, dataRoot, cause.GetKey())
 }

@@ -168,8 +168,8 @@ func (u *UserAccountStub) SetDataTrie(rootHash []byte) {
 }
 
 // DataTrie -
-func (u *UserAccountStub) DataTrie() common.DataTrieHandler {
-	return nil
+func (u *UserAccountStub) DataTrie() (common.DataTrieHandler, error) {
+	return nil, nil
 }
 
 // RetrieveValue -

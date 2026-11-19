@@ -13,6 +13,7 @@ import (
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewJournalEntryCode_NilUpdaterShouldErr(t *testing.T) {
@@ -245,6 +246,25 @@ func TestJournalEntryDataTrieUpdates_RevertFailsWhenUpdateFails(t *testing.T) {
 	acc, err := entry.Revert()
 	assert.Nil(t, acc)
 	assert.Equal(t, expectedErr, err)
+}
+
+func TestJournalEntryDataTrieUpdates_RevertPropagatesDataTrieError(t *testing.T) {
+	t.Parallel()
+
+	cause := errors.New("data trie root is unreadable")
+	tracker := &trieMock.DataTrieTrackerStub{
+		DataTrieCalled: func() (common.DataTrieHandler, error) {
+			return nil, &state.DataTrieLoadError{Cause: cause}
+		},
+	}
+	account, err := accounts.NewUserAccount([]byte("address"), tracker, &trieMock.TrieLeafParserStub{})
+	require.NoError(t, err)
+	entry, err := state.NewJournalEntryDataTrieUpdates([]core.TrieData{{Key: []byte("key")}}, account)
+	require.NoError(t, err)
+	reverted, err := entry.Revert()
+	require.Nil(t, reverted)
+	require.ErrorIs(t, err, state.ErrDataTrieLoadFailed)
+	require.ErrorIs(t, err, cause)
 }
 
 func TestJournalEntryDataTrieUpdates_RevertFailsWhenAccountRootFails(t *testing.T) {

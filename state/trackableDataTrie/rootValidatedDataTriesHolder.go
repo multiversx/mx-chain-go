@@ -9,6 +9,18 @@ import (
 
 var _ common.TriesHolder = (*rootValidatedDataTriesHolder)(nil)
 
+type growingDataTriesHolder interface {
+	PutAndTrack(address []byte, tr common.Trie) common.Trie
+}
+
+func cacheDataTrie(holder common.TriesHolder, address []byte, tr common.Trie) common.Trie {
+	if growingHolder, ok := holder.(growingDataTriesHolder); ok {
+		return growingHolder.PutAndTrack(address, tr)
+	}
+	holder.Put(address, tr)
+	return tr
+}
+
 // rootValidatedDataTriesHolder validates address-cache hits against the account's
 // committed root. Other API requests may replace or reset the shared cache after
 // this account leaves the adapter's root-selection lock.
@@ -27,6 +39,10 @@ func (holder *rootValidatedDataTriesHolder) Get(address []byte) common.Trie {
 		return nil
 	}
 	return tr
+}
+
+func (holder *rootValidatedDataTriesHolder) PutAndTrack(address []byte, tr common.Trie) common.Trie {
+	return cacheDataTrie(holder.TriesHolder, address, tr)
 }
 
 func (holder *rootValidatedDataTriesHolder) IsInterfaceNil() bool {

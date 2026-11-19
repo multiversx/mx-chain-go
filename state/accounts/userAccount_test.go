@@ -221,12 +221,12 @@ func TestUserAccount_GetAllLeaves(t *testing.T) {
 
 		expectedErr := fmt.Errorf("root error")
 		dtt := &testTrie.DataTrieTrackerStub{
-			DataTrieCalled: func() common.Trie {
+			DataTrieCalled: func() (common.DataTrieHandler, error) {
 				return &testTrie.TrieStub{
 					RootCalled: func() ([]byte, error) {
 						return nil, expectedErr
 					},
-				}
+				}, nil
 			},
 		}
 
@@ -247,7 +247,7 @@ func TestUserAccount_GetAllLeaves(t *testing.T) {
 		rootHash := []byte("root hash")
 		getAllLeavesCalled := false
 		dtt := &testTrie.DataTrieTrackerStub{
-			DataTrieCalled: func() common.Trie {
+			DataTrieCalled: func() (common.DataTrieHandler, error) {
 				return &testTrie.TrieStub{
 					RootCalled: func() ([]byte, error) {
 						return rootHash, nil
@@ -259,7 +259,7 @@ func TestUserAccount_GetAllLeaves(t *testing.T) {
 
 						return nil
 					},
-				}
+				}, nil
 			},
 		}
 
@@ -292,13 +292,13 @@ func TestUserAccount_IsDataTrieMigrated(t *testing.T) {
 
 		isMigratedCalled := false
 		dtt := &testTrie.DataTrieTrackerStub{
-			DataTrieCalled: func() common.Trie {
+			DataTrieCalled: func() (common.DataTrieHandler, error) {
 				return &testTrie.TrieStub{
 					IsMigratedToLatestVersionCalled: func() (bool, error) {
 						isMigratedCalled = true
 						return false, nil
 					},
-				}
+				}, nil
 			},
 		}
 

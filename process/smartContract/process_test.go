@@ -3,6 +3,7 @@ package smartContract
 import (
 	"bytes"
 	"encoding/hex"
+	stdErrors "errors"
 	"fmt"
 	"math/big"
 	"sync"
@@ -39,6 +40,7 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+	vmhost "github.com/multiversx/mx-chain-vm-go/vmhost"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -4654,4 +4656,71 @@ func TestScProcessor_DisableAsyncCalls(t *testing.T) {
 		vmOutput, outacc1, &transaction.Transaction{}, []byte("hash"))
 	require.Equal(t, process.ErrAsyncCallsDisabled.Error(), err.Error())
 	require.Nil(t, scResults)
+}
+
+type lazyLoadRuntimeVM struct {
+	mock.VMExecutionHandlerStub
+	runtimeErr error
+}
+
+func (vm *lazyLoadRuntimeVM) GetRuntimeErrors() error { return vm.runtimeErr }
+func TestLazyDataTrieLoad_ProcessorCallBoundary(t *testing.T) {
+	for _, path := range []string{"direct", "runtime", "handled-nested-call"} {
+		t.Run(path, func(t *testing.T) {
+			cause := core.NewGetNodeFromDBErrWithKey([]byte("root"), stdErrors.New("missing"), "test")
+			loadErr := &state.DataTrieLoadError{Cause: cause}
+			executor := &lazyLoadRuntimeVM{}
+			executor.RunSmartContractCallCalled = func(*vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+				if path == "direct" {
+					return nil, loadErr
+				}
+				executor.runtimeErr = vmhost.WrapError(stdErrors.New("earlier failure")).WrapWithError(loadErr)
+				code := vmcommon.ExecutionFailed
+				if path == "handled-nested-call" {
+					code = vmcommon.Ok
+				}
+				return &vmcommon.VMOutput{ReturnCode: code}, nil
+			}
+			args := createMockSmartContractProcessorArguments()
+			args.VmContainer = &mock.VMContainerMock{GetCalled: func([]byte) (vmcommon.VMExecutionHandler, error) { return executor, nil }}
+			processor, err := NewSmartContractProcessor(args)
+			require.NoError(t, err)
+			address := make([]byte, 32)
+			address[8] = 5
+			tx := &transaction.Transaction{SndAddr: []byte("sender"), RcvAddr: address, Value: big.NewInt(0)}
+			sender, destination := createAccounts(tx)
+			input := &vmcommon.ContractCallInput{RecipientAddr: address}
+			output, err := processor.executeSmartContractCall(input, tx, nil, 0, sender, destination, nil)
+			require.Same(t, loadErr, err)
+			require.Nil(t, output)
+			require.Same(t, cause, core.UnwrapGetNodeFromDBErr(err))
+		})
+	}
+}
+func TestLazyDataTrieLoad_ProcessorDeployBoundary(t *testing.T) {
+	for _, path := range []string{"direct", "runtime"} {
+		t.Run(path, func(t *testing.T) {
+			loadErr := &state.DataTrieLoadError{Cause: stdErrors.New("invalid encoded root")}
+			executor := &lazyLoadRuntimeVM{}
+			called := false
+			executor.RunSmartContractCreateCalled = func(*vmcommon.ContractCreateInput) (*vmcommon.VMOutput, error) {
+				called = true
+				if path == "direct" {
+					return nil, loadErr
+				}
+				executor.runtimeErr = loadErr
+				return &vmcommon.VMOutput{ReturnCode: vmcommon.ExecutionFailed}, nil
+			}
+			args := createMockSmartContractProcessorArguments()
+			args.VmContainer = &mock.VMContainerMock{GetCalled: func([]byte) (vmcommon.VMExecutionHandler, error) { return executor, nil }}
+			args.ArgsParser = NewArgumentParser()
+			processor, err := NewSmartContractProcessor(args)
+			require.NoError(t, err)
+			tx := &transaction.Transaction{SndAddr: []byte("sender"), RcvAddr: make([]byte, processor.pubkeyConv.Len()), Data: []byte("abba@0500@0000"), Value: big.NewInt(45)}
+			sender, _ := createAccounts(tx)
+			_, err = processor.DeploySmartContract(tx, sender)
+			require.True(t, called)
+			require.Same(t, loadErr, err)
+		})
+	}
 }

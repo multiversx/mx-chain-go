@@ -98,29 +98,48 @@ func (tr *patriciaMerkleTrie) Get(key []byte) ([]byte, uint32, error) {
 }
 
 // GetWithVersion returns the stored leaf version in the same traversal as the value.
-func (tr *patriciaMerkleTrie) GetWithVersion(key []byte) (value []byte, depth uint32, version uint32, err error) {
+func (tr *patriciaMerkleTrie) GetWithVersion(key []byte) ([]byte, uint32, uint32, error) {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
+	value, depth, version, _, err := tr.getWithVersion(key)
+	return value, depth, version, err
+}
+
+// GetWithVersionAndSizeOnGrowth also returns the modeled resident size if the
+// read loaded nodes, even on a miss or error. The size is sampled under the read's lock.
+func (tr *patriciaMerkleTrie) GetWithVersionAndSizeOnGrowth(key []byte) ([]byte, uint32, uint32, int, error) {
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
+	value, depth, version, sizeLoaded, err := tr.getWithVersion(key)
+	size := 0
+	if sizeLoaded > 0 {
+		size = tr.collapseManager.GetSizeInMemory()
+	}
+	return value, depth, version, size, err
+}
+
+func (tr *patriciaMerkleTrie) getWithVersion(key []byte) ([]byte, uint32, uint32, int, error) {
 	if tr.root == nil {
-		return nil, 0, 0, nil
+		return nil, 0, 0, 0, nil
 	}
 	hexKey := keyBytesToHex(key)
 
 	tmc := trieMetricsCollector.NewTrieMetricsCollector()
-	value, version, err = tr.root.tryGetWithVersion(hexKey, tmc, tr.trieStorage)
+	value, version, err := tr.root.tryGetWithVersion(hexKey, tmc, tr.trieStorage)
+	sizeLoaded := tmc.GetSizeLoadedInMem()
 	if err == nil && len(value) > 0 {
-		tr.collapseManager.MarkKeyAsAccessed(hexKey, tmc.GetSizeLoadedInMem())
+		tr.collapseManager.MarkKeyAsAccessed(hexKey, sizeLoaded)
 	} else {
 		// Misses and failed reads can decode nodes, but identify no leaf to collapse.
-		tr.collapseManager.AddSizeInMemory(tmc.GetSizeLoadedInMem())
+		tr.collapseManager.AddSizeInMemory(sizeLoaded)
 	}
 	if err != nil {
 		err = fmt.Errorf("trie get error: %w, for key %v", err, hex.EncodeToString(key))
-		return nil, tmc.GetMaxDepth(), 0, err
+		return nil, tmc.GetMaxDepth(), 0, sizeLoaded, err
 	}
 
-	return value, tmc.GetMaxDepth(), version, nil
+	return value, tmc.GetMaxDepth(), version, sizeLoaded, nil
 }
 
 // Update updates the value at the given key.
@@ -205,16 +224,19 @@ func (tr *patriciaMerkleTrie) delete(hexKey []byte) error {
 		return nil
 	}
 
+	oldRoot := tr.oldRoot
 	if !tr.root.isDirty() {
-		tr.oldRoot = tr.root.getHash()
+		oldRoot = tr.root.getHash()
 	}
 
 	tmc := trieMetricsCollector.NewTrieMetricsCollector()
 	_, newRoot, oldHashes, err := tr.root.delete(hexKey, tmc, tr.trieStorage)
-	tr.collapseManager.RemoveKey(hexKey, tmc.GetSizeLoadedInMem())
 	if err != nil {
+		tr.collapseManager.AddSizeInMemory(tmc.GetSizeLoadedInMem())
 		return err
 	}
+	tr.collapseManager.RemoveKey(hexKey, tmc.GetSizeLoadedInMem())
+	tr.oldRoot = oldRoot
 	tr.root = newRoot
 	tr.oldHashes = append(tr.oldHashes, oldHashes...)
 	logArrayWithTrace("oldHashes after delete", "hash", oldHashes)
@@ -257,7 +279,7 @@ func (tr *patriciaMerkleTrie) Commit() error {
 	}
 	if !tr.root.isDirty() {
 		log.Trace("trying to commit clean trie", "root", tr.root.getHash())
-		return nil
+		return tr.enforceMemoryBudget()
 	}
 	err := tr.root.setRootHash()
 	if err != nil {
@@ -276,16 +298,20 @@ func (tr *patriciaMerkleTrie) Commit() error {
 		return err
 	}
 
-	if tr.collapseManager.ShouldCollapseTrie() {
-		return tr.collapseTrie()
-	}
+	return tr.enforceMemoryBudget()
+}
 
+// The caller must persist resident nodes before enforcing the budget.
+func (tr *patriciaMerkleTrie) enforceMemoryBudget() error {
 	collapsibleLeaves, err := tr.collapseManager.GetCollapsibleLeaves()
 	if err != nil {
 		return err
 	}
 
 	tr.collapseLeaves(collapsibleLeaves)
+	if tr.collapseManager.ShouldCollapseTrie() {
+		return tr.collapseTrie()
+	}
 	return nil
 }
 
@@ -296,7 +322,8 @@ func (tr *patriciaMerkleTrie) collapseTrie() error {
 	}
 
 	tr.root = collapsedRoot
-	tr.collapseManager = tr.collapseManager.CloneWithoutState()
+	// Keep the manager stable for concurrent trie recreation.
+	tr.collapseManager.Reset()
 	tr.collapseManager.AddSizeInMemory(tr.root.sizeInBytes())
 	log.Info("trie collapsed", "root", tr.root.getHash())
 	return nil

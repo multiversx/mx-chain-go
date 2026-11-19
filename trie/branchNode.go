@@ -482,12 +482,14 @@ func (bn *branchNode) insertOnNilChild(newData core.TrieData, tmc MetricsCollect
 		return nil, [][]byte{}, err
 	}
 
+	versionsSizeBefore := len(bn.ChildrenVersion)
 	modifiedHashes := make([][]byte, 0)
 	modifiedHashes, err = bn.modifyNodeAfterInsert(modifiedHashes, childPos, newLn)
 	if err != nil {
 		return nil, [][]byte{}, err
 	}
-	tmc.AddSizeLoadedInMem(newLn.sizeInBytes())
+	// An occupied slot reserves its hash bytes even before the hash is written.
+	tmc.AddSizeLoadedInMem(newLn.sizeInBytes() + hashSizeInBytes + len(bn.ChildrenVersion) - versionsSizeBefore)
 
 	return bn, modifiedHashes, nil
 }
@@ -498,9 +500,13 @@ func (bn *branchNode) insertOnExistingChild(newData core.TrieData, tmc MetricsCo
 		return nil, [][]byte{}, err
 	}
 
+	versionsSizeBefore := len(bn.ChildrenVersion)
 	modifiedHashes, err = bn.modifyNodeAfterInsert(modifiedHashes, childPos, newNode)
 	if err != nil {
 		return nil, [][]byte{}, err
+	}
+	if sizeDelta := len(bn.ChildrenVersion) - versionsSizeBefore; sizeDelta != 0 {
+		tmc.AddSizeLoadedInMem(sizeDelta)
 	}
 
 	return bn, modifiedHashes, nil
@@ -556,60 +562,86 @@ func (bn *branchNode) delete(key []byte, tmc MetricsCollector, db common.TrieSto
 		oldHashes = append(oldHashes, bn.hash)
 	}
 
+	if check.IfNil(newNode) {
+		pos, shouldReduce := bn.remainingChildAfterRemoval(childPos)
+		if shouldReduce {
+			// Prepare the replacement before removing the child. The original
+			// branch must remain usable if either storage read fails.
+			reduced, replacesHash, errReduce := bn.prepareReducedChild(pos, tmc, db)
+			if errReduce != nil {
+				// The recursive delete charged for detaching this subtree. It
+				// is still attached, so only the storage loads should count.
+				tmc.AddSizeLoadedInMem(detachedSubtreeSize(bn.children[childPos]))
+				return false, bn, emptyHashes, errReduce
+			}
+			sibling := bn.children[pos]
+			if replacesHash && !sibling.isDirty() {
+				oldHashes = append(oldHashes, sibling.getHash())
+			}
+
+			tmc.AddSizeLoadedInMem(-bn.sizeInBytes())
+			return true, reduced, oldHashes, nil
+		}
+	}
 	err = bn.setNewChild(childPos, newNode, tmc)
 	if err != nil {
 		return false, nil, emptyHashes, err
 	}
-
-	numChildren, pos := getChildPosition(bn)
-
-	if numChildren == 1 {
-		err = resolveIfCollapsed(bn, byte(pos), tmc, db)
-		if err != nil {
-			return false, nil, emptyHashes, err
-		}
-
-		err = resolveIfCollapsed(bn.children[pos], byte(pos), tmc, db)
-		if err != nil {
-			return false, nil, emptyHashes, err
-		}
-
-		var newChildHash bool
-		newNode, newChildHash, err = bn.children[pos].reduceNode(pos, tmc)
-		if err != nil {
-			return false, nil, emptyHashes, err
-		}
-
-		if newChildHash && !bn.children[pos].isDirty() {
-			oldHashes = append(oldHashes, bn.children[pos].getHash())
-		}
-
-		tmc.AddSizeLoadedInMem(-bn.sizeInBytes())
-		return true, newNode, oldHashes, nil
-	}
-
-	bn.dirty = dirty
-
+	bn.dirty = true
 	return true, bn, oldHashes, nil
 }
 
+func (bn *branchNode) prepareReducedChild(pos byte, tmc MetricsCollector, db common.TrieStorageInteractor) (node, bool, error) {
+	err := resolveIfCollapsed(bn, pos, tmc, db)
+	if err != nil {
+		return nil, false, err
+	}
+
+	child := bn.children[pos]
+	err = resolveIfCollapsed(child, pos, tmc, db)
+	if err != nil {
+		return nil, false, err
+	}
+
+	return child.reduceNode(int(pos), tmc)
+}
+
+// A delete returning a nil replacement can detach a leaf and any extension
+// nodes pointing to it. Branch deletion always returns a non-nil replacement.
+func detachedSubtreeSize(child node) int {
+	size := child.sizeInBytes()
+	for {
+		extension, ok := child.(*extensionNode)
+		if !ok {
+			return size
+		}
+		child = extension.child
+		size += child.sizeInBytes()
+	}
+}
+
 func (bn *branchNode) setNewChild(childPos byte, newNode node, tmc MetricsCollector) error {
+	version := core.NotSpecified
+	isRemoval := check.IfNil(newNode)
+	if !isRemoval {
+		var err error
+		version, err = newNode.getVersion()
+		if err != nil {
+			return err
+		}
+	}
+	versionsSizeBefore := len(bn.ChildrenVersion)
 	bn.hash = nil
 	bn.children[childPos] = newNode
-	if check.IfNil(newNode) {
-		bn.setVersionForChild(core.NotSpecified, childPos)
+	bn.setVersionForChild(version, childPos)
+	sizeDelta := len(bn.ChildrenVersion) - versionsSizeBefore
+	if isRemoval {
 		bn.EncodedChildren[childPos] = nil
-		tmc.AddSizeLoadedInMem(-hashSizeInBytes)
-
-		return nil
+		sizeDelta -= hashSizeInBytes
 	}
-
-	childVersion, err := newNode.getVersion()
-	if err != nil {
-		return err
+	if sizeDelta != 0 {
+		tmc.AddSizeLoadedInMem(sizeDelta)
 	}
-	bn.setVersionForChild(childVersion, childPos)
-
 	return nil
 }
 
@@ -634,14 +666,19 @@ func (bn *branchNode) reduceNode(pos int, tmc MetricsCollector) (node, bool, err
 	return newEn, false, nil
 }
 
-func getChildPosition(n *branchNode) (nrOfChildren int, childPos int) {
-	for i := range n.children {
-		if n.children[i] != nil || len(n.EncodedChildren[i]) != 0 {
-			nrOfChildren++
-			childPos = i
+func (bn *branchNode) remainingChildAfterRemoval(removedPos byte) (byte, bool) {
+	var pos byte
+	found := false
+	for i := range bn.children {
+		if i == int(removedPos) || (bn.children[i] == nil && len(bn.EncodedChildren[i]) == 0) {
+			continue
 		}
+		if found {
+			return 0, false
+		}
+		pos, found = byte(i), true
 	}
-	return
+	return pos, found
 }
 
 func (bn *branchNode) clone() *branchNode {

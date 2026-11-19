@@ -24,18 +24,25 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/guardians"
+	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
+	vmMock "github.com/multiversx/mx-chain-vm-common-go/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
+	commonDisabled "github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/holders"
+	statsDisabled "github.com/multiversx/mx-chain-go/common/statistics/disabled"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext/esdtSupply"
 	"github.com/multiversx/mx-chain-go/factory"
@@ -46,12 +53,19 @@ import (
 	"github.com/multiversx/mx-chain-go/node/external"
 	"github.com/multiversx/mx-chain-go/node/mock"
 	nodeMockFactory "github.com/multiversx/mx-chain-go/node/mock/factory"
+	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts"
+	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts/shared"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/transactionEvaluator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
+	"github.com/multiversx/mx-chain-go/state/dataTrieValue"
 	"github.com/multiversx/mx-chain-go/state/disabled"
+	stateFactory "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/parsers"
+	pruningDisabled "github.com/multiversx/mx-chain-go/state/storagePruningManager/disabled"
 	"github.com/multiversx/mx-chain-go/state/trackableDataTrie"
+	"github.com/multiversx/mx-chain-go/state/triesHolder"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks"
@@ -75,6 +89,8 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/testscommon/txsSenderMock"
+	"github.com/multiversx/mx-chain-go/trie"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 )
 
@@ -5523,4 +5539,318 @@ func TestNode_IsInterfaceNil(t *testing.T) {
 
 	n, _ = node.NewNode()
 	require.False(t, n.IsInterfaceNil())
+}
+
+type apiDataTrieRootFixture struct {
+	node       *node.Node
+	api        state.AccountsAdapterAPI
+	address    []byte
+	key        []byte
+	tokenID    []byte
+	roots      [][]byte
+	values     [][]byte
+	publish    func(int)
+	marshaller *marshal.GogoProtoMarshalizer
+	flags      *enableEpochsHandlerMock.EnableEpochsHandlerStub
+}
+
+func newAPIDataTrieRootFixture(t *testing.T, version core.TrieNodeVersion, headerV3 bool) apiDataTrieRootFixture {
+	t.Helper()
+	msh, hsh := &marshal.GogoProtoMarshalizer{}, blake2b.NewBlake2b()
+	flags := enableEpochsHandlerMock.NewEnableEpochsHandlerStub(
+		common.FixDataTrieLeafValidationFlag,
+		builtInFunctions.FixCorrectSmallIntAndGasLimitsFlag,
+		builtInFunctions.CheckTransferFlag,
+	)
+	if version == core.AutoBalanceEnabled {
+		flags.AddActiveFlags(common.AutoBalanceDataTriesFlag)
+	}
+	storage, err := trie.NewTrieStorageManager(trie.NewTrieStorageManagerArgs{
+		MainStorer:     testscommon.NewMemDbMock(),
+		Marshalizer:    msh,
+		Hasher:         hsh,
+		IdleProvider:   commonDisabled.NewProcessStatusHandler(),
+		StatsCollector: statsDisabled.NewStateStatistics(),
+		GeneralConfig:  config.TrieStorageManagerConfig{SnapshotsGoroutinesPerCore: 1},
+		Identifier:     "API data-trie root regression",
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, storage.Close()) })
+	manager, err := collapseManager.NewCollapseManager(64<<20, 100)
+	require.NoError(t, err)
+	main, err := trie.NewTrie(storage, msh, hsh, flags, manager)
+	require.NoError(t, err)
+	makeArgs := func(holder common.TriesHolder) state.ArgsAccountsDB {
+		collector := disabled.NewDisabledStateAccessesCollector()
+		creator, createErr := stateFactory.NewAccountCreator(stateFactory.ArgsAccountCreator{
+			Hasher:                 hsh,
+			Marshaller:             msh,
+			EnableEpochsHandler:    flags,
+			StateAccessesCollector: collector,
+			DataTriesHolder:        holder,
+			DataTrieCreator:        main,
+		})
+		require.NoError(t, createErr)
+		return state.ArgsAccountsDB{
+			Trie:                   main,
+			Hasher:                 hsh,
+			Marshaller:             msh,
+			AccountFactory:         creator,
+			DataTriesHolder:        holder,
+			StoragePruningManager:  pruningDisabled.NewDisabledStoragePruningManager(),
+			AddressConverter:       testscommon.RealWorldBech32PubkeyConverter,
+			SnapshotsManager:       disabled.NewDisabledSnapshotsManager(),
+			StateAccessesCollector: collector,
+		}
+	}
+	writerHolder, err := triesHolder.NewDataTriesHolder(4 << 20)
+	require.NoError(t, err)
+	writer, err := state.NewAccountsDB(makeArgs(writerHolder))
+	require.NoError(t, err)
+	f := apiDataTrieRootFixture{address: bytes.Repeat([]byte{1}, 32), tokenID: []byte("TOKEN-abcdef"), marshaller: msh, flags: flags}
+	f.key = append([]byte(core.ProtectedKeyPrefix+core.ESDTKeyIdentifier), f.tokenID...)
+	for i := 0; i < 2; i++ {
+		acc, loadErr := writer.LoadAccount(f.address)
+		require.NoError(t, loadErr)
+		user := acc.(state.UserAccountHandler)
+		user.IncreaseNonce(1)
+		value, marshalErr := msh.Marshal(&esdt.ESDigitalToken{Type: uint32(core.Fungible), Value: big.NewInt(int64(10 * (i + 1)))})
+		require.NoError(t, marshalErr)
+		f.values = append(f.values, value)
+		require.NoError(t, user.SaveKeyValue(f.key, value))
+		require.NoError(t, writer.SaveAccount(user))
+		root, commitErr := writer.Commit()
+		require.NoError(t, commitErr)
+		f.roots = append(f.roots, root)
+	}
+	var selected atomic.Int32
+	selected.Store(1)
+	f.publish = func(index int) { selected.Store(int32(index)) }
+	chain := &testscommon.ChainHandlerStub{
+		GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
+			if headerV3 {
+				return &block.HeaderV3{Nonce: uint64(selected.Load() + 1)}
+			}
+			return &block.Header{Nonce: uint64(selected.Load() + 1)}
+		},
+		GetCurrentBlockHeaderHashCalled: func() []byte { return []byte(fmt.Sprintf("block-%d", selected.Load()+1)) },
+		GetCurrentBlockRootHashCalled:   func() []byte { return f.roots[selected.Load()] },
+		GetLastExecutedBlockInfoCalled: func() (uint64, []byte, []byte) {
+			index := selected.Load()
+			return uint64(index + 1), []byte(fmt.Sprintf("block-%d", index+1)), f.roots[index]
+		},
+	}
+	apiHolder, err := triesHolder.NewReadOnlyDataTriesHolder(4 << 20)
+	require.NoError(t, err)
+	f.api, err = stateFactory.CreateAccountsAdapterAPIOnCurrent(makeArgs(apiHolder), chain)
+	require.NoError(t, err)
+	f.node, err = node.NewNode(
+		node.WithCoreComponents(&nodeMockFactory.CoreComponentsMock{
+			IntMarsh:       msh,
+			Hash:           hsh,
+			AddrPubKeyConv: testscommon.RealWorldBech32PubkeyConverter,
+		}),
+		node.WithStateComponents(&factoryTests.StateComponentsMock{AccountsAPI: f.api}),
+	)
+	require.NoError(t, err)
+	return f
+}
+
+func (f apiDataTrieRootFixture) proof(t *testing.T, index int) *common.GetProofResponse {
+	t.Helper()
+	main, proof, err := f.node.GetProofDataTrie(hex.EncodeToString(f.roots[index]), hex.EncodeToString(f.address), hex.EncodeToString(f.key))
+	require.NoError(t, err)
+	require.Equal(t, hex.EncodeToString(f.roots[index]), main.RootHash)
+	valid, err := f.node.VerifyProof(main.RootHash, hex.EncodeToString(f.address), main.Proof)
+	require.NoError(t, err)
+	require.True(t, valid)
+	valid, err = f.node.VerifyProof(proof.RootHash, hex.EncodeToString(f.key), proof.Proof)
+	require.NoError(t, err)
+	require.True(t, valid)
+	// Use the authenticated leaf because the node can overwrite the response value.
+	require.NotEmpty(t, proof.Proof)
+	encoded := proof.Proof[len(proof.Proof)-1]
+	require.NotEmpty(t, encoded)
+	leaf := &trie.CollapsedLn{}
+	require.NoError(t, f.marshaller.Unmarshal(leaf, encoded[:len(encoded)-1]))
+	raw := leaf.Value
+	if leaf.Version == uint32(core.AutoBalanceEnabled) {
+		data := &dataTrieValue.TrieLeafData{}
+		require.NoError(t, f.marshaller.Unmarshal(data, raw))
+		raw = data.Value
+	} else {
+		require.GreaterOrEqual(t, len(raw), len(f.key)+len(f.address))
+		raw = raw[:len(raw)-len(f.key)-len(f.address)]
+	}
+	require.Equal(t, f.values[index], raw, "the proof must authenticate the selected state's value")
+	return proof
+}
+
+func TestNode_GetProofDataTrie_ValueMatchesSelectedState(t *testing.T) {
+	for _, version := range []core.TrieNodeVersion{core.NotSpecified, core.AutoBalanceEnabled} {
+		for _, headerV3 := range []bool{false, true} {
+			for _, warm := range []bool{false, true} {
+				t.Run(fmt.Sprintf("version-%d/headerV3-%t/warm-current-%t", version, headerV3, warm), func(t *testing.T) {
+					f := newAPIDataTrieRootFixture(t, version, headerV3)
+					if warm {
+						account, err := f.api.GetExistingAccount(f.address)
+						require.NoError(t, err)
+						v, _, err := account.(state.UserAccountHandler).RetrieveValue(f.key)
+						require.NoError(t, err)
+						require.Equal(t, f.values[1], v)
+					}
+					proof := f.proof(t, 0)
+					decoded := &esdt.ESDigitalToken{}
+					require.NoError(t, f.marshaller.Unmarshal(decoded, proof.Value))
+					t.Logf("proof authenticates token balance 10; response reports %s", decoded.Value)
+					require.Equal(t, f.values[0], proof.Value, "older-root proof response must not contain the head-state value")
+				})
+			}
+		}
+	}
+}
+
+func TestNode_GetProofDataTrie_DoesNotContaminateSimulation(t *testing.T) {
+	for _, version := range []core.TrieNodeVersion{core.NotSpecified, core.AutoBalanceEnabled} {
+		for _, headerV3 := range []bool{false, true} {
+			t.Run(fmt.Sprintf("version-%d/headerV3-%t", version, headerV3), func(t *testing.T) {
+				f := newAPIDataTrieRootFixture(t, version, headerV3)
+				proof := f.proof(t, 0)
+				require.Equal(t, f.values[0], proof.Value)
+				simulation, err := transactionEvaluator.NewSimulationAccountsDB(f.api)
+				require.NoError(t, err)
+				sender, err := simulation.LoadAccount(f.address)
+				require.NoError(t, err)
+				require.Equal(t, uint64(2), sender.GetNonce())
+				destination := bytes.Repeat([]byte{2}, 32)
+				receiver, err := simulation.LoadAccount(destination)
+				require.NoError(t, err)
+				settings, err := builtInFunctions.NewESDTGlobalSettingsFunc(simulation, f.marshaller, false, core.BuiltInFunctionESDTPause, func() bool { return true })
+				require.NoError(t, err)
+				roles, err := builtInFunctions.NewESDTRolesFunc(f.marshaller, false)
+				require.NoError(t, err)
+				fn, err := builtInFunctions.NewESDTTransferFunc(1, f.marshaller, settings, &vmMock.ShardCoordinatorStub{}, roles, f.flags)
+				require.NoError(t, err)
+				payable, err := builtInFunctions.NewPayableCheckFunc(&vmMock.PayableHandlerStub{}, f.flags)
+				require.NoError(t, err)
+				require.NoError(t, fn.SetPayableChecker(payable))
+				output, err := fn.ProcessBuiltinFunction(sender.(vmcommon.UserAccountHandler), receiver.(vmcommon.UserAccountHandler), &vmcommon.ContractCallInput{
+					VMInput: vmcommon.VMInput{
+						CallerAddr:  f.address,
+						CallValue:   big.NewInt(0),
+						GasProvided: 100000,
+						Arguments:   [][]byte{f.tokenID, {1}},
+					},
+					RecipientAddr: destination,
+					Function:      core.BuiltInFunctionESDTTransfer,
+				})
+				require.NoError(t, err)
+				require.Equal(t, vmcommon.Ok, output.ReturnCode)
+				require.NoError(t, simulation.SaveAccount(sender))
+				require.NoError(t, simulation.SaveAccount(receiver))
+				raw, _, err := sender.(vmcommon.UserAccountHandler).AccountDataHandler().RetrieveValue(f.key)
+				require.NoError(t, err)
+				token := &esdt.ESDigitalToken{}
+				require.NoError(t, f.marshaller.Unmarshal(token, raw))
+				t.Logf("head balance is 20; simulated transfer of 1 leaves %s", token.Value)
+				require.Equal(t, int64(19), token.Value.Int64(), "simulation must start from head balance 20, not old balance 10")
+			})
+		}
+	}
+}
+
+func TestNode_GetProofDataTrie_DoesNotContaminateOutport(t *testing.T) {
+	for _, version := range []core.TrieNodeVersion{core.NotSpecified, core.AutoBalanceEnabled} {
+		for _, headerV3 := range []bool{false, true} {
+			t.Run(fmt.Sprintf("version-%d/headerV3-%t", version, headerV3), func(t *testing.T) {
+				f := newAPIDataTrieRootFixture(t, version, headerV3)
+				proof := f.proof(t, 0)
+				require.Equal(t, f.values[0], proof.Value)
+				coordinator := &vmMock.ShardCoordinatorStub{}
+				settings, err := builtInFunctions.NewESDTGlobalSettingsFunc(f.api, f.marshaller, false, core.BuiltInFunctionESDTPause, func() bool { return true })
+				require.NoError(t, err)
+				storage, err := builtInFunctions.NewESDTDataStorage(builtInFunctions.ArgsNewESDTDataStorage{
+					Accounts:              f.api,
+					GlobalSettingsHandler: settings,
+					Marshalizer:           f.marshaller,
+					EnableEpochsHandler:   f.flags,
+					ShardCoordinator:      coordinator,
+				})
+				require.NoError(t, err)
+				provider, err := alteredaccounts.NewAlteredAccountsProvider(alteredaccounts.ArgsAlteredAccountsProvider{
+					ShardCoordinator:       coordinator,
+					AddressConverter:       testscommon.RealWorldBech32PubkeyConverter,
+					AccountsDB:             f.api,
+					EsdtDataStorageHandler: storage,
+				})
+				require.NoError(t, err)
+				pool := &outportcore.TransactionPool{
+					Logs: []*transaction.LogData{{
+						TxHash: "mint",
+						Log: &transaction.Log{
+							Address: f.address,
+							Events: []*transaction.Event{{
+								Address:    f.address,
+								Identifier: []byte(core.BuiltInFunctionESDTLocalMint),
+								Topics:     [][]byte{f.tokenID, {}, {10}},
+							}},
+						},
+					}},
+				}
+				accounts, err := provider.ExtractAlteredAccountsFromPool(pool, shared.AlteredAccountsOptions{WithAdditionalOutportData: true})
+				require.NoError(t, err)
+				address, err := testscommon.RealWorldBech32PubkeyConverter.Encode(f.address)
+				require.NoError(t, err)
+				account := accounts[address]
+				require.NotNil(t, account)
+				require.Equal(t, uint64(2), account.Nonce)
+				require.Len(t, account.Tokens, 1)
+				t.Logf("outport main-account nonce is 2; returned token balance is %s", account.Tokens[0].Balance)
+				require.Equal(t, "20", account.Tokens[0].Balance, "outport must read the same state as the account it publishes")
+			})
+		}
+	}
+}
+
+// A later request can select a newer root before this account first loads its trie.
+func TestNode_APIAccountsLoadAccount_KeepsSelectedDataRoot(t *testing.T) {
+	for _, version := range []core.TrieNodeVersion{core.NotSpecified, core.AutoBalanceEnabled} {
+		for _, headerV3 := range []bool{false, true} {
+			t.Run(fmt.Sprintf("version-%d/headerV3-%t", version, headerV3), func(t *testing.T) {
+				f := newAPIDataTrieRootFixture(t, version, headerV3)
+				f.publish(0)
+				account, err := f.api.LoadAccount(f.address)
+				require.NoError(t, err)
+				older := account.(state.UserAccountHandler)
+				require.Equal(t, uint64(1), older.GetNonce())
+				f.publish(1)
+				account, err = f.api.GetExistingAccount(f.address)
+				require.NoError(t, err)
+				latest := account.(state.UserAccountHandler)
+				value, _, err := latest.RetrieveValue(f.key)
+				require.NoError(t, err)
+				require.Equal(t, f.values[1], value)
+				value, _, err = older.RetrieveValue(f.key)
+				require.NoError(t, err)
+				require.Equal(t, f.values[0], value)
+				attached, err := older.DataTrie()
+				require.NoError(t, err)
+				root, err := attached.RootHash()
+				require.NoError(t, err)
+				require.Equal(t, older.GetRootHash(), root)
+				// Check both accounts because the delayed read can replace the cached trie.
+				account, err = f.api.LoadAccount(f.address)
+				require.NoError(t, err)
+				value, _, err = account.(state.UserAccountHandler).RetrieveValue(f.key)
+				require.NoError(t, err)
+				require.Equal(t, f.values[1], value)
+				value, _, err = older.RetrieveValue(f.key)
+				require.NoError(t, err)
+				require.Equal(t, f.values[0], value)
+				currentTrie, err := older.DataTrie()
+				require.NoError(t, err)
+				require.Same(t, attached, currentTrie)
+			})
+		}
+	}
 }

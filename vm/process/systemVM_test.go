@@ -2,15 +2,20 @@ package process
 
 import (
 	"bytes"
+	"errors"
+	"math/big"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/mock"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createMockArguments() ArgsNewSystemVM {
@@ -151,4 +156,48 @@ func TestSystemVM_RunSmartContractCall(t *testing.T) {
 	vmOutput, err := sVM.RunSmartContractCall(&vmcommon.ContractCallInput{RecipientAddr: scAddress})
 	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
+}
+
+func TestLazyDataTrieLoad_SystemVM(t *testing.T) {
+	cause := core.NewGetNodeFromDBErrWithKey([]byte("root"), errors.New("missing"), "test")
+	loadErr := &state.DataTrieLoadError{Cause: cause}
+	for _, deploy := range []bool{false, true} {
+		name := "call"
+		if deploy {
+			name = "create"
+		}
+		t.Run(name, func(t *testing.T) {
+			var storageErr error
+			faulty := true
+			contract := &mock.SystemSCStub{ExecuteCalled: func(*vmcommon.ContractCallInput) vmcommon.ReturnCode {
+				if faulty {
+					storageErr = loadErr
+				}
+				return vmcommon.Ok
+			}}
+			args := createMockArguments()
+			args.SystemEI = &mock.SystemEIStub{
+				CleanCacheCalled:      func() { storageErr = nil },
+				GetContractCalled:     func([]byte) (vm.SystemSmartContract, error) { return contract, nil },
+				GetStorageErrorCalled: func() error { return storageErr },
+			}
+			args.SystemContracts = &mock.SystemSCContainerStub{GetCalled: func([]byte) (vm.SystemSmartContract, error) { return contract, nil }}
+			system, err := NewSystemVM(args)
+			require.NoError(t, err)
+			run := func() (*vmcommon.VMOutput, error) {
+				if deploy {
+					return system.RunSmartContractCreate(&vmcommon.ContractCreateInput{VMInput: vmcommon.VMInput{CallerAddr: []byte("sc"), CallValue: big.NewInt(0)}})
+				}
+				return system.RunSmartContractCall(&vmcommon.ContractCallInput{VMInput: vmcommon.VMInput{CallValue: big.NewInt(0)}, RecipientAddr: []byte("sc"), Function: "read"})
+			}
+			output, err := run()
+			require.Same(t, loadErr, err)
+			require.Nil(t, output)
+			require.Same(t, cause, core.UnwrapGetNodeFromDBErr(err))
+			faulty = false
+			output, err = run()
+			require.NoError(t, err)
+			require.Equal(t, vmcommon.Ok, output.ReturnCode)
+		})
+	}
 }

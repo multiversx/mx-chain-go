@@ -109,14 +109,14 @@ func TestAccountsAdapters_CurrentAndFinalKeepAccountStorageAtSelectedRoot(t *tes
 						newer := f.account(t, view, base+1)
 						f.read(t, newer, base+1)
 						f.read(t, older, base)
-						attached := older.DataTrie()
+						attached := requireAccountDataTrie(t, older)
 						f.publish(base + 2)
 						latest := f.account(t, view, base+2)
 						f.read(t, latest, base+2)
 						f.read(t, older, base)
-						require.Same(t, attached, older.DataTrie(), "root changes must not invalidate an attached trie")
+						require.Same(t, attached, requireAccountDataTrie(t, older), "root changes must not invalidate an attached trie")
 						matching := f.account(t, view, base+2)
-						require.Same(t, latest.DataTrie(), matching.DataTrie(), "matching-root cache hits must stay reusable")
+						require.Same(t, requireAccountDataTrie(t, latest), requireAccountDataTrie(t, matching), "matching-root cache hits must stay reusable")
 					}
 				})
 			}

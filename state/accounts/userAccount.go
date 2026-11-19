@@ -182,7 +182,10 @@ func (a *userAccount) GetAllLeaves(
 	leavesChannels *common.TrieIteratorChannels,
 	ctx context.Context,
 ) error {
-	dt := a.DataTrie()
+	dt, err := a.DataTrie()
+	if err != nil {
+		return err
+	}
 	if check.IfNil(dt) {
 		return errors.ErrNilTrie
 	}
@@ -197,7 +200,10 @@ func (a *userAccount) GetAllLeaves(
 
 // IsDataTrieMigrated returns true if the data trie is migrated to the latest version
 func (a *userAccount) IsDataTrieMigrated() (bool, error) {
-	dt := a.DataTrie()
+	dt, err := a.DataTrie()
+	if err != nil {
+		return false, err
+	}
 	if check.IfNil(dt) {
 		return false, errors.ErrNilTrie
 	}
