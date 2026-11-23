@@ -56,6 +56,7 @@ GLOBAL OPTIONS:
    --num-active-persisters value             This flag represents the number of databases (1 database = 1 epoch) which are kept open at a moment. It is relevant even if the node is full archive or not. (default: 2)
    --start-in-epoch                          Boolean option for enabling a node the fast bootstrap mechanism from the network.Should be enabled if data is not available in local disk.
    --import-db value                         This flag, if set, will make the node start the import process using the provided data path. Will re-checkand re-process everything
+   --import-db-metrics-file value            Write import-db replay measurements as JSON Lines to a new file
    --import-db-no-sig-check                  This flag, if set, will cause the signature checks on headers to be skipped. Can be used only if the import-db was previously set
    --import-db-save-epoch-root-hash          This flag, if set, will export the trie snapshots at every new epoch
    --redundancy-level value                  This flag specifies the level of redundancy used by the current instance for the node (-1 = disabled, 0 = main instance (default), 1 = first backup, 2 = second backup, etc.) (default: 0)
@@ -81,3 +82,32 @@ GLOBAL OPTIONS:
 
 ```
 
+
+
+### Import-db replay measurements
+
+Run one node per target shard, including the metachain for full coverage. Use the same immutable source database, mainnet configuration, signature-check setting, storage settings, and machine for both benchmark builds. Give each run a fresh working directory and an absolute metrics filename that does not exist yet. Run from `cmd/node` so the default configuration paths resolve, or supply the mainnet configuration paths explicitly.
+
+```sh
+./node --import-db /path/to/source-db \
+  --destination-shard-as-observer 0 \
+  --working-directory /path/to/fresh-run-dir \
+  --import-db-metrics-file /path/to/replay.jsonl
+```
+
+The JSON Lines file contains:
+
+- `block` records for legacy and V3 execution attempts. Use `outcome == "executed"` to match block hashes and state roots across runs and confirm the expected nonce range. `execution_items` counts processor calls by category. `header_tx_count` is the header's declared workload.
+- `epoch` summaries by header epoch and shard. The trie counts and timings include work spent on failed or discarded attempts. The executed-block and execution-item totals include accepted attempts. Summaries are written at shutdown. Per-block records are available during replay.
+- `resource` samples every second with RSS, process RSS high-water mark, Go heap, cumulative allocations, GC count and pause time, CPU time, and process read/write bytes when available. `progress` identifies the active or latest measured execution. Epoch peak RSS is the largest attributed sample.
+- `run_end` with total wall time and any experiment errors, overlapping execution attempts, or a block still in flight. Compare runs over the same completed range. Check these fields and the expected final nonce before interpreting elapsed time.
+
+The `tries` object separates the user main trie, peer trie, and account data tries. An omitted counter is zero. `collapse_commits` counts trie commits that detached resident nodes. Depth collapses, leaf batches and actual collapsed leaves, root collapses, and complete LRU data-trie evictions are reported separately. Collapse timers exclude persistence. `nodes_resolved` counts successfully decoded descendants, while `root_opens` counts nonempty roots opened through the storage layer, including storage-cache hits. `state_commit_ns` measures accounts-state commit on both replay paths. The outer `commit_ns` represents the legacy block commit or the V3 state-commit call.
+
+For example, project the successful block identities and roots in each run and compare the resulting files:
+
+```sh
+jq -cr 'select(.type == "block" and .outcome == "executed") | [.shard,.nonce,.hash,.state_root] | @tsv' replay.jsonl
+```
+
+Modeled cache and trie byte gauges are available on the feature branch. The master baseline reports zero for gauges it cannot measure. The feature samples evicted dirty trie bytes immediately before data-trie commit.

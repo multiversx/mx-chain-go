@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/common/replaymetrics"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -34,7 +35,8 @@ const (
 const rootDepthLevel = 0
 
 type patriciaMerkleTrie struct {
-	root node
+	replayStorage *replayTrieStorage
+	root          node
 
 	trieStorage             common.StorageManager
 	marshalizer             marshal.Marshalizer
@@ -109,7 +111,7 @@ func (tr *patriciaMerkleTrie) GetWithVersion(key []byte) (value []byte, depth ui
 	}
 	hexKey := keyBytesToHex(key)
 
-	value, depth, version, err = tr.root.tryGetWithVersion(hexKey, rootDepthLevel, tr.trieStorage)
+	value, depth, version, err = tr.root.tryGetWithVersion(hexKey, rootDepthLevel, tr.processingStorage())
 	if err != nil {
 		err = fmt.Errorf("trie get error: %w, for key %v", err, hex.EncodeToString(key))
 		return nil, depth, 0, err
@@ -163,7 +165,7 @@ func (tr *patriciaMerkleTrie) update(key []byte, value []byte, version core.Trie
 			tr.oldRoot = tr.root.getHash()
 		}
 
-		newRoot, oldHashes, err := tr.root.insert(newData, tr.trieStorage)
+		newRoot, oldHashes, err := tr.root.insert(newData, tr.processingStorage())
 		if err != nil {
 			return err
 		}
@@ -201,7 +203,7 @@ func (tr *patriciaMerkleTrie) delete(hexKey []byte) error {
 		tr.oldRoot = tr.root.getHash()
 	}
 
-	_, newRoot, oldHashes, err := tr.root.delete(hexKey, tr.trieStorage)
+	_, newRoot, oldHashes, err := tr.root.delete(hexKey, tr.processingStorage())
 	if err != nil {
 		return err
 	}
@@ -261,7 +263,13 @@ func (tr *patriciaMerkleTrie) Commit() error {
 		log.Trace("started committing trie", "trie", tr.root.getHash())
 	}
 
-	err = tr.root.commitDirty(0, tr.maxTrieLevelInMemory, tr.trieStorage, tr.trieStorage)
+	db := tr.processingStorage()
+	replay := replayStorageScope(db)
+	before := replay.Count(replaymetrics.DepthCollapses)
+	err = tr.root.commitDirty(0, tr.maxTrieLevelInMemory, db, db)
+	if replay.Count(replaymetrics.DepthCollapses) > before {
+		replay.Add(replaymetrics.CollapseCommits, 1)
+	}
 	if err != nil {
 		return err
 	}
@@ -536,7 +544,7 @@ func (tr *patriciaMerkleTrie) GetAllHashes() ([][]byte, error) {
 		return nil, err
 	}
 
-	hashes, err = tr.root.getAllHashes(tr.trieStorage)
+	hashes, err = tr.root.getAllHashes(tr.processingStorage())
 	if err != nil {
 		return nil, err
 	}
@@ -689,7 +697,7 @@ func (tr *patriciaMerkleTrie) CollectLeavesForMigration(args vmcommon.ArgsMigrat
 		return err
 	}
 
-	_, err = tr.root.collectLeavesForMigration(args, tr.trieStorage, keyBuilder.NewKeyBuilder())
+	_, err = tr.root.collectLeavesForMigration(args, tr.processingStorage(), keyBuilder.NewKeyBuilder())
 	if err != nil {
 		return err
 	}

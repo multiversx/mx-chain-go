@@ -5,7 +5,10 @@ import (
 	cryptoRand "crypto/rand"
 	"errors"
 	"fmt"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common/replaymetrics"
 	"math/rand"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -1758,4 +1761,42 @@ func BenchmarkPatriciaMerkleTrie_Update(b *testing.B) {
 			_ = tr.Update(values[j], values[j])
 		}
 	}
+}
+
+func TestImportReplayTrieMetrics(t *testing.T) {
+	recorder, err := replaymetrics.Start(filepath.Join(t.TempDir(), "replay.jsonl"), "test")
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, recorder.Close(nil)) })
+	attempt := replaymetrics.Begin(&block.Header{Nonce: 1}, []byte("header"), "legacy")
+	require.NotNil(t, attempt)
+	tr := emptyTrie()
+	t.Cleanup(func() { require.NoError(t, tr.Close()) })
+	replaymetrics.AttachTrie(tr, replaymetrics.User)
+	addDefaultDataToTrie(tr)
+	key := []byte("dog")
+	collapse := replaymetrics.DepthCollapses
+	timer := replaymetrics.DepthCollapseNs
+
+	stats := replaymetrics.Capture(replaymetrics.User)
+	rootBefore, err := tr.RootHash()
+	require.NoError(t, err)
+	require.NoError(t, tr.Commit())
+	require.Equal(t, uint64(1), stats.Count(replaymetrics.CollapseCommits))
+	require.Positive(t, stats.Count(collapse))
+	require.Positive(t, stats.Count(timer))
+	require.Positive(t, stats.Count(replaymetrics.NodeWrites))
+
+	before := stats.Count(replaymetrics.NodesResolved)
+	value, _, err := tr.Get(key)
+	require.NoError(t, err)
+	require.NotEmpty(t, value)
+	after := stats.Count(replaymetrics.NodesResolved)
+	require.Greater(t, after, before)
+	_, _, err = tr.Get(key)
+	require.NoError(t, err)
+	require.Equal(t, after, stats.Count(replaymetrics.NodesResolved))
+	root, err := tr.RootHash()
+	require.NoError(t, err)
+	require.Equal(t, rootBefore, root)
+	attempt.Finish("executed", root, nil)
 }

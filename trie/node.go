@@ -125,12 +125,15 @@ func computeAndSetNodeHash(n node) ([]byte, error) {
 func getNodeFromDBAndDecode(n []byte, db common.TrieStorageInteractor, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
 	encChild, err := db.Get(n)
 	if err != nil {
+		recordResolution(db, 0, err)
 		treatLogError(log, err, n)
 
 		return nil, core.NewGetNodeFromDBErrWithKey(n, err, db.GetIdentifier())
 	}
 
-	return decodeNode(encChild, marshalizer, hasher)
+	child, err := decodeNode(encChild, marshalizer, hasher)
+	recordResolution(db, len(encChild), err)
+	return child, err
 }
 
 func treatLogError(logInstance logger.Logger, err error, key []byte) {

@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/common/replaymetrics"
 	"math/big"
 	"sort"
 	"sync"
@@ -2604,6 +2605,7 @@ func (bp *baseProcessor) commitState(headerHandler data.HeaderHandler) error {
 	startTime := time.Now()
 	defer func() {
 		elapsedTime := time.Since(startTime)
+		replaymetrics.RecordStateCommit(headerHandler, elapsedTime)
 		log.Debug("elapsed time to commit accounts state",
 			"time [s]", elapsedTime,
 			"header nonce", headerHandler.GetNonce(),

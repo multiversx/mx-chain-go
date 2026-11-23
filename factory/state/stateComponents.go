@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"github.com/multiversx/mx-chain-go/common/replaymetrics"
 	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -221,6 +222,7 @@ func (scf *stateComponentsFactory) createSnapshotManager(
 
 func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.TriesHolder, StateAccessesCollector state.StateAccessesCollector) (*accountsAdapterCreationResult, error) {
 	argsAccCreator := factoryState.ArgsAccountCreator{
+		ReplayMetrics:          replaymetrics.Enabled(),
 		Hasher:                 scf.core.Hasher(),
 		Marshaller:             scf.core.InternalMarshalizer(),
 		EnableEpochsHandler:    scf.core.EnableEpochsHandler(),
@@ -253,6 +255,7 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 	}
 
 	argsProcessingAccountsDB := state.ArgsAccountsDB{
+		ReplayTrieKind:         replaymetrics.User,
 		Trie:                   merkleTrie,
 		Hasher:                 scf.core.Hasher(),
 		Marshaller:             scf.core.InternalMarshalizer(),
@@ -356,6 +359,7 @@ func (scf *stateComponentsFactory) createPeerAdapter(triesContainer common.Tries
 
 	// TODO: also collect state accesses for the peer trie
 	argsProcessingPeerAccountsDB := state.ArgsAccountsDB{
+		ReplayTrieKind:         replaymetrics.Peer,
 		Trie:                   merkleTrie,
 		Hasher:                 scf.core.Hasher(),
 		Marshaller:             scf.core.InternalMarshalizer(),

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/common/replaymetrics"
 	"sort"
 	"sync"
 	"time"
@@ -947,6 +948,7 @@ func (txs *transactions) processAndRemoveBadTransaction(
 	dstShardId uint32,
 ) error {
 	txs.txExecutionOrderHandler.Add(txHash)
+	replaymetrics.RecordItem(replaymetrics.Transaction)
 	_, err := txs.txProcessor.ProcessTransaction(tx)
 
 	isNotExecutable := errors.Is(err, process.ErrLowerNonceInTransaction) || errors.Is(err, process.ErrInsufficientFee) || errors.Is(err, process.ErrTransactionNotExecutable)
@@ -1808,6 +1810,7 @@ func (txs *transactions) processInNormalMode(
 	snapshot := txs.handleProcessTransactionInit(preProcessorExecutionInfoHandler, txHash, mbHash)
 
 	txs.txExecutionOrderHandler.Add(txHash)
+	replaymetrics.RecordItem(replaymetrics.Transaction)
 	_, err := txs.txProcessor.ProcessTransaction(tx)
 	if err != nil {
 		txs.handleProcessTransactionError(preProcessorExecutionInfoHandler, snapshot, txHash)

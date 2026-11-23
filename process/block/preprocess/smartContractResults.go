@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/replaymetrics"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -315,6 +316,7 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 			}
 
 			scr.txExecutionOrderHandler.Add(txHash)
+			replaymetrics.RecordItem(replaymetrics.SmartContractResult)
 			_, err = scr.scrProcessor.ProcessSmartContractResult(currScr)
 			if err != nil {
 				return err
@@ -615,6 +617,7 @@ func (scr *smartContractResults) ProcessMiniBlock(
 		snapshot := scr.handleProcessTransactionInit(preProcessorExecutionInfoHandler, miniBlockTxHashes[txIndex], miniBlockHash)
 
 		scr.txExecutionOrderHandler.Add(miniBlockTxHashes[txIndex])
+		replaymetrics.RecordItem(replaymetrics.SmartContractResult)
 		_, err = scr.scrProcessor.ProcessSmartContractResult(miniBlockScrs[txIndex])
 		if err != nil {
 			scr.handleProcessTransactionError(preProcessorExecutionInfoHandler, snapshot, miniBlockTxHashes[txIndex])

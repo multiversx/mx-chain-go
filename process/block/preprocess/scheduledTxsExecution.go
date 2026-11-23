@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/common/replaymetrics"
 	"sort"
 	"sync"
 	"time"
@@ -226,6 +227,7 @@ func (ste *scheduledTxsExecution) execute(txHash []byte, txHandler data.Transact
 	}
 
 	ste.txExecutionOrderHandler.Add(txHash)
+	replaymetrics.RecordItem(replaymetrics.ScheduledTransaction)
 	_, err := ste.txProcessor.ProcessTransaction(tx)
 	return err
 }

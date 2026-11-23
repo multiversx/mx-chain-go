@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/common/replaymetrics"
 	"runtime/debug"
 	"strings"
 	"sync"
@@ -74,6 +75,7 @@ type snapshotInfo struct {
 
 // AccountsDB is the struct used for accessing accounts. This struct is concurrent safe.
 type AccountsDB struct {
+	replayTrieKind         replaymetrics.Kind
 	mainTrie               common.Trie
 	hasher                 hashing.Hasher
 	marshaller             marshal.Marshalizer
@@ -98,6 +100,7 @@ var log = logger.GetOrCreate("state")
 
 // ArgsAccountsDB is the arguments DTO for the AccountsDB instance
 type ArgsAccountsDB struct {
+	ReplayTrieKind         replaymetrics.Kind
 	Trie                   common.Trie
 	Hasher                 hashing.Hasher
 	Marshaller             marshal.Marshalizer
@@ -120,7 +123,12 @@ func NewAccountsDB(args ArgsAccountsDB) (*AccountsDB, error) {
 }
 
 func createAccountsDb(args ArgsAccountsDB) *AccountsDB {
+	if !replaymetrics.Enabled() {
+		args.ReplayTrieKind = replaymetrics.Untracked
+	}
+	replaymetrics.AttachTrie(args.Trie, args.ReplayTrieKind)
 	return &AccountsDB{
+		replayTrieKind:         args.ReplayTrieKind,
 		mainTrie:               args.Trie,
 		hasher:                 args.Hasher,
 		marshaller:             args.Marshaller,
@@ -505,11 +513,16 @@ func saveCodeEntry(codeHash []byte, entry *CodeEntry, trie Updater, marshalizer 
 // loadDataTrieConcurrentSafe retrieves and saves the SC data inside accountHandler object.
 // Errors if something went wrong
 func (adb *AccountsDB) loadDataTrieConcurrentSafe(accountHandler baseAccountHandler, mainTrie common.Trie) error {
+	var replay replaymetrics.Scope
+	if adb.replayTrieKind == replaymetrics.User {
+		replay = replaymetrics.Capture(replaymetrics.Data)
+	}
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
 	dataTrie := adb.dataTries.Get(accountHandler.AddressBytes())
 	if dataTrie != nil {
+		replay.Add(replaymetrics.CacheHits, 1)
 		accountHandler.SetDataTrie(dataTrie)
 		return nil
 	}
@@ -519,11 +532,18 @@ func (adb *AccountsDB) loadDataTrieConcurrentSafe(accountHandler baseAccountHand
 	}
 
 	rootHashHolder := holders.NewDefaultRootHashesHolder(accountHandler.GetRootHash())
+	openStart := replay.Start()
 	dataTrie, err := mainTrie.Recreate(rootHashHolder)
+	if replay.Active() {
+		replay.RootOpen(common.IsEmptyTrie(accountHandler.GetRootHash()), openStart, err)
+	}
 	if err != nil {
 		return fmt.Errorf("trie was not found for hash, rootHash = %s, err = %w", hex.EncodeToString(accountHandler.GetRootHash()), err)
 	}
 
+	if adb.replayTrieKind == replaymetrics.User {
+		replaymetrics.AttachTrie(dataTrie, replaymetrics.Data)
+	}
 	accountHandler.SetDataTrie(dataTrie)
 	adb.dataTries.Put(accountHandler.AddressBytes(), dataTrie)
 	return nil
@@ -646,11 +666,22 @@ func (adb *AccountsDB) removeDataTrie(baseAcc baseAccountHandler) error {
 	}
 
 	rootHashHolder := holders.NewDefaultRootHashesHolder(rootHash)
+	var replay replaymetrics.Scope
+	if adb.replayTrieKind == replaymetrics.User {
+		replay = replaymetrics.Capture(replaymetrics.Data)
+	}
+	openStart := replay.Start()
 	dataTrie, err := adb.mainTrie.Recreate(rootHashHolder)
+	if replay.Active() {
+		replay.RootOpen(common.IsEmptyTrie(rootHash), openStart, err)
+	}
 	if err != nil {
 		return err
 	}
 
+	if adb.replayTrieKind == replaymetrics.User {
+		replaymetrics.AttachTrie(dataTrie, replaymetrics.Data)
+	}
 	hashes, err := dataTrie.GetAllHashes()
 	if err != nil {
 		return err
@@ -944,6 +975,11 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 	newHashes := make(common.ModifiedHashes)
 	// Step 1. commit all data tries
 	dataTries := adb.dataTries.GetAll()
+	var dataReplay replaymetrics.Scope
+	if adb.replayTrieKind == replaymetrics.User {
+		dataReplay = replaymetrics.Capture(replaymetrics.Data)
+		dataReplay.CacheSize(len(dataTries), 0, 0, 0)
+	}
 	for i := 0; i < len(dataTries); i++ {
 		err := adb.commitTrie(dataTries[i], oldHashes, newHashes)
 		if err != nil {
@@ -951,6 +987,7 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 		}
 	}
 	adb.dataTries.Reset()
+	dataReplay.Add(replaymetrics.CacheResets, 1)
 
 	oldRoot := adb.mainTrie.GetOldRoot()
 
@@ -1075,7 +1112,12 @@ func (adb *AccountsDB) recreateTrie(options common.RootHashHolder) error {
 	adb.entries = make([]JournalEntry, 0)
 
 	adb.stateAccessesCollector.Reset()
+	replay := replaymetrics.Capture(adb.replayTrieKind)
+	openStart := replay.Start()
 	newTrie, err := adb.mainTrie.Recreate(options)
+	if replay.Active() {
+		replay.RootOpen(common.IsEmptyTrie(options.GetRootHash()), openStart, err)
+	}
 	if err != nil {
 		return err
 	}
@@ -1083,6 +1125,7 @@ func (adb *AccountsDB) recreateTrie(options common.RootHashHolder) error {
 		return ErrNilTrie
 	}
 
+	replaymetrics.AttachTrie(newTrie, adb.replayTrieKind)
 	adb.mainTrie = newTrie
 	return nil
 }

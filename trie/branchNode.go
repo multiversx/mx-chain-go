@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/common/replaymetrics"
 	"io"
 	"sync"
 
@@ -281,13 +282,19 @@ func (bn *branchNode) commitDirty(level byte, maxTrieLevelInMemory uint, originD
 	if uint(level) == maxTrieLevelInMemory {
 		log.Trace("collapse branch node on commit")
 
+		replay := replayStorageScope(originDb)
+		collapseStart := replay.Start()
 		var collapsedBn *branchNode
 		collapsedBn, err = bn.getCollapsedBn()
 		if err != nil {
 			return err
 		}
 
+		changed := bn != collapsedBn
 		*bn = *collapsedBn
+		if changed {
+			replay.Collapse(replaymetrics.DepthCollapses, replaymetrics.DepthCollapseNs, 1, collapseStart)
+		}
 	}
 	return nil
 }

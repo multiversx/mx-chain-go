@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/common/replaymetrics"
 	"io"
 	"math"
 	"sync"
@@ -199,13 +200,19 @@ func (en *extensionNode) commitDirty(level byte, maxTrieLevelInMemory uint, orig
 	if uint(level) == maxTrieLevelInMemory {
 		log.Trace("collapse extension node on commit")
 
+		replay := replayStorageScope(originDb)
+		collapseStart := replay.Start()
 		var collapsedEn *extensionNode
 		collapsedEn, err = en.getCollapsedEn()
 		if err != nil {
 			return err
 		}
 
+		changed := en != collapsedEn
 		*en = *collapsedEn
+		if changed {
+			replay.Collapse(replaymetrics.DepthCollapses, replaymetrics.DepthCollapseNs, 1, collapseStart)
+		}
 	}
 	return nil
 }

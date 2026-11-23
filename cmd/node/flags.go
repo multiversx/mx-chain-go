@@ -322,6 +322,10 @@ var (
 			"and re-process everything",
 		Value: "",
 	}
+	importDbMetricsFile = cli.StringFlag{
+		Name:  "import-db-metrics-file",
+		Usage: "Write import-db replay measurements as JSON Lines to a new file",
+	}
 	// importDbNoSigCheck defines a flag for the optional import DB no signature check option
 	importDbNoSigCheck = cli.BoolFlag{
 		Name:  "import-db-no-sig-check",
@@ -467,6 +471,7 @@ func getFlags() []cli.Flag {
 		numActivePersisters,
 		startInEpoch,
 		importDbDirectory,
+		importDbMetricsFile,
 		importDbNoSigCheck,
 		importDbSaveEpochRootHash,
 		redundancyLevel,

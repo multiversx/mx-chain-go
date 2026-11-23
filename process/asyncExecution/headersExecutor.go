@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"github.com/multiversx/mx-chain-go/common/replaymetrics"
 	"sync"
 	"time"
 
@@ -309,13 +310,31 @@ func (he *headersExecutor) waitForRetry(ctx context.Context, retryTimer <-chan t
 	}
 }
 
-func (he *headersExecutor) process(pair cache.HeaderBodyPair) error {
+func (he *headersExecutor) process(pair cache.HeaderBodyPair) (err error) {
+	attempt := replaymetrics.Begin(pair.Header, pair.HeaderHash, "v3")
+	var persistedRoot []byte
+	outcome := "discarded"
+	if attempt != nil {
+		defer func() {
+			if err != nil {
+				outcome = "failed"
+			}
+			attempt.Finish(outcome, persistedRoot, err)
+		}()
+	}
 	ok := he.checkLastExecutionResultContext(pair.Header, pair.HeaderHash)
 	if !ok {
 		return ErrContextMismatch
 	}
 
+	executionStart := time.Time{}
+	if attempt != nil {
+		executionStart = time.Now()
+	}
 	executionResult, err := he.blockProcessor.ProcessBlockProposal(pair.Header, pair.HeaderHash, pair.Body)
+	if attempt != nil {
+		attempt.Execution(time.Since(executionStart))
+	}
 	if err != nil {
 		log.Warn("headersExecutor.process process block failed",
 			"nonce", pair.Header.GetNonce(),
@@ -362,7 +381,14 @@ func (he *headersExecutor) process(pair cache.HeaderBodyPair) error {
 	}
 
 	// All post-execution checks passed, commit the state now
+	commitStart := time.Time{}
+	if attempt != nil {
+		commitStart = time.Now()
+	}
 	err = he.blockProcessor.CommitBlockProposalState(pair.Header, executionResult.GetHeaderHash())
+	if attempt != nil {
+		attempt.Commit(time.Since(commitStart))
+	}
 	if err != nil {
 		log.Warn("headersExecutor.process commit block proposal state failed",
 			"nonce", pair.Header.GetNonce(),
@@ -397,6 +423,10 @@ func (he *headersExecutor) process(pair cache.HeaderBodyPair) error {
 	he.blockProcessor.PruneTrieAsyncHeader()
 
 	he.blockChain.SetLastExecutionInfo(pair.Header, executionResult)
+	if attempt != nil {
+		outcome = "executed"
+		persistedRoot = executionResult.GetRootHash()
+	}
 
 	he.signalProcessCompletion(pair.Header.GetNonce())
 

@@ -3,6 +3,7 @@ package trackableDataTrie
 import (
 	"bytes"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/common/replaymetrics"
 	"sort"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -32,6 +33,7 @@ type dirtyData struct {
 
 // TrackableDataTrie wraps a PatriciaMerkelTrie adding modifying data capabilities
 type trackableDataTrie struct {
+	replayMetrics          bool
 	dirtyData              map[string]dirtyData
 	tr                     common.Trie
 	hasher                 hashing.Hasher
@@ -235,6 +237,11 @@ func (tdt *trackableDataTrie) DataTrie() common.DataTrieHandler {
 	return tdt.tr
 }
 
+// SetReplayMetrics enables tracking on newly created data tries for this account.
+func (tdt *trackableDataTrie) SetReplayMetrics(enabled bool) {
+	tdt.replayMetrics = enabled
+}
+
 // SaveDirtyData saved the dirty data to the trie
 func (tdt *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]*stateChange.DataTrieChange, []core.TrieData, error) {
 	if len(tdt.dirtyData) == 0 {
@@ -244,6 +251,10 @@ func (tdt *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]*stateChang
 	if check.IfNil(tdt.tr) {
 		emptyRootHash := holders.NewDefaultRootHashesHolder(make([]byte, 0))
 		newDataTrie, err := mainTrie.Recreate(emptyRootHash)
+		if tdt.replayMetrics && err == nil {
+			replaymetrics.Capture(replaymetrics.Data).Add(replaymetrics.EmptyTries, 1)
+			replaymetrics.AttachTrie(newDataTrie, replaymetrics.Data)
+		}
 		if err != nil {
 			return nil, nil, err
 		}
