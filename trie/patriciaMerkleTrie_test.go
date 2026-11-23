@@ -2409,7 +2409,7 @@ func runTrieSizeAccountingOperations(t *testing.T, tr *trie.PatriciaMerkleTrieFo
 }
 
 func TestImportReplayTrieMetrics(t *testing.T) {
-	recorder, err := replaymetrics.Start(filepath.Join(t.TempDir(), "replay.jsonl"), "test")
+	recorder, err := replaymetrics.Start("", filepath.Join(t.TempDir(), "replay.jsonl"), "test")
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, recorder.Close(nil)) })
 	attempt := replaymetrics.Begin(&block.Header{Nonce: 1}, []byte("header"), "legacy")

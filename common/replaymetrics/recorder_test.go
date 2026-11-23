@@ -14,7 +14,7 @@ import (
 
 func TestRecorderSeparatesAttemptsAndSummarizesEpochs(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "replay.jsonl")
-	r, err := Start(path, "test-build")
+	r, err := Start("", path, "test-build")
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		if Enabled() {
@@ -93,4 +93,24 @@ func TestRecorderSeparatesAttemptsAndSummarizesEpochs(t *testing.T) {
 	require.Equal(t, uint64(1), epochs[1].ExecutedBlocks)
 	require.Equal(t, uint64(5), epochs[1].Tries["data"]["root_opens"])
 	require.Equal(t, uint64(1), epochs[1].ExecutionItems["transaction_calls"])
+}
+
+func TestRecorderCreatesUniqueReportsUnderWorkingDirectory(t *testing.T) {
+	workingDir := t.TempDir()
+	first, err := Start(workingDir, "", "master")
+	require.NoError(t, err)
+	require.NoError(t, first.Close(nil))
+
+	second, err := Start(workingDir, "", "feature")
+	require.NoError(t, err)
+	require.NoError(t, second.Close(nil))
+
+	for _, path := range []string{first.Path(), second.Path()} {
+		require.Equal(t, filepath.Join(workingDir, "stats"), filepath.Dir(path))
+		require.Regexp(t, `^import-db-[0-9]{8}T[0-9]{6}Z-[0-9]+\.jsonl$`, filepath.Base(path))
+		content, readErr := os.ReadFile(path)
+		require.NoError(t, readErr)
+		require.Contains(t, string(content), `"type":"run_end"`)
+	}
+	require.NotEqual(t, first.Path(), second.Path())
 }

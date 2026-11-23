@@ -56,7 +56,7 @@ GLOBAL OPTIONS:
    --num-active-persisters value             This flag represents the number of databases (1 database = 1 epoch) which are kept open at a moment. It is relevant even if the node is full archive or not. (default: 2)
    --start-in-epoch                          Boolean option for enabling a node the fast bootstrap mechanism from the network.Should be enabled if data is not available in local disk.
    --import-db value                         This flag, if set, will make the node start the import process using the provided data path. Will re-checkand re-process everything
-   --import-db-metrics-file value            Write import-db replay measurements as JSON Lines to a new file
+   --import-db-metrics-file value            Override the automatic import-db metrics file path
    --import-db-no-sig-check                  This flag, if set, will cause the signature checks on headers to be skipped. Can be used only if the import-db was previously set
    --import-db-save-epoch-root-hash          This flag, if set, will export the trie snapshots at every new epoch
    --redundancy-level value                  This flag specifies the level of redundancy used by the current instance for the node (-1 = disabled, 0 = main instance (default), 1 = first backup, 2 = second backup, etc.) (default: 0)
@@ -86,14 +86,15 @@ GLOBAL OPTIONS:
 
 ### Import-db replay measurements
 
-Run one node per target shard, including the metachain for full coverage. Use the same immutable source database, mainnet configuration, signature-check setting, storage settings, and machine for both benchmark builds. Give each run a fresh working directory and an absolute metrics filename that does not exist yet. Run from `cmd/node` so the default configuration paths resolve, or supply the mainnet configuration paths explicitly.
+Run one node per target shard, including the metachain for full coverage. Use the same immutable source database, mainnet configuration, signature-check setting, storage settings, and machine for both benchmark builds. Give each run a fresh working directory. Run from `cmd/node` so the default configuration paths resolve, or supply the mainnet configuration paths explicitly.
 
 ```sh
 ./node --import-db /path/to/source-db \
   --destination-shard-as-observer 0 \
-  --working-directory /path/to/fresh-run-dir \
-  --import-db-metrics-file /path/to/replay.jsonl
+  --working-directory /path/to/fresh-run-dir
 ```
+
+Import-db creates a fresh `stats/import-db-*.jsonl` file under the working directory and logs its path at startup. To choose a specific filename, pass `--import-db-metrics-file` with a path that does not exist yet.
 
 The JSON Lines file contains:
 
