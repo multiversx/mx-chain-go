@@ -324,7 +324,7 @@ var (
 	}
 	importDbMetricsFile = cli.StringFlag{
 		Name:  "import-db-metrics-file",
-		Usage: "Write import-db replay measurements as JSON Lines to a new file",
+		Usage: "Override the automatic import-db metrics file path",
 	}
 	// importDbNoSigCheck defines a flag for the optional import DB no signature check option
 	importDbNoSigCheck = cli.BoolFlag{

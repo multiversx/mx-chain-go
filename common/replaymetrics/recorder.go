@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -196,8 +197,9 @@ func Enabled() bool {
 	return active.Load() != nil
 }
 
-func Start(path string, build string) (*Recorder, error) {
-	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+// Start creates a replay report. An empty path uses a unique file in workingDir/stats.
+func Start(workingDir string, path string, build string) (*Recorder, error) {
+	file, err := openResultFile(workingDir, path)
 	if err != nil {
 		return nil, err
 	}
@@ -209,11 +211,34 @@ func Start(path string, build string) (*Recorder, error) {
 	}
 	if !active.CompareAndSwap(nil, r) {
 		_ = file.Close()
+		_ = os.Remove(file.Name())
 		return nil, fmt.Errorf("import replay metrics already recording")
 	}
 	r.write(map[string]any{"type": "run_start", "schema": 1, "build": build, "time": r.start.UTC()})
 	go r.sampleResources()
 	return r, nil
+}
+
+func openResultFile(workingDir string, path string) (*os.File, error) {
+	if path != "" {
+		return os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+	}
+
+	dir, err := filepath.Abs(filepath.Join(workingDir, "stats"))
+	if err != nil {
+		return nil, err
+	}
+	if err = os.MkdirAll(dir, 0o755); err != nil {
+		return nil, err
+	}
+
+	prefix := "import-db-" + time.Now().UTC().Format("20060102T150405Z")
+	return os.CreateTemp(dir, prefix+"-*.jsonl")
+}
+
+// Path returns the path to the open report.
+func (r *Recorder) Path() string {
+	return r.file.Name()
 }
 
 // Begin tracks the execution attempt that owns the processing tries.
