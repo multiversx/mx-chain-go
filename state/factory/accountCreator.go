@@ -15,6 +15,7 @@ import (
 
 // ArgsAccountCreator holds the arguments needed to create a new account creator
 type ArgsAccountCreator struct {
+	ReplayMetrics          bool
 	Hasher                 hashing.Hasher
 	Marshaller             marshal.Marshalizer
 	EnableEpochsHandler    common.EnableEpochsHandler
@@ -25,6 +26,7 @@ type ArgsAccountCreator struct {
 
 // AccountCreator has method to create a new account
 type accountCreator struct {
+	replayMetrics          bool
 	hasher                 hashing.Hasher
 	marshaller             marshal.Marshalizer
 	enableEpochsHandler    common.EnableEpochsHandler
@@ -55,6 +57,7 @@ func NewAccountCreator(args ArgsAccountCreator) (state.AccountFactory, error) {
 	}
 
 	return &accountCreator{
+		replayMetrics:          args.ReplayMetrics,
 		hasher:                 args.Hasher,
 		marshaller:             args.Marshaller,
 		enableEpochsHandler:    args.EnableEpochsHandler,
@@ -67,6 +70,7 @@ func NewAccountCreator(args ArgsAccountCreator) (state.AccountFactory, error) {
 // CreateAccount calls the new Account creator and returns the result
 func (ac *accountCreator) CreateAccount(address []byte) (vmcommon.AccountHandler, error) {
 	args := trackableDataTrie.TrackableDataTrieArgs{
+		ReplayMetrics:          ac.replayMetrics,
 		Identifier:             address,
 		Hasher:                 ac.hasher,
 		Marshaller:             ac.marshaller,

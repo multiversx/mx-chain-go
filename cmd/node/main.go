@@ -1,7 +1,9 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/common/replaymetrics"
 	"os"
 	"runtime"
 	"time"
@@ -89,7 +91,7 @@ func main() {
 	}
 }
 
-func startNodeRunner(c *cli.Context, log logger.Logger, baseVersion string, version string) error {
+func startNodeRunner(c *cli.Context, log logger.Logger, baseVersion string, version string) (runErr error) {
 	flagsConfig := getFlagsConfig(c, log)
 
 	fileLogging, errLogger := attachFileLogger(log, flagsConfig)
@@ -136,6 +138,21 @@ func startNodeRunner(c *cli.Context, log logger.Logger, baseVersion string, vers
 	err = checkHardwareRequirements(cfgs.GeneralConfig.HardwareRequirements)
 	if err != nil {
 		return fmt.Errorf("hardware requirements checks failed: %s", err.Error())
+	}
+
+	if path := c.GlobalString(importDbMetricsFile.Name); path != "" {
+		if !cfgs.ImportDbConfig.IsImportDBMode {
+			return fmt.Errorf("--import-db-metrics-file requires --import-db")
+		}
+		recorder, errStart := replaymetrics.Start(path, version)
+		if errStart != nil {
+			return fmt.Errorf("open import replay metrics: %w", errStart)
+		}
+		defer func() {
+			if metricsErr := recorder.Close(runErr); metricsErr != nil {
+				runErr = errors.Join(runErr, fmt.Errorf("write import replay metrics: %w", metricsErr))
+			}
+		}()
 	}
 
 	nodeRunner, errRunner := node.NewNodeRunner(cfgs)

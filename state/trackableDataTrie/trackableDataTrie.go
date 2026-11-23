@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/common/replaymetrics"
 	"sort"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -33,6 +34,7 @@ type dirtyData struct {
 
 // TrackableDataTrie wraps a PatriciaMerkelTrie adding modifying data capabilities
 type trackableDataTrie struct {
+	replayMetrics          bool
 	dirtyData              map[string]dirtyData
 	tr                     common.Trie
 	rootHash               []byte
@@ -47,6 +49,7 @@ type trackableDataTrie struct {
 
 // TrackableDataTrieArgs represent the args needed to create a new trackableDataTrie
 type TrackableDataTrieArgs struct {
+	ReplayMetrics          bool
 	Identifier             []byte
 	Hasher                 hashing.Hasher
 	Marshaller             marshal.Marshalizer
@@ -97,6 +100,7 @@ func NewTrackableDataTrie(
 	}
 
 	return &trackableDataTrie{
+		replayMetrics:          args.ReplayMetrics,
 		dirtyData:              make(map[string]dirtyData),
 		tr:                     nil,
 		hasher:                 args.Hasher,
@@ -110,7 +114,12 @@ func NewTrackableDataTrie(
 }
 
 func (tdt *trackableDataTrie) loadTrie() error {
+	var replay replaymetrics.Scope
+	if tdt.replayMetrics {
+		replay = replaymetrics.Capture(replaymetrics.Data)
+	}
 	if !check.IfNil(tdt.tr) {
+		replay.Add(replaymetrics.AttachedHits, 1)
 		// the trie is already loaded
 		return nil
 	}
@@ -118,6 +127,7 @@ func (tdt *trackableDataTrie) loadTrie() error {
 	// check the cache for the trie, and load it from there if found
 	tr := tdt.dataTriesHolder.Get(tdt.identifier)
 	if !check.IfNil(tr) {
+		replay.Add(replaymetrics.CacheHits, 1)
 		tdt.tr = tr
 		return nil
 	}
@@ -127,11 +137,18 @@ func (tdt *trackableDataTrie) loadTrie() error {
 		return state.ErrNilTrie
 	}
 
+	openStart := replay.Start()
 	tr, err := tdt.dataTrieCreator.Recreate(holders.NewDefaultRootHashesHolder(tdt.rootHash))
+	if replay.Active() {
+		replay.RootOpen(common.IsEmptyTrie(tdt.rootHash), openStart, err)
+	}
 	if err != nil {
 		return &state.DataTrieLoadError{Cause: err}
 	}
 
+	if tdt.replayMetrics {
+		replaymetrics.AttachTrie(tr, replaymetrics.Data)
+	}
 	tdt.tr = cacheDataTrie(tdt.dataTriesHolder, tdt.identifier, tr)
 
 	return nil
@@ -329,6 +346,10 @@ func (tdt *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]*stateChang
 	if check.IfNil(tdt.tr) {
 		emptyRootHash := holders.NewDefaultRootHashesHolder(make([]byte, 0))
 		newDataTrie, err := mainTrie.Recreate(emptyRootHash)
+		if tdt.replayMetrics && err == nil {
+			replaymetrics.Capture(replaymetrics.Data).Add(replaymetrics.EmptyTries, 1)
+			replaymetrics.AttachTrie(newDataTrie, replaymetrics.Data)
+		}
 		if err != nil {
 			return nil, nil, err
 		}

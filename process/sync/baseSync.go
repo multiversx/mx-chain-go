@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/common/replaymetrics"
 	"math"
 	"sync"
 	"sync/atomic"
@@ -1358,7 +1359,7 @@ func (boot *baseBootstrap) syncBlock() error {
 		err = boot.syncBlockV3(body, header, headerHash)
 	} else {
 		// update err to enable the deferred treatment
-		err = boot.syncBlockLegacy(body, header)
+		err = boot.syncBlockLegacy(body, header, headerHash)
 	}
 	if err == nil && !boot.isInImportMode {
 		go boot.requestHeadersAfterCommittedProgress(header)
@@ -1373,8 +1374,18 @@ func (boot *baseBootstrap) syncBlock() error {
 // If either header and body are received the ProcessBlock and CommitBlock method will be called successively.
 // These methods will execute the block and its transactions. Finally, if everything works, the block will be committed
 // in the blockchain, and all this mechanism will be reiterated for the next block.
-func (boot *baseBootstrap) syncBlockLegacy(body data.BodyHandler, header data.HeaderHandler) error {
-	err := boot.prepareForLegacySyncIfNeeded()
+func (boot *baseBootstrap) syncBlockLegacy(body data.BodyHandler, header data.HeaderHandler, headerHash []byte) (err error) {
+	attempt := replaymetrics.Begin(header, headerHash, "legacy")
+	if attempt != nil {
+		defer func() {
+			if err != nil {
+				attempt.Finish("failed", nil, err)
+				return
+			}
+			attempt.Finish("executed", boot.chainHandler.GetCurrentBlockRootHash(), nil)
+		}()
+	}
+	err = boot.prepareForLegacySyncIfNeeded()
 	if err != nil {
 		return err
 	}
@@ -1388,6 +1399,7 @@ func (boot *baseBootstrap) syncBlockLegacy(body data.BodyHandler, header data.He
 	startProcessBlockTime := time.Now()
 	err = boot.blockProcessor.ProcessBlock(header, body, haveTime)
 	elapsedTime := time.Since(startProcessBlockTime)
+	attempt.Execution(elapsedTime)
 	log.Debug("elapsed time to process block",
 		"time [s]", elapsedTime,
 	)
@@ -1398,6 +1410,7 @@ func (boot *baseBootstrap) syncBlockLegacy(body data.BodyHandler, header data.He
 	startProcessScheduledBlockTime := time.Now()
 	err = boot.blockProcessor.ProcessScheduledBlock(header, body, haveTime)
 	elapsedTime = time.Since(startProcessScheduledBlockTime)
+	attempt.Scheduled(elapsedTime)
 	log.Debug("elapsed time to process scheduled block",
 		"time [s]", elapsedTime,
 	)
@@ -1408,6 +1421,7 @@ func (boot *baseBootstrap) syncBlockLegacy(body data.BodyHandler, header data.He
 	startCommitBlockTime := time.Now()
 	err = boot.blockProcessor.CommitBlock(header, body)
 	elapsedTime = time.Since(startCommitBlockTime)
+	attempt.Commit(elapsedTime)
 	if elapsedTime >= common.CommitMaxTime {
 		log.Warn("syncBlock.CommitBlock", "elapsed time", elapsedTime)
 	} else {

@@ -8,7 +8,10 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common/replaymetrics"
 	"math/rand"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -2403,4 +2406,44 @@ func runTrieSizeAccountingOperations(t *testing.T, tr *trie.PatriciaMerkleTrieFo
 			require.Equal(t, tr.ResidentSizeForTests(), tr.SizeInMemory(), "operation %d for key %x", i, key)
 		}
 	}
+}
+
+func TestImportReplayTrieMetrics(t *testing.T) {
+	recorder, err := replaymetrics.Start(filepath.Join(t.TempDir(), "replay.jsonl"), "test")
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, recorder.Close(nil)) })
+	attempt := replaymetrics.Begin(&block.Header{Nonce: 1}, []byte("header"), "legacy")
+	require.NotNil(t, attempt)
+	fixture := newCommitBudgetFixture(t, core.NotSpecified, 3, 1, false)
+	tr := fixture.tr
+	replaymetrics.AttachTrie(tr, replaymetrics.User)
+	for i := 0; i < 3; i++ {
+		require.NoError(t, tr.Update(fixture.keys[i], bytes.Repeat([]byte{byte(i + 1)}, 600<<10)))
+	}
+	key := fixture.keys[0]
+	collapse := replaymetrics.RootCollapses
+	timer := replaymetrics.RootCollapseNs
+
+	stats := replaymetrics.Capture(replaymetrics.User)
+	rootBefore, err := tr.RootHash()
+	require.NoError(t, err)
+	require.NoError(t, tr.Commit())
+	require.Equal(t, uint64(1), stats.Count(replaymetrics.CollapseCommits))
+	require.Positive(t, stats.Count(collapse))
+	require.Positive(t, stats.Count(timer))
+	require.Positive(t, stats.Count(replaymetrics.NodeWrites))
+
+	before := stats.Count(replaymetrics.NodesResolved)
+	value, _, err := tr.Get(key)
+	require.NoError(t, err)
+	require.NotEmpty(t, value)
+	after := stats.Count(replaymetrics.NodesResolved)
+	require.Greater(t, after, before)
+	_, _, err = tr.Get(key)
+	require.NoError(t, err)
+	require.Equal(t, after, stats.Count(replaymetrics.NodesResolved))
+	root, err := tr.RootHash()
+	require.NoError(t, err)
+	require.Equal(t, rootBefore, root)
+	attempt.Finish("executed", root, nil)
 }

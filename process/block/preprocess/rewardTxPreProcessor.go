@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/replaymetrics"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
@@ -234,6 +235,7 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 			}
 
 			rtp.txExecutionOrderHandler.Add(txHash)
+			replaymetrics.RecordItem(replaymetrics.RewardTransaction)
 			err = rtp.rewardsProcessor.ProcessRewardTransaction(rTx)
 			if err != nil {
 				return err
@@ -481,6 +483,7 @@ func (rtp *rewardTxPreprocessor) ProcessMiniBlock(
 		snapshot := rtp.handleProcessTransactionInit(preProcessorExecutionInfoHandler, miniBlockTxHashes[txIndex], miniBlockHash)
 
 		rtp.txExecutionOrderHandler.Add(miniBlockTxHashes[txIndex])
+		replaymetrics.RecordItem(replaymetrics.RewardTransaction)
 		err = rtp.rewardsProcessor.ProcessRewardTransaction(miniBlockRewardTxs[txIndex])
 		if err != nil {
 			rtp.handleProcessTransactionError(preProcessorExecutionInfoHandler, snapshot, miniBlockTxHashes[txIndex])

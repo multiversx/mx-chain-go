@@ -2,6 +2,7 @@ package triesHolder
 
 import (
 	"fmt"
+	"github.com/multiversx/mx-chain-go/common/replaymetrics"
 	"math"
 	"sync"
 
@@ -19,6 +20,7 @@ var log = logger.GetOrCreate("state/dataTriesHolder")
 // It uses a doubly linked list to keep track of the order in which the tries were used
 // and evicts the oldest used tries when the total size exceeds a maximum limit.
 type dataTriesHolder struct {
+	replayMetrics bool
 	cacher        dataTrieCache
 	dirtyTries    map[string]struct{}    // These are the tries that have been modified and need to be persisted
 	touchedTries  map[string]struct{}    // These are needed to compute an accurate totalTriesSize
@@ -45,6 +47,11 @@ func NewDataTriesHolder(maxTriesSize uint64) (*dataTriesHolder, error) {
 		evictedBuffer: make(map[string]common.Trie),
 		mutex:         sync.RWMutex{},
 	}, nil
+}
+
+// SetReplayMetrics enables measurements for the processing holder.
+func (dth *dataTriesHolder) SetReplayMetrics(enabled bool) {
+	dth.replayMetrics = enabled
 }
 
 // Put adds a trie pointer to the tries map
@@ -83,13 +90,20 @@ func (dth *dataTriesHolder) putNoLock(key []byte, tr common.Trie) {
 }
 
 func (dth *dataTriesHolder) evictOverBudget() {
+	var replay replaymetrics.Scope
+	if dth.replayMetrics {
+		replay = replaymetrics.Capture(replaymetrics.Data)
+	}
 	for evicted := dth.cacher.evictOldestOverBudget(); evicted != nil; evicted = dth.cacher.evictOldestOverBudget() {
+		replay.Add(replaymetrics.CacheEvictions, 1)
 		log.Trace("trie evicted from dataTriesHolder cache", "key", []byte(evicted.key))
 		if _, dirty := dth.dirtyTries[evicted.key]; dirty {
 			log.Trace("storing evicted dirty trie in evicted buffer", "key", []byte(evicted.key))
 			dth.evictedBuffer[evicted.key] = evicted.trie
+			replay.Add(replaymetrics.DirtyEvictions, 1)
 		}
 	}
+	replay.CacheSize(dth.cacher.order.Len(), dth.cacher.size, len(dth.evictedBuffer), 0)
 }
 
 // Get returns the trie pointer that is stored in the map at the given key
@@ -136,6 +150,16 @@ func (dth *dataTriesHolder) GetAll() []common.Trie {
 		}
 		log.Trace("getting dirty trie from data tries holder", "key", []byte(keyString))
 		tries = append(tries, tr)
+	}
+	if dth.replayMetrics {
+		replay := replaymetrics.Capture(replaymetrics.Data)
+		if replay.Active() {
+			var pendingBytes uint64
+			for _, trie := range dth.evictedBuffer {
+				pendingBytes += uint64(max(trie.SizeInMemory(), 0))
+			}
+			replay.CacheSize(dth.cacher.order.Len(), dth.cacher.size, len(dth.evictedBuffer), pendingBytes)
+		}
 	}
 	log.Trace("data tries holder returned all dirty tries", "numTries", len(tries), "totalCacheSize", dth.cacher.size)
 	return tries
@@ -210,6 +234,9 @@ func (dth *dataTriesHolder) Remove(key []byte) {
 func (dth *dataTriesHolder) Reset() {
 	dth.mutex.Lock()
 	dth.reset()
+	if dth.replayMetrics {
+		replaymetrics.Capture(replaymetrics.Data).Add(replaymetrics.CacheResets, 1)
+	}
 	log.Trace("data tries holder reset")
 	dth.mutex.Unlock()
 }
