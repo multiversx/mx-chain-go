@@ -31,6 +31,7 @@ import (
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createMockArgumentsNewStakingToPeer() ArgStakingToPeer {
@@ -61,13 +62,16 @@ func createBlockBody() *block.Body {
 }
 
 func createStakingScAccount() state.UserAccountHandler {
-	dtt, _ := trackableDataTrie.NewTrackableDataTrie(
-		vm.StakingSCAddress,
-		&hashingMocks.HasherMock{},
-		&marshallerMock.MarshalizerMock{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&stateMock.StateAccessesCollectorStub{},
-	)
+	args := trackableDataTrie.TrackableDataTrieArgs{
+		Identifier:             vm.StakingSCAddress,
+		Hasher:                 &hashingMocks.HasherMock{},
+		Marshaller:             &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
+		DataTriesHolder:        &trie.TriesHolderStub{},
+		DataTrieCreator:        &trie.TrieStub{},
+	}
+	dtt, _ := trackableDataTrie.NewTrackableDataTrie(args)
 
 	userAcc, _ := accounts.NewUserAccount(vm.StakingSCAddress, dtt, &trie.TrieLeafParserStub{})
 	return userAcc
@@ -796,4 +800,42 @@ func TestStakingToPeer_UnJailFromInactive(t *testing.T) {
 	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnJailedNonce)
 	assert.Equal(t, string(common.InactiveList), peerAccount.GetList())
 	assert.Equal(t, stp.unJailRating, peerAccount.GetTempRating())
+}
+
+// Exercise a cold load failure even though same-block staking usually leaves the trie warm.
+func TestLazyDataTrieLoad_StakingProtocolUpdate(t *testing.T) {
+	cause := core.NewGetNodeFromDBErrWithKey([]byte("root"), errors.New("missing"), "test")
+	for _, marked := range []bool{false, true} {
+		name := "legacy-descendant"
+		var readErr error = cause
+		if marked {
+			name = "lazy-root"
+			readErr = &state.DataTrieLoadError{Cause: cause}
+		}
+		t.Run(name, func(t *testing.T) {
+			args := createMockArgumentsNewStakingToPeer()
+			bls := bytes.Repeat([]byte{1}, args.PubkeyConv.Len())
+			args.CurrTxs = &mock.TxForCurrentBlockStub{GetTxCalled: func([]byte) (data.TransactionHandler, error) {
+				return &smartContractResult.SmartContractResult{RcvAddr: vm.StakingSCAddress}, nil
+			}}
+			args.ArgParser = &testscommon.ArgumentParserMock{GetStorageUpdatesCalled: func(string) ([]*vmcommon.StorageUpdate, error) { return []*vmcommon.StorageUpdate{{Offset: bls}}, nil }}
+			user := &stateMock.UserAccountStub{RetrieveValueCalled: func([]byte) ([]byte, uint32, error) { return nil, 0, readErr }}
+			args.BaseState = &stateMock.AccountsStub{LoadAccountCalled: func([]byte) (vmcommon.AccountHandler, error) { return user, nil }}
+			removed := 0
+			args.PeerState = &stateMock.AccountsStub{
+				GetExistingAccountCalled: func([]byte) (vmcommon.AccountHandler, error) { return &stateMock.UserAccountStub{}, nil },
+				RemoveAccountCalled:      func([]byte) error { removed++; return nil },
+			}
+			processor, err := NewStakingToPeer(args)
+			require.NoError(t, err)
+			err = processor.UpdateProtocol(createBlockBody(), 0)
+			if marked {
+				require.Same(t, readErr, err)
+				require.Zero(t, removed)
+			} else {
+				require.NoError(t, err)
+				require.Positive(t, removed)
+			}
+		})
+	}
 }

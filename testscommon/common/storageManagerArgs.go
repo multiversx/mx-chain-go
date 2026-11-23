@@ -1,4 +1,4 @@
-package storage
+package common
 
 import (
 	"github.com/multiversx/mx-chain-go/common/statistics/disabled"

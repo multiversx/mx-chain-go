@@ -17,21 +17,23 @@ var _ state.UserAccountHandler = (*UserAccountStub)(nil)
 
 // UserAccountStub -
 type UserAccountStub struct {
-	Nonce            uint64
-	Balance          *big.Int
-	DeveloperRewards *big.Int
-	UserName         []byte
-	Owner            []byte
-	Address          []byte
-	CodeMetadata     []byte
-	CodeHash         []byte
+	SetDataTrieCreatorCalled           func(creator common.DataTrieCreator)
+	EnableDataTrieRootValidationCalled func()
+	Nonce                              uint64
+	Balance                            *big.Int
+	DeveloperRewards                   *big.Int
+	UserName                           []byte
+	Owner                              []byte
+	Address                            []byte
+	CodeMetadata                       []byte
+	CodeHash                           []byte
 
 	AddToBalanceCalled       func(value *big.Int) error
 	DataTrieTrackerCalled    func() state.DataTrieTracker
 	IsGuardedCalled          func() bool
 	AccountDataHandlerCalled func() vmcommon.AccountDataHandler
 	RetrieveValueCalled      func(_ []byte) ([]byte, uint32, error)
-	SetDataTrieCalled        func(dataTrie common.Trie)
+	SetRootHashCalled        func(rootHash []byte)
 	GetRootHashCalled        func() []byte
 	SaveKeyValueCalled       func(key []byte, value []byte) error
 }
@@ -145,6 +147,10 @@ func (u *UserAccountStub) SetRootHash([]byte) {
 
 }
 
+// SetDataTrieRootHash -
+func (u *UserAccountStub) SetDataTrieRootHash() {
+}
+
 // GetRootHash -
 func (u *UserAccountStub) GetRootHash() []byte {
 	if u.GetRootHashCalled != nil {
@@ -155,15 +161,15 @@ func (u *UserAccountStub) GetRootHash() []byte {
 }
 
 // SetDataTrie -
-func (u *UserAccountStub) SetDataTrie(dataTrie common.Trie) {
-	if u.SetDataTrieCalled != nil {
-		u.SetDataTrieCalled(dataTrie)
+func (u *UserAccountStub) SetDataTrie(rootHash []byte) {
+	if u.SetRootHashCalled != nil {
+		u.SetRootHashCalled(rootHash)
 	}
 }
 
 // DataTrie -
-func (u *UserAccountStub) DataTrie() common.DataTrieHandler {
-	return nil
+func (u *UserAccountStub) DataTrie() (common.DataTrieHandler, error) {
+	return nil, nil
 }
 
 // RetrieveValue -
@@ -212,4 +218,18 @@ func (u *UserAccountStub) AccountDataHandler() vmcommon.AccountDataHandler {
 // GetAllLeaves -
 func (u *UserAccountStub) GetAllLeaves(_ *common.TrieIteratorChannels, _ context.Context) error {
 	return nil
+}
+
+// EnableDataTrieRootValidation -
+func (u *UserAccountStub) EnableDataTrieRootValidation() {
+	if u.EnableDataTrieRootValidationCalled != nil {
+		u.EnableDataTrieRootValidationCalled()
+	}
+}
+
+// SetDataTrieCreator -
+func (u *UserAccountStub) SetDataTrieCreator(creator common.DataTrieCreator) {
+	if u.SetDataTrieCreatorCalled != nil {
+		u.SetDataTrieCreatorCalled(creator)
+	}
 }

@@ -95,6 +95,9 @@ func (s *systemVM) RunSmartContractCreate(input *vmcommon.ContractCreateInput) (
 	}
 
 	returnCode := contract.Execute(deployInput)
+	if err = s.systemEI.GetStorageError(); err != nil {
+		return nil, err
+	}
 
 	s.systemEI.AddCode(input.CallerAddr, input.ContractCode)
 
@@ -127,6 +130,9 @@ func (s *systemVM) RunSmartContractCall(input *vmcommon.ContractCallInput) (*vmc
 	}
 
 	returnCode := contract.Execute(input)
+	if err = s.systemEI.GetStorageError(); err != nil {
+		return nil, err
+	}
 	var vmOutput *vmcommon.VMOutput
 	if returnCode == vmcommon.Ok {
 		vmOutput = s.systemEI.CreateVMOutput()

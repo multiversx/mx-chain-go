@@ -2,6 +2,7 @@ package transaction
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"math/big"
 
@@ -356,6 +357,9 @@ func (txProc *baseTxProcessor) checkOperationAllowedToBypassGuardian(tx *transac
 func (txProc *baseTxProcessor) CheckSetGuardianExecutable(tx data.TransactionHandler) error {
 	err := txProc.scProcessor.CheckBuiltinFunctionIsExecutable(core.BuiltInFunctionSetGuardian, tx)
 	if err != nil {
+		if errors.Is(err, state.ErrDataTrieLoadFailed) {
+			return err
+		}
 		return fmt.Errorf("%w, CheckBuiltinFunctionIsExecutable %s", process.ErrTransactionNotExecutable, err.Error())
 	}
 
@@ -369,7 +373,10 @@ func (txProc *baseTxProcessor) checkGuardedAccountUnguardedTxPermission(tx *tran
 	}
 
 	// block non-guarded setGuardian Txs if there is a pending guardian
-	hasPendingGuardian := txProc.guardianChecker.HasPendingGuardian(account)
+	hasPendingGuardian, err := txProc.guardianChecker.HasPendingGuardian(account)
+	if errors.Is(err, state.ErrDataTrieLoadFailed) {
+		return err
+	}
 	if process.IsSetGuardianCall(tx.GetData()) && hasPendingGuardian {
 		return fmt.Errorf("%w, %s", process.ErrTransactionNotExecutable, process.ErrCannotReplaceGuardedAccountPendingGuardian.Error())
 	}
@@ -401,6 +408,9 @@ func (txProc *baseTxProcessor) VerifyGuardian(tx *transaction.Transaction, accou
 
 	guardian, err := txProc.guardianChecker.GetActiveGuardian(acc)
 	if err != nil {
+		if errors.Is(err, state.ErrDataTrieLoadFailed) {
+			return err
+		}
 		return fmt.Errorf("%w, %s", process.ErrTransactionNotExecutable, err.Error())
 	}
 

@@ -64,18 +64,18 @@ func (uam *UserAccountMock) SetRootHash(bytes []byte) {
 	uam.rootHash = bytes
 }
 
+// SetDataTrieRootHash -
+func (uam *UserAccountMock) SetDataTrieRootHash() {
+}
+
 // GetRootHash -
 func (uam *UserAccountMock) GetRootHash() []byte {
 	return uam.rootHash
 }
 
-// SetDataTrie -
-func (uam *UserAccountMock) SetDataTrie(_ common.Trie) {
-}
-
 // DataTrie -
-func (uam *UserAccountMock) DataTrie() common.DataTrieHandler {
-	return nil
+func (uam *UserAccountMock) DataTrie() (common.DataTrieHandler, error) {
+	return nil, nil
 }
 
 // RetrieveValue -
@@ -162,3 +162,9 @@ func (uam *UserAccountMock) IsGuarded() bool {
 func (uam *UserAccountMock) GetAllLeaves(_ *common.TrieIteratorChannels, _ context.Context) error {
 	return nil
 }
+
+// SetDataTrieCreator -
+func (uam *UserAccountMock) SetDataTrieCreator(_ common.DataTrieCreator) {}
+
+// EnableDataTrieRootValidation -
+func (uam *UserAccountMock) EnableDataTrieRootValidation() {}

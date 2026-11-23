@@ -1,8 +1,11 @@
 package trie_test
 
 import (
+	"bytes"
 	"context"
 	cryptoRand "crypto/rand"
+	"crypto/sha256"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -17,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/hashing/keccak"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -44,18 +48,17 @@ func emptyTrie() common.Trie {
 }
 
 func emptyTrieWithCustomEnableEpochsHandler(handler common.EnableEpochsHandler) common.Trie {
-	storage, marshaller, hasher, _, maxTrieLevelInMem := getDefaultTrieParameters()
+	storage, marshaller, hasher, _, maxSizeInMem := getDefaultTrieParameters()
 
-	tr, _ := trie.NewTrie(storage, marshaller, hasher, handler, maxTrieLevelInMem)
+	tr, _ := trie.NewTrie(storage, marshaller, hasher, handler, maxSizeInMem)
 	return tr
 }
 
-func getDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, hashing.Hasher, common.EnableEpochsHandler, uint) {
+func getDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, hashing.Hasher, common.EnableEpochsHandler, common.TrieCollapseManager) {
 	args := trie.GetDefaultTrieStorageManagerParameters()
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
-	maxTrieLevelInMemory := uint(1)
 
-	return trieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory
+	return trieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager()
 }
 
 func initTrieMultipleValues(nr int) (common.Trie, [][]byte) {
@@ -88,8 +91,8 @@ func addDefaultDataToTrie(tr common.Trie) {
 func TestNewTrieWithNilTrieStorage(t *testing.T) {
 	t.Parallel()
 
-	_, marshalizer, hasher, enableEpochsHandler, maxTrieLevelInMemory := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(nil, marshalizer, hasher, enableEpochsHandler, maxTrieLevelInMemory)
+	_, marshalizer, hasher, enableEpochsHandler, cm := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(nil, marshalizer, hasher, enableEpochsHandler, cm)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, trie.ErrNilTrieStorage, err)
@@ -98,8 +101,8 @@ func TestNewTrieWithNilTrieStorage(t *testing.T) {
 func TestNewTrieWithNilMarshalizer(t *testing.T) {
 	t.Parallel()
 
-	trieStorage, _, hasher, enableEpochsHandler, maxTrieLevelInMemory := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(trieStorage, nil, hasher, enableEpochsHandler, maxTrieLevelInMemory)
+	trieStorage, _, hasher, enableEpochsHandler, cm := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(trieStorage, nil, hasher, enableEpochsHandler, cm)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, trie.ErrNilMarshalizer, err)
@@ -108,8 +111,8 @@ func TestNewTrieWithNilMarshalizer(t *testing.T) {
 func TestNewTrieWithNilHasher(t *testing.T) {
 	t.Parallel()
 
-	trieStorage, marshalizer, _, enableEpochsHandler, maxTrieLevelInMemory := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(trieStorage, marshalizer, nil, enableEpochsHandler, maxTrieLevelInMemory)
+	trieStorage, marshalizer, _, enableEpochsHandler, cm := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(trieStorage, marshalizer, nil, enableEpochsHandler, cm)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, trie.ErrNilHasher, err)
@@ -118,21 +121,21 @@ func TestNewTrieWithNilHasher(t *testing.T) {
 func TestNewTrieWithNilEnableEpochsHandler(t *testing.T) {
 	t.Parallel()
 
-	trieStorage, marshalizer, hasher, _, maxTrieLevelInMemory := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(trieStorage, marshalizer, hasher, nil, maxTrieLevelInMemory)
+	trieStorage, marshalizer, hasher, _, cm := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(trieStorage, marshalizer, hasher, nil, cm)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, errorsCommon.ErrNilEnableEpochsHandler, err)
 }
 
-func TestNewTrieWithInvalidMaxTrieLevelInMemory(t *testing.T) {
+func TestNewTrieWithNilCollapseManager(t *testing.T) {
 	t.Parallel()
 
 	trieStorage, marshalizer, hasher, enableEpochsHandler, _ := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(trieStorage, marshalizer, hasher, enableEpochsHandler, 0)
+	tr, err := trie.NewTrie(trieStorage, marshalizer, hasher, enableEpochsHandler, nil)
 
 	assert.Nil(t, tr)
-	assert.Equal(t, trie.ErrInvalidLevelValue, err)
+	assert.True(t, errors.Is(err, trie.ErrNilCollapseManager))
 }
 
 func TestPatriciaMerkleTree_Get(t *testing.T) {
@@ -891,6 +894,7 @@ func TestPatriciaMerkleTrie_GetTrieStats(t *testing.T) {
 	_ = tr.Update([]byte("dog"), []byte("reindeer"))
 	_ = tr.Update([]byte("fog"), []byte("puppy"))
 	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	_ = tr.Update([]byte("abch"), []byte("car"))
 	_ = tr.Commit()
 
 	rootHash, _ := tr.RootHash()
@@ -902,10 +906,10 @@ func TestPatriciaMerkleTrie_GetTrieStats(t *testing.T) {
 	stats, err := ts.GetTrieStats(address, rootHash)
 	assert.Nil(t, err)
 
-	assert.Equal(t, uint64(2), stats.GetNumBranchNodes())
-	assert.Equal(t, uint64(1), stats.GetNumExtensionNodes())
-	assert.Equal(t, uint64(3), stats.GetNumLeafNodes())
-	assert.Equal(t, uint64(6), stats.GetTotalNumNodes())
+	assert.Equal(t, uint64(3), stats.GetNumBranchNodes())
+	assert.Equal(t, uint64(2), stats.GetNumExtensionNodes())
+	assert.Equal(t, uint64(4), stats.GetNumLeafNodes())
+	assert.Equal(t, uint64(9), stats.GetTotalNumNodes())
 	assert.Equal(t, uint32(3), stats.GetMaxTrieDepth())
 }
 
@@ -1053,7 +1057,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodesShouldSerializeTheCalls(t *testing
 		},
 	}
 
-	tr, _ := trie.NewTrie(testTrieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
+	tr, _ := trie.NewTrie(testTrieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager())
 	numGoRoutines := 100
 	wg := sync.WaitGroup{}
 	wg.Add(numGoRoutines)
@@ -1475,13 +1479,13 @@ func TestPatriciaMerkleTrie_IsMigrated(t *testing.T) {
 	t.Run("not migrated", func(t *testing.T) {
 		t.Parallel()
 
-		tsm, marshaller, hasher, _, maxTrieInMem := getDefaultTrieParameters()
+		tsm, marshaller, hasher, _, cm := getDefaultTrieParameters()
 		enableEpochs := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
 				return flag == common.AutoBalanceDataTriesFlag
 			},
 		}
-		tr, _ := trie.NewTrie(tsm, marshaller, hasher, enableEpochs, maxTrieInMem)
+		tr, _ := trie.NewTrie(tsm, marshaller, hasher, enableEpochs, cm)
 
 		_ = tr.Update([]byte("dog"), []byte("reindeer"))
 		isMigrated, err := tr.IsMigratedToLatestVersion()
@@ -1492,13 +1496,13 @@ func TestPatriciaMerkleTrie_IsMigrated(t *testing.T) {
 	t.Run("migrated", func(t *testing.T) {
 		t.Parallel()
 
-		tsm, marshaller, hasher, _, maxTrieInMem := getDefaultTrieParameters()
+		tsm, marshaller, hasher, _, cm := getDefaultTrieParameters()
 		enableEpochs := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
 				return flag == common.AutoBalanceDataTriesFlag
 			},
 		}
-		tr, _ := trie.NewTrie(tsm, marshaller, hasher, enableEpochs, maxTrieInMem)
+		tr, _ := trie.NewTrie(tsm, marshaller, hasher, enableEpochs, cm)
 
 		_ = tr.UpdateWithVersion([]byte("dog"), []byte("reindeer"), core.AutoBalanceEnabled)
 		isMigrated, err := tr.IsMigratedToLatestVersion()
@@ -1538,6 +1542,83 @@ func TestGetNodeDataFromHash(t *testing.T) {
 	assert.Equal(t, uint64(hashSize+keySize), thirdChildData.Size())
 	assert.False(t, thirdChildData.IsLeaf())
 
+}
+
+func TestPatriciaMerkleTree_SizeInMemory(t *testing.T) {
+	t.Parallel()
+
+	db, msh, hsh, epochs, _ := getDefaultTrieParameters()
+	cm, err := collapseManager.NewCollapseManager(common.TenMbSize, common.NumLeavesToCollapseSingleRun)
+	assert.Nil(t, err)
+	tr, _ := trie.NewTrie(db, msh, hsh, epochs, cm)
+
+	assert.Equal(t, 0, tr.SizeInMemory())
+	addDefaultDataToTrie(tr)
+
+	assert.Equal(t, 779, tr.SizeInMemory()) // 3 leaves + 2 branch nodes + 1 extension node
+	err = tr.Commit()
+	assert.Nil(t, err)
+
+	err = tr.Delete([]byte("dog"))
+	assert.Nil(t, err)
+	assert.Equal(t, 380, tr.SizeInMemory()) // 1 branch node + 2 leaves
+
+	err = tr.Commit()
+	assert.Nil(t, err)
+
+	err = tr.Update([]byte("dog"), []byte("puppy"))
+	assert.Nil(t, err)
+	assert.Equal(t, 779, tr.SizeInMemory())
+
+	rootHash, err := tr.RootHash()
+	assert.Nil(t, err)
+	newTrie, err := tr.Recreate(holders.NewDefaultRootHashesHolder(rootHash))
+	assert.Nil(t, err)
+	assert.Equal(t, 249, newTrie.SizeInMemory()) // only root node is in memory
+
+	val, depth, err := newTrie.Get([]byte("dog"))
+	assert.Nil(t, err)
+	assert.Equal(t, []byte("puppy"), val)
+	assert.Equal(t, uint32(3), depth)
+	assert.Equal(t, 654, newTrie.SizeInMemory())
+
+	val, depth, err = newTrie.Get([]byte("dog"))
+	assert.Nil(t, err)
+	assert.Equal(t, []byte("puppy"), val)
+	assert.Equal(t, uint32(3), depth)
+	assert.Equal(t, 654, newTrie.SizeInMemory())
+
+	err = tr.Delete([]byte("doe")) // delete collapsed node
+	assert.Nil(t, err)
+	assert.Equal(t, 464, tr.SizeInMemory())
+}
+
+func TestPatriciaMerkleTree_CollapseTrie(t *testing.T) {
+	t.Parallel()
+
+	db, msh, hsh, epochs, _ := getDefaultTrieParameters()
+	oneMbSize := uint64(1048576)
+	cm, _ := collapseManager.NewCollapseManager(oneMbSize, common.NumLeavesToCollapseSingleRun)
+	tr, _ := trie.NewTrie(db, msh, hsh, epochs, cm)
+
+	for uint64(tr.SizeInMemory()) < oneMbSize {
+		randomKey := make([]byte, 32)
+		_, _ = cryptoRand.Read(randomKey)
+		_ = tr.Update(randomKey, randomKey)
+	}
+
+	sizeBeforeCollapse := tr.SizeInMemory()
+	numCollapsed, err := tr.GetNumCollapsedNodes()
+	assert.Nil(t, err)
+	assert.Equal(t, 0, numCollapsed)
+	err = tr.Commit()
+	assert.Nil(t, err)
+	sizeAfterCollapse := tr.SizeInMemory()
+	assert.Less(t, sizeAfterCollapse, sizeBeforeCollapse)
+	assert.Less(t, sizeAfterCollapse, int(oneMbSize))
+	numCollapsed, err = tr.GetNumCollapsedNodes()
+	assert.Nil(t, err)
+	assert.Equal(t, 100, numCollapsed)
 }
 
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {
@@ -1756,6 +1837,570 @@ func BenchmarkPatriciaMerkleTrie_Update(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		for j := 0; j < nrValuesInTrie; j++ {
 			_ = tr.Update(values[j], values[j])
+		}
+	}
+}
+
+const commitMemoryBudget = 1 << 20
+
+var errCommitBudgetWrite = errors.New("commit budget test: storage write failed")
+
+type commitBudgetStore struct {
+	common.BaseStorer
+	writes atomic.Int64
+	fail   atomic.Bool
+}
+
+func (store *commitBudgetStore) Put(key, value []byte) error {
+	store.writes.Add(1)
+	if store.fail.Load() {
+		return errCommitBudgetWrite
+	}
+	return store.BaseStorer.Put(key, value)
+}
+
+type commitBudgetFixture struct {
+	tr    *trie.PatriciaMerkleTrieForTests
+	store *commitBudgetStore
+	keys  [][]byte
+	root  []byte
+}
+
+func commitBudgetValue(index, block int) []byte {
+	value := bytes.Repeat([]byte{byte(block + 1)}, 128)
+	binary.BigEndian.PutUint64(value, uint64(index))
+	return value
+}
+
+func newCommitBudgetFixture(t *testing.T, version core.TrieNodeVersion, count int, batch uint32, largeFirst bool) *commitBudgetFixture {
+	t.Helper()
+	args := trie.GetDefaultTrieStorageManagerParameters()
+	store := &commitBudgetStore{BaseStorer: args.MainStorer}
+	args.MainStorer = store
+	storage, err := trie.NewTrieStorageManager(args)
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, storage.Close()) })
+	flags := enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
+	if version == core.AutoBalanceEnabled {
+		flags.AddActiveFlags(common.AutoBalanceDataTriesFlag)
+	}
+	// Populate persisted state independently of the memory policy being tested.
+	seed, err := trie.NewTrie(storage, args.Marshalizer, args.Hasher, flags, collapseManager.NewDisabledCollapseManager())
+	require.NoError(t, err)
+	keys := make([][]byte, count)
+	for i := range keys {
+		hash := sha256.Sum256([]byte(fmt.Sprintf("account-%d", i)))
+		keys[i] = hash[:]
+		value := commitBudgetValue(i, 0)
+		if i == 0 && largeFirst {
+			value = bytes.Repeat([]byte{1}, 900*1024)
+		}
+		require.NoError(t, seed.UpdateWithVersion(keys[i], value, version))
+	}
+	require.NoError(t, seed.Commit())
+	root, err := seed.RootHash()
+	require.NoError(t, err)
+	manager, err := collapseManager.NewCollapseManager(commitMemoryBudget, batch)
+	require.NoError(t, err)
+	template, err := trie.NewTrie(storage, args.Marshalizer, args.Hasher, flags, manager)
+	require.NoError(t, err)
+	recreated, err := template.Recreate(holders.NewDefaultRootHashesHolder(root))
+	require.NoError(t, err)
+	return &commitBudgetFixture{tr: recreated.(*trie.PatriciaMerkleTrieForTests), store: store, keys: keys, root: root}
+}
+
+func requireCommitBudgetValue(t *testing.T, tr common.Trie, key, expected []byte, version core.TrieNodeVersion) {
+	t.Helper()
+	value, _, actualVersion, err := tr.GetWithVersion(key)
+	require.NoError(t, err)
+	require.Equal(t, expected, value)
+	require.Equal(t, uint32(version), actualVersion)
+}
+
+func TestTrieCommitMemoryBudgetAcrossBlocks(t *testing.T) {
+	for _, version := range []core.TrieNodeVersion{core.NotSpecified, core.AutoBalanceEnabled} {
+		for _, readOnly := range []bool{false, true} {
+			t.Run(fmt.Sprintf("version-%d/read-only-%t", version, readOnly), func(t *testing.T) {
+				fixture := newCommitBudgetFixture(t, version, 12000, 100, false)
+				tr := fixture.tr
+				writes := fixture.store.writes.Load()
+				for block := 1; block <= 12; block++ {
+					for i := (block - 1) * 300; i < block*300; i++ {
+						if readOnly {
+							requireCommitBudgetValue(t, tr, fixture.keys[i], commitBudgetValue(i, 0), version)
+						} else {
+							require.NoError(t, tr.UpdateWithVersion(fixture.keys[i], commitBudgetValue(i, block), version))
+						}
+					}
+					root, err := tr.RootHash()
+					require.NoError(t, err)
+					require.NoError(t, tr.Commit())
+					after, err := tr.RootHash()
+					require.NoError(t, err)
+					require.Equal(t, root, after, "eviction changed the root at block %d", block)
+					require.LessOrEqual(t, tr.SizeInMemory(), commitMemoryBudget, "block %d", block)
+					require.LessOrEqual(t, tr.ResidentSizeForTests(), commitMemoryBudget, "resident nodes at block %d", block)
+					if readOnly {
+						require.Equal(t, fixture.root, after)
+						require.Equal(t, writes, fixture.store.writes.Load(), "clean commit wrote nodes")
+					}
+				}
+				root, err := tr.RootHash()
+				require.NoError(t, err)
+				cold, err := tr.Recreate(holders.NewDefaultRootHashesHolder(root))
+				require.NoError(t, err)
+				for _, i := range []int{0, 1799, 3599, 11999} {
+					block := 0
+					if !readOnly && i < 3600 {
+						block = i/300 + 1
+					}
+					requireCommitBudgetValue(t, cold, fixture.keys[i], commitBudgetValue(i, block), version)
+				}
+			})
+		}
+	}
+}
+
+func TestTrieCommitMemoryBudgetKeepsCacheWhenLeafEvictionIsEnough(t *testing.T) {
+	for _, version := range []core.TrieNodeVersion{core.NotSpecified, core.AutoBalanceEnabled} {
+		for _, readOnly := range []bool{false, true} {
+			t.Run(fmt.Sprintf("version-%d/read-only-%t", version, readOnly), func(t *testing.T) {
+				fixture := newCommitBudgetFixture(t, version, 2200, 1, true)
+				tr := fixture.tr
+				// The large leaf is least recently used. A single eviction suffices,
+				// so the remaining decoded paths must survive this commit.
+				requireCommitBudgetValue(t, tr, fixture.keys[0], bytes.Repeat([]byte{1}, 900*1024), version)
+				for i := 1; i < len(fixture.keys); i++ {
+					requireCommitBudgetValue(t, tr, fixture.keys[i], commitBudgetValue(i, 0), version)
+				}
+				if !readOnly {
+					require.NoError(t, tr.UpdateWithVersion(fixture.keys[1], commitBudgetValue(1, 1), version))
+				}
+				require.Greater(t, tr.SizeInMemory(), commitMemoryBudget)
+				rootNode := tr.RootNodeForTests()
+				root, err := tr.RootHash()
+				require.NoError(t, err)
+				require.NoError(t, tr.Commit())
+				require.LessOrEqual(t, tr.SizeInMemory(), commitMemoryBudget)
+				require.Same(t, rootNode, tr.RootNodeForTests(), "leaf eviction unnecessarily collapsed the whole trie")
+				residentSize := tr.SizeInMemory()
+				requireCommitBudgetValue(t, tr, fixture.keys[2199], commitBudgetValue(2199, 0), version)
+				require.Equal(t, residentSize, tr.SizeInMemory(), "hot leaf had to be reloaded")
+				after, err := tr.RootHash()
+				require.NoError(t, err)
+				require.Equal(t, root, after)
+				requireCommitBudgetValue(t, tr, fixture.keys[0], bytes.Repeat([]byte{1}, 900*1024), version)
+			})
+		}
+	}
+}
+
+func TestTrieCommitMemoryBudgetKeepsCacheBelowLimit(t *testing.T) {
+	for _, version := range []core.TrieNodeVersion{core.NotSpecified, core.AutoBalanceEnabled} {
+		for _, readOnly := range []bool{false, true} {
+			t.Run(fmt.Sprintf("version-%d/read-only-%t", version, readOnly), func(t *testing.T) {
+				fixture := newCommitBudgetFixture(t, version, 128, 100, false)
+				tr := fixture.tr
+				for i, key := range fixture.keys {
+					requireCommitBudgetValue(t, tr, key, commitBudgetValue(i, 0), version)
+				}
+				if !readOnly {
+					require.NoError(t, tr.UpdateWithVersion(fixture.keys[0], commitBudgetValue(0, 1), version))
+				}
+				rootNode := tr.RootNodeForTests()
+				size := tr.SizeInMemory()
+				resident := tr.ResidentSizeForTests()
+				writes := fixture.store.writes.Load()
+				require.Less(t, size, commitMemoryBudget)
+				require.NoError(t, tr.Commit())
+				require.Same(t, rootNode, tr.RootNodeForTests())
+				require.Equal(t, size, tr.SizeInMemory())
+				require.Equal(t, resident, tr.ResidentSizeForTests())
+				if readOnly {
+					require.Equal(t, writes, fixture.store.writes.Load())
+				}
+			})
+		}
+	}
+}
+
+func TestTrieCommitMemoryBudgetWaitsForSuccessfulPersistence(t *testing.T) {
+	fixture := newCommitBudgetFixture(t, core.NotSpecified, 12000, 100, false)
+	tr := fixture.tr
+	for i := 0; i < 6000; i++ {
+		require.NoError(t, tr.Update(fixture.keys[i], commitBudgetValue(i, 1)))
+	}
+	require.Greater(t, tr.SizeInMemory(), commitMemoryBudget)
+	rootNode := tr.RootNodeForTests()
+	fixture.store.fail.Store(true)
+	require.ErrorIs(t, tr.Commit(), errCommitBudgetWrite)
+	require.Same(t, rootNode, tr.RootNodeForTests())
+	require.Greater(t, tr.SizeInMemory(), commitMemoryBudget)
+	fixture.store.fail.Store(false)
+	require.NoError(t, tr.Commit())
+	require.LessOrEqual(t, tr.SizeInMemory(), commitMemoryBudget)
+	root, err := tr.RootHash()
+	require.NoError(t, err)
+	cold, err := tr.Recreate(holders.NewDefaultRootHashesHolder(root))
+	require.NoError(t, err)
+	requireCommitBudgetValue(t, cold, fixture.keys[5999], commitBudgetValue(5999, 1), core.NotSpecified)
+}
+
+func TestTrieCommitMemoryBudgetRetainsOversizedRootLeaf(t *testing.T) {
+	fixture := newCommitBudgetFixture(t, core.NotSpecified, 1, 100, false)
+	value := bytes.Repeat([]byte{7}, commitMemoryBudget+1)
+	require.NoError(t, fixture.tr.Update(fixture.keys[0], value))
+	root, err := fixture.tr.RootHash()
+	require.NoError(t, err)
+	// A root leaf cannot be collapsed further. One bounded pass must return
+	// successfully without discarding its value or retrying until under budget.
+	for i := 0; i < 2; i++ {
+		require.NoError(t, fixture.tr.Commit())
+		after, rootErr := fixture.tr.RootHash()
+		require.NoError(t, rootErr)
+		require.Equal(t, root, after)
+		requireCommitBudgetValue(t, fixture.tr, fixture.keys[0], value, core.NotSpecified)
+	}
+}
+
+func newTrieForWholeCollapse(t *testing.T) (*trie.PatriciaMerkleTrieForTests, common.TrieCollapseManager) {
+	t.Helper()
+	args := trie.GetDefaultTrieStorageManagerParameters()
+	storage, err := trie.NewTrieStorageManager(args)
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, storage.Close()) })
+	manager, err := collapseManager.NewCollapseManager(commitMemoryBudget, 1)
+	require.NoError(t, err)
+	tr, err := trie.NewTrie(storage, args.Marshalizer, args.Hasher, enableEpochsHandlerMock.NewEnableEpochsHandlerStub(), manager)
+	require.NoError(t, err)
+	return tr, manager
+}
+
+func growTrieForWholeCollapse(tr *trie.PatriciaMerkleTrieForTests, round int) error {
+	// Evicting a single 600 KiB leaf still leaves the trie above its 1 MiB budget.
+	for j := 1; j <= 3; j++ {
+		payload := bytes.Repeat([]byte{byte(round*3 + j)}, 600<<10)
+		if err := tr.Update([]byte{byte(j)}, payload); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func TestWholeTrieCollapseKeepsManager(t *testing.T) {
+	tr, manager := newTrieForWholeCollapse(t)
+	for round := range 2 {
+		require.NoError(t, growTrieForWholeCollapse(tr, round))
+		require.Greater(t, tr.SizeInMemory(), commitMemoryBudget)
+		root, err := tr.RootHash()
+		require.NoError(t, err)
+		require.NoError(t, tr.Commit())
+		require.Same(t, manager, tr.CollapseManagerForTests())
+		require.True(t, tr.RootIsCollapsedForTests())
+		require.Equal(t, tr.RootSizeForTests(), tr.SizeInMemory())
+		committed, err := tr.RootHash()
+		require.NoError(t, err)
+		require.Equal(t, root, committed)
+	}
+
+	recreated, err := tr.Recreate(holders.NewDefaultRootHashesHolder(nil))
+	require.NoError(t, err)
+	clone := recreated.(*trie.PatriciaMerkleTrieForTests).CollapseManagerForTests()
+	require.NotSame(t, manager, clone)
+	require.Zero(t, clone.GetSizeInMemory())
+	clone.AddSizeInMemory(commitMemoryBudget)
+	require.False(t, clone.ShouldCollapseTrie())
+	clone.AddSizeInMemory(1)
+	require.True(t, clone.ShouldCollapseTrie())
+	require.Equal(t, tr.RootSizeForTests(), tr.SizeInMemory())
+}
+
+func TestRecreateConcurrentlyWithWholeTrieCollapse(t *testing.T) {
+	for _, mode := range []string{"empty", "stored root", "leaves", "stats", "serialized nodes"} {
+		t.Run(mode, func(t *testing.T) {
+			tr, _ := newTrieForWholeCollapse(t)
+			key, value := []byte{9}, []byte("stable value")
+			require.NoError(t, tr.Update(key, value))
+			require.NoError(t, tr.Commit())
+			root, err := tr.RootHash()
+			require.NoError(t, err)
+
+			var wg sync.WaitGroup
+			start, done := make(chan struct{}), make(chan struct{})
+			failure := make(chan error, 2)
+			wg.Go(func() {
+				defer close(done)
+				<-start
+				for round := range 4 {
+					if errGrow := growTrieForWholeCollapse(tr, round); errGrow != nil {
+						failure <- errGrow
+						return
+					}
+					if errCommit := tr.Commit(); errCommit != nil {
+						failure <- errCommit
+						return
+					}
+					if !tr.RootIsCollapsedForTests() || tr.SizeInMemory() != tr.RootSizeForTests() {
+						failure <- fmt.Errorf("commit %d did not leave only the collapsed root", round)
+						return
+					}
+				}
+			})
+			wg.Go(func() {
+				<-start
+				for {
+					if errRead := readTrieDuringCollapse(tr, mode, root, key, value); errRead != nil {
+						failure <- errRead
+						return
+					}
+					select {
+					case <-done:
+						return
+					default:
+					}
+				}
+			})
+			close(start)
+			wg.Wait()
+			close(failure)
+			for errOperation := range failure {
+				require.NoError(t, errOperation)
+			}
+		})
+	}
+}
+
+func readTrieDuringCollapse(tr *trie.PatriciaMerkleTrieForTests, mode string, root, key, value []byte) error {
+	switch mode {
+	case "empty", "stored root":
+		selected, expected := root, value
+		if mode == "empty" {
+			selected, expected = nil, nil
+		}
+		recreated, err := tr.Recreate(holders.NewDefaultRootHashesHolder(selected))
+		if err != nil {
+			return err
+		}
+		got, _, err := recreated.Get(key)
+		if err != nil {
+			return err
+		}
+		if !bytes.Equal(got, expected) {
+			return fmt.Errorf("recreated trie returned %q, expected %q", got, expected)
+		}
+		return nil
+	case "leaves":
+		channels := &common.TrieIteratorChannels{
+			LeavesChan: make(chan core.KeyValueHolder, 1),
+			ErrChan:    errChan.NewErrChanWrapper(),
+		}
+		err := tr.GetAllLeavesOnChannel(channels, context.Background(), root, keyBuilder.NewKeyBuilder(), parsers.NewMainTrieLeafParser())
+		if err != nil {
+			return err
+		}
+		var matches int
+		for leaf := range channels.LeavesChan {
+			if leaf != nil && bytes.Equal(leaf.Key(), key) && bytes.Equal(leaf.Value(), value) {
+				matches++
+			}
+		}
+		if matches != 1 {
+			return fmt.Errorf("leaf iteration returned %d matches, expected one", matches)
+		}
+		return channels.ErrChan.ReadFromChanNonBlocking()
+	case "stats":
+		_, err := tr.GetTrieStats("account", root)
+		return err
+	default:
+		_, _, err := tr.GetSerializedNodes(root, 1024)
+		return err
+	}
+}
+
+func TestTrie_GetWithVersionReportsGrowthOnlyWhenNodesLoad(t *testing.T) {
+	for _, version := range []core.TrieNodeVersion{core.NotSpecified, core.AutoBalanceEnabled} {
+		t.Run(fmt.Sprintf("version-%d", version), func(t *testing.T) {
+			args := trie.GetDefaultTrieStorageManagerParameters()
+			store := &trie.TrieReadFailureStore{BaseStorer: args.MainStorer}
+			args.MainStorer = store
+			storage, err := trie.NewTrieStorageManager(args)
+			require.NoError(t, err)
+			t.Cleanup(func() { require.NoError(t, storage.Close()) })
+			manager, err := collapseManager.NewCollapseManager(1<<20, 100)
+			require.NoError(t, err)
+			seed, err := trie.NewTrie(storage, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, manager)
+			require.NoError(t, err)
+
+			key, sibling := []byte{0x01, 0x11}, []byte{0x02, 0x11}
+			value := []byte("leaf value")
+			require.NoError(t, seed.UpdateWithVersion(key, value, version))
+			require.NoError(t, seed.UpdateWithVersion(sibling, []byte("sibling value"), version))
+			require.NoError(t, seed.Commit())
+			root, err := seed.RootHash()
+			require.NoError(t, err)
+			// The root extension can load its branch even when the leaf read fails.
+			proof, _, err := seed.GetProof(key)
+			require.NoError(t, err)
+			require.NotEmpty(t, proof)
+			leafHash := args.Hasher.Compute(string(proof[len(proof)-1]))
+			missing := []byte{0x21, 0x11}
+
+			for _, result := range []string{"hit", "miss", "failure"} {
+				t.Run(result, func(t *testing.T) {
+					recreated, recreateErr := seed.Recreate(holders.NewDefaultRootHashesHolder(root))
+					require.NoError(t, recreateErr)
+					cold := recreated.(*trie.PatriciaMerkleTrieForTests)
+					initialSize := cold.SizeInMemory()
+					lookupKey := key
+					switch result {
+					case "miss":
+						lookupKey = missing
+					case "failure":
+						store.FailKey = leafHash
+					}
+					actual, depth, storedVersion, size, readErr := cold.GetWithVersionAndSizeOnGrowth(lookupKey)
+					switch result {
+					case "failure":
+						cause := core.UnwrapGetNodeFromDBErr(readErr)
+						require.NotNil(t, cause)
+						require.Equal(t, leafHash, cause.GetKey())
+						require.Empty(t, actual)
+					case "miss":
+						require.NoError(t, readErr)
+						require.Empty(t, actual)
+					default:
+						require.NoError(t, readErr)
+						require.Equal(t, value, actual)
+						require.EqualValues(t, version, storedVersion)
+					}
+					require.Greater(t, size, initialSize)
+					require.Equal(t, cold.ResidentSizeForTests(), size)
+
+					warmValue, warmDepth, warmVersion, warmSize, warmErr := cold.GetWithVersionAndSizeOnGrowth(lookupKey)
+					require.NoError(t, warmErr)
+					if result == "failure" {
+						require.Equal(t, value, warmValue, "retry should load the repaired leaf")
+						require.EqualValues(t, version, warmVersion)
+						require.Greater(t, warmSize, size)
+					} else {
+						require.Equal(t, actual, warmValue)
+						require.Equal(t, depth, warmDepth)
+						require.Equal(t, storedVersion, warmVersion)
+						require.Zero(t, warmSize)
+					}
+					_, _, _, warmSize, warmErr = cold.GetWithVersionAndSizeOnGrowth(lookupKey)
+					require.NoError(t, warmErr)
+					require.Zero(t, warmSize)
+				})
+			}
+		})
+	}
+}
+
+func TestTrieMutationSizeAccounting_CommitUsesModeledSize(t *testing.T) {
+	const margin = 8
+	t.Run("new branch slot crosses budget", func(t *testing.T) {
+		tr := trie.NewTrieForSizeAccounting(t, commitMemoryBudget)
+		keys := [][]byte{{0x01}, {0x02}, {0x03}}
+		value := []byte("value")
+		for _, key := range keys {
+			require.NoError(t, tr.Update(key, value))
+		}
+		size := len(value) + commitMemoryBudget + margin - tr.ResidentSizeForTests()
+		large := bytes.Repeat([]byte{3}, size)
+		require.NoError(t, tr.Update(keys[2], large))
+		require.Equal(t, commitMemoryBudget+margin, tr.ResidentSizeForTests())
+		root, err := tr.RootHash()
+		require.NoError(t, err)
+		require.NoError(t, tr.Commit())
+		assert.LessOrEqual(t, tr.ResidentSizeForTests(), commitMemoryBudget)
+		assert.Equal(t, tr.ResidentSizeForTests(), tr.SizeInMemory())
+		actualRoot, err := tr.RootHash()
+		require.NoError(t, err)
+		require.Equal(t, root, actualRoot)
+		reopened, err := tr.Recreate(holders.NewDefaultRootHashesHolder(root))
+		require.NoError(t, err)
+		requireCommitBudgetValue(t, reopened, keys[0], value, core.NotSpecified)
+		requireCommitBudgetValue(t, reopened, keys[1], value, core.NotSpecified)
+		requireCommitBudgetValue(t, reopened, keys[2], large, core.NotSpecified)
+	})
+
+	t.Run("extension splits and merges remain below budget", func(t *testing.T) {
+		tr := trie.NewTrieForSizeAccounting(t, commitMemoryBudget)
+		// The first two keys share three nibbles. The third shares only
+		// the first nibble, so the split retains a shorter extension.
+		first, second, temporary := []byte{0x43, 0x21}, []byte{0x53, 0x21}, []byte{0x43, 0x51}
+		const leafSize = 500 << 10
+		secondValue := bytes.Repeat([]byte{2}, leafSize)
+		require.NoError(t, tr.Update(first, []byte("a")))
+		require.NoError(t, tr.Update(second, secondValue))
+		size := 1 + commitMemoryBudget - margin - tr.ResidentSizeForTests()
+		firstValue := bytes.Repeat([]byte{1}, size)
+		require.NoError(t, tr.Update(first, firstValue))
+		require.NoError(t, tr.Commit())
+		root, err := tr.RootHash()
+		require.NoError(t, err)
+		fullSize := tr.ResidentSizeForTests()
+		require.Equal(t, commitMemoryBudget-margin, fullSize)
+
+		for range margin + 2 {
+			require.NoError(t, tr.Update(temporary, []byte("temporary")))
+			require.NoError(t, tr.Delete(temporary))
+		}
+		require.Equal(t, fullSize, tr.ResidentSizeForTests())
+		require.NoError(t, tr.Commit())
+		assert.Equal(t, fullSize, tr.ResidentSizeForTests())
+		assert.Equal(t, fullSize, tr.SizeInMemory())
+		actualRoot, err := tr.RootHash()
+		require.NoError(t, err)
+		require.Equal(t, root, actualRoot)
+		requireCommitBudgetValue(t, tr, first, firstValue, core.NotSpecified)
+		requireCommitBudgetValue(t, tr, second, secondValue, core.NotSpecified)
+	})
+}
+
+func TestTrieMutationSizeAccounting_MixedOperations(t *testing.T) {
+	for _, phase := range []string{"fresh", "recreated"} {
+		t.Run(phase, func(t *testing.T) {
+			tr := trie.NewTrieForSizeAccounting(t, commitMemoryBudget)
+			random := rand.New(rand.NewSource(51))
+			if phase == "recreated" {
+				runTrieSizeAccountingOperations(t, tr, random, 1000, false)
+				require.NoError(t, tr.Commit())
+				root, err := tr.RootHash()
+				require.NoError(t, err)
+				reopened, err := tr.Recreate(holders.NewDefaultRootHashesHolder(root))
+				require.NoError(t, err)
+				tr = reopened.(*trie.PatriciaMerkleTrieForTests)
+				require.Equal(t, tr.RootSizeForTests(), tr.SizeInMemory())
+			}
+			runTrieSizeAccountingOperations(t, tr, random, 2000, true)
+		})
+	}
+}
+
+func runTrieSizeAccountingOperations(t *testing.T, tr *trie.PatriciaMerkleTrieForTests, random *rand.Rand, count int, compareSize bool) {
+	t.Helper()
+	for i := range count {
+		key := binary.LittleEndian.AppendUint16(nil, uint16(random.Intn(400)))
+		switch op := random.Intn(100); {
+		case op < 45:
+			version := core.NotSpecified
+			if random.Intn(2) == 1 {
+				version = core.AutoBalanceEnabled
+			}
+			value := bytes.Repeat([]byte{byte(i)}, 100+random.Intn(100))
+			require.NoError(t, tr.UpdateWithVersion(key, value, version))
+		case op < 80:
+			require.NoError(t, tr.Delete(key))
+		case op < 95:
+			_, _, err := tr.Get(key)
+			require.NoError(t, err)
+		default:
+			require.NoError(t, tr.Commit())
+		}
+		if compareSize {
+			require.Equal(t, tr.ResidentSizeForTests(), tr.SizeInMemory(), "operation %d for key %x", i, key)
 		}
 	}
 }

@@ -1,0 +1,245 @@
+package collapseManager
+
+import (
+	"fmt"
+	"testing"
+
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func TestNewCollapseManager(t *testing.T) {
+	t.Parallel()
+
+	t.Run("invalid maxSizeInMem should error", func(t *testing.T) {
+		t.Parallel()
+
+		cm, err := NewCollapseManager(0, common.NumLeavesToCollapseSingleRun)
+		assert.Nil(t, cm)
+		assert.NotNil(t, err)
+	})
+	t.Run("invalid numLeavesToCollapseSingleRun should default to defaultNumLeavesToCollapseSingleRun", func(t *testing.T) {
+		t.Parallel()
+
+		cm, err := NewCollapseManager(2*minSizeInMemory, 0)
+		assert.False(t, check.IfNil(cm))
+		assert.Nil(t, err)
+		assert.Equal(t, 0, cm.sizeInMemory)
+		assert.Equal(t, 2*minSizeInMemory, int(cm.maxSizeInMem))
+		assert.Equal(t, defaultNumLeavesToCollapseSingleRun, cm.numLeavesToCollapseSingleRun)
+		assert.Equal(t, 0, len(cm.accessedKeys))
+		assert.Equal(t, 0, cm.orderAccess.Len())
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		cm, err := NewCollapseManager(2*minSizeInMemory, common.NumLeavesToCollapseSingleRun)
+		assert.False(t, check.IfNil(cm))
+		assert.Nil(t, err)
+		assert.Equal(t, 0, cm.sizeInMemory)
+		assert.Equal(t, 2*minSizeInMemory, int(cm.maxSizeInMem))
+		assert.Equal(t, common.NumLeavesToCollapseSingleRun, cm.numLeavesToCollapseSingleRun)
+		assert.Equal(t, 0, len(cm.accessedKeys))
+		assert.Equal(t, 0, cm.orderAccess.Len())
+	})
+}
+
+func TestCollapseManager_MarkKeyAsAccessed(t *testing.T) {
+	t.Parallel()
+
+	cm, _ := NewCollapseManager(2*minSizeInMemory, common.NumLeavesToCollapseSingleRun)
+	cm.MarkKeyAsAccessed([]byte("key1"), 500)
+	assert.Equal(t, 500, cm.sizeInMemory)
+	assert.Equal(t, 1, len(cm.accessedKeys))
+	assert.Equal(t, 1, cm.orderAccess.Len())
+
+	cm.MarkKeyAsAccessed([]byte("key2"), 600)
+	assert.Equal(t, 1100, cm.sizeInMemory)
+	assert.Equal(t, 2, len(cm.accessedKeys))
+	assert.Equal(t, 2, cm.orderAccess.Len())
+	oldestVal := cm.orderAccess.Back().Value.([]byte)
+	assert.Equal(t, "key1", string(oldestVal))
+
+	cm.MarkKeyAsAccessed([]byte("key1"), 0)
+	assert.Equal(t, 1100, cm.sizeInMemory)
+	assert.Equal(t, 2, len(cm.accessedKeys))
+	assert.Equal(t, 2, cm.orderAccess.Len())
+	oldestVal = cm.orderAccess.Back().Value.([]byte)
+	assert.Equal(t, "key2", string(oldestVal))
+}
+
+func TestCollapseManager_RemoveKey(t *testing.T) {
+	t.Parallel()
+
+	cm, _ := NewCollapseManager(2*minSizeInMemory, common.NumLeavesToCollapseSingleRun)
+	cm.MarkKeyAsAccessed([]byte("key1"), 500)
+	cm.MarkKeyAsAccessed([]byte("key2"), 600)
+	assert.Equal(t, 1100, cm.sizeInMemory)
+	assert.Equal(t, 2, len(cm.accessedKeys))
+	assert.Equal(t, 2, cm.orderAccess.Len())
+
+	cm.RemoveKey([]byte("key1"), -500)
+	assert.Equal(t, 600, cm.sizeInMemory)
+	assert.Equal(t, 1, len(cm.accessedKeys))
+	assert.Equal(t, 1, cm.orderAccess.Len())
+
+	// removing non existing key should do nothing
+	cm.RemoveKey([]byte("key3"), 0)
+	assert.Equal(t, 600, cm.sizeInMemory)
+	assert.Equal(t, 1, len(cm.accessedKeys))
+	assert.Equal(t, 1, cm.orderAccess.Len())
+}
+
+func TestCollapseManager_AddSizeInMemory(t *testing.T) {
+	t.Parallel()
+
+	cm, _ := NewCollapseManager(2*minSizeInMemory, common.NumLeavesToCollapseSingleRun)
+	cm.AddSizeInMemory(700)
+	assert.Equal(t, 700, cm.GetSizeInMemory())
+
+	cm.AddSizeInMemory(-200)
+	assert.Equal(t, 500, cm.GetSizeInMemory())
+
+	cm.AddSizeInMemory(0)
+	assert.Equal(t, 500, cm.GetSizeInMemory())
+
+	// sizeInMemory should not go below 0
+	cm.AddSizeInMemory(-800)
+	assert.Equal(t, 0, cm.GetSizeInMemory())
+}
+
+func TestCollapseManager_ShouldCollapseTrie(t *testing.T) {
+	t.Parallel()
+
+	cm, _ := NewCollapseManager(minSizeInMemory, common.NumLeavesToCollapseSingleRun)
+	assert.False(t, cm.ShouldCollapseTrie())
+
+	cm.AddSizeInMemory(minSizeInMemory + 1)
+	assert.True(t, cm.ShouldCollapseTrie())
+}
+
+func TestCollapseManager_GetCollapsibleLeaves(t *testing.T) {
+	t.Parallel()
+
+	t.Run("sizeInMemory below limit should return empty", func(t *testing.T) {
+		t.Parallel()
+
+		cm, _ := NewCollapseManager(minSizeInMemory, common.NumLeavesToCollapseSingleRun)
+		cm.MarkKeyAsAccessed([]byte("key1"), 500)
+		leaves, err := cm.GetCollapsibleLeaves()
+		assert.Nil(t, err)
+		assert.Equal(t, 0, len(leaves))
+	})
+	t.Run("should return evicted keys until sizeInMemory is below limit", func(t *testing.T) {
+		t.Parallel()
+
+		cm, _ := NewCollapseManager(minSizeInMemory, common.NumLeavesToCollapseSingleRun)
+		cm.MarkKeyAsAccessed([]byte("key1"), 700)
+		cm.MarkKeyAsAccessed([]byte("key2"), 600)
+		cm.MarkKeyAsAccessed([]byte("key3"), 500)
+
+		leaves, err := cm.GetCollapsibleLeaves()
+		assert.Nil(t, err)
+		assert.Equal(t, 0, len(leaves))
+
+		cm.MarkKeyAsAccessed([]byte("key4"), minSizeInMemory-1)
+		leaves, err = cm.GetCollapsibleLeaves()
+		assert.Nil(t, err)
+		assert.Equal(t, 4, len(leaves))
+		assert.Equal(t, "key1", string(leaves[0]))
+		assert.Equal(t, "key2", string(leaves[1]))
+		assert.Equal(t, "key3", string(leaves[2]))
+		assert.Equal(t, "key4", string(leaves[3]))
+		assert.Equal(t, 0, len(cm.accessedKeys))
+		assert.Equal(t, 0, cm.orderAccess.Len())
+	})
+
+	t.Run("should return up to numLeavesToCollapseSingleRun evicted keys", func(t *testing.T) {
+		t.Parallel()
+
+		numLeavesToCollapseSingleRun := uint32(5)
+		cm, _ := NewCollapseManager(minSizeInMemory, numLeavesToCollapseSingleRun)
+		for i := 0; i < int(numLeavesToCollapseSingleRun)+2; i++ {
+			key := []byte("key" + string(rune(i)))
+			cm.MarkKeyAsAccessed(key, 500)
+		}
+		cm.AddSizeInMemory(minSizeInMemory + 1)
+
+		leaves, err := cm.GetCollapsibleLeaves()
+		assert.Nil(t, err)
+		assert.Equal(t, int(numLeavesToCollapseSingleRun), len(leaves))
+		for i := 0; i < int(numLeavesToCollapseSingleRun); i++ {
+			expectedKey := "key" + string(rune(i))
+			assert.Equal(t, expectedKey, string(leaves[i]))
+		}
+		assert.Equal(t, 2, len(cm.accessedKeys))
+		assert.Equal(t, 2, cm.orderAccess.Len())
+	})
+}
+
+func TestCollapseManager_CloneWithoutState(t *testing.T) {
+	t.Parallel()
+
+	cm, _ := NewCollapseManager(2*minSizeInMemory, common.NumLeavesToCollapseSingleRun)
+	cm.MarkKeyAsAccessed([]byte("key1"), 500)
+	assert.Equal(t, 500, cm.sizeInMemory)
+	assert.Equal(t, 1, len(cm.accessedKeys))
+	assert.Equal(t, 1, cm.orderAccess.Len())
+	clone := cm.CloneWithoutState()
+
+	assert.False(t, check.IfNil(clone))
+	clonedCM := clone.(*collapseManager)
+	assert.Equal(t, 2*minSizeInMemory, int(clonedCM.maxSizeInMem))
+	assert.Equal(t, common.NumLeavesToCollapseSingleRun, clonedCM.numLeavesToCollapseSingleRun)
+	assert.Equal(t, 0, len(clonedCM.accessedKeys))
+	assert.Equal(t, 0, clonedCM.orderAccess.Len())
+	assert.Equal(t, 0, clone.GetSizeInMemory())
+}
+
+func TestCollapseManager_ShouldCollapseTrieRegardlessOfTrackedKeyCount(t *testing.T) {
+	for _, count := range []int{0, 999, 1000, 1200} {
+		t.Run(fmt.Sprintf("keys-%d", count), func(t *testing.T) {
+			manager, err := NewCollapseManager(minSizeInMemory, 100)
+			require.NoError(t, err)
+			for i := 0; i < count; i++ {
+				manager.MarkKeyAsAccessed([]byte(fmt.Sprintf("key-%d", i)), 0)
+			}
+			require.False(t, manager.ShouldCollapseTrie())
+			manager.AddSizeInMemory(minSizeInMemory)
+			require.False(t, manager.ShouldCollapseTrie(), "the exact budget is allowed")
+			manager.AddSizeInMemory(1)
+			require.True(t, manager.ShouldCollapseTrie())
+		})
+	}
+}
+
+func TestCollapseManager_ResetReleasesTrackingAndKeepsConfig(t *testing.T) {
+	const budget = 2 << 20
+	manager, err := NewCollapseManager(budget, 1)
+	require.NoError(t, err)
+	for _, key := range []string{"old a", "old b", "old c"} {
+		manager.MarkKeyAsAccessed([]byte(key), budget)
+	}
+	require.True(t, manager.ShouldCollapseTrie())
+	oldKeys := manager.accessedKeys
+
+	manager.Reset()
+	require.Empty(t, manager.accessedKeys)
+	require.Zero(t, manager.orderAccess.Len())
+	require.Zero(t, manager.GetSizeInMemory())
+	require.False(t, manager.ShouldCollapseTrie())
+	require.Len(t, oldKeys, 3, "replacing the map releases its retained capacity")
+
+	clone := manager.CloneWithoutState().(*collapseManager)
+	require.EqualValues(t, budget, clone.maxSizeInMem)
+	require.Equal(t, 1, clone.numLeavesToCollapseSingleRun)
+	require.Zero(t, clone.GetSizeInMemory())
+
+	manager.MarkKeyAsAccessed([]byte("oldest"), budget)
+	manager.MarkKeyAsAccessed([]byte("newest"), 0)
+	keys, err := manager.GetCollapsibleLeaves()
+	require.NoError(t, err)
+	require.Equal(t, [][]byte{[]byte("oldest")}, keys)
+}

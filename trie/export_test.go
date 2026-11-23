@@ -1,16 +1,22 @@
 package trie
 
 import (
+	"bytes"
+	"errors"
+	"testing"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 )
 
 func (ts *trieSyncer) trieNodeIntercepted(hash []byte, val interface{}) {
@@ -116,4 +122,102 @@ func GetDefaultTrieStorageManagerParameters() NewTrieStorageManagerArgs {
 // SnapshotsGoroutineNum -
 func SnapshotsGoroutineNum(perCore uint32) int32 {
 	return snapshotsGoroutineNum(perCore)
+}
+
+// GetNumCollapsedNodes returns the number of collapsed nodes in the trie
+func (tr *patriciaMerkleTrie) GetNumCollapsedNodes() (int, error) {
+	count := 0
+
+	nextNodes := make([]node, 0)
+	nextNodes = append(nextNodes, tr.root)
+	for len(nextNodes) > 0 {
+		currentNode := nextNodes[0]
+		switch current := currentNode.(type) {
+		case *branchNode:
+			for i := range current.children {
+				if current.children[i] != nil {
+					nextNodes = append(nextNodes, current.children[i])
+				} else if len(current.EncodedChildren[i]) != 0 {
+					count++
+				}
+			}
+		case *extensionNode:
+			if current.child != nil {
+				nextNodes = append(nextNodes, current.child)
+			}
+		case *leafNode:
+			// do nothing
+		default:
+			return 0, ErrInvalidNode
+		}
+		nextNodes = nextNodes[1:]
+	}
+	return count, nil
+}
+
+type PatriciaMerkleTrieForTests = patriciaMerkleTrie
+
+func (tr *patriciaMerkleTrie) RootNodeForTests() node {
+	return tr.root
+}
+
+func (tr *patriciaMerkleTrie) RootIsCollapsedForTests() bool {
+	return tr.root.isCollapsed()
+}
+
+func (tr *patriciaMerkleTrie) RootSizeForTests() int {
+	return tr.root.sizeInBytes()
+}
+
+// ResidentSizeForTests measures the decoded nodes independently of the collapse manager.
+func (tr *patriciaMerkleTrie) ResidentSizeForTests() int {
+	return residentTrieNodeSize(tr.root)
+}
+
+func (tr *patriciaMerkleTrie) CollapseManagerForTests() common.TrieCollapseManager {
+	return tr.collapseManager
+}
+
+func residentTrieNodeSize(current node) int {
+	if current == nil {
+		return 0
+	}
+	size := current.sizeInBytes()
+	switch typed := current.(type) {
+	case *branchNode:
+		for _, child := range typed.children {
+			size += residentTrieNodeSize(child)
+		}
+	case *extensionNode:
+		size += residentTrieNodeSize(typed.child)
+	}
+	return size
+}
+
+type TrieReadFailureStore struct {
+	common.BaseStorer
+	FailKey []byte
+}
+
+func (s *TrieReadFailureStore) Get(key []byte) ([]byte, error) {
+	if s.FailKey != nil && bytes.Equal(s.FailKey, key) {
+		s.FailKey = nil
+		return nil, errors.New("transient delete read failure")
+	}
+	return s.BaseStorer.Get(key)
+}
+
+func NewTrieForSizeAccounting(t *testing.T, budget uint64) *patriciaMerkleTrie {
+	t.Helper()
+	args := GetDefaultTrieStorageManagerParameters()
+	storage, err := NewTrieStorageManager(args)
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, storage.Close()) })
+	flags := enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
+	flags.AddActiveFlags(common.AutoBalanceDataTriesFlag, common.FixDataTrieLeafValidationFlag)
+	manager, err := collapseManager.NewCollapseManager(budget, 100)
+	require.NoError(t, err)
+	tr, err := NewTrie(storage, args.Marshalizer, args.Hasher, flags, manager)
+	require.NoError(t, err)
+	return tr
 }

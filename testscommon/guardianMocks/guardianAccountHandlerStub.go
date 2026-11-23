@@ -10,7 +10,7 @@ import (
 type GuardedAccountHandlerStub struct {
 	GetActiveGuardianCalled      func(handler vmcommon.UserAccountHandler) ([]byte, error)
 	SetGuardianCalled            func(uah vmcommon.UserAccountHandler, guardianAddress []byte, txGuardianAddress []byte, guardianServiceUID []byte) error
-	HasPendingGuardianCalled     func(uah state.UserAccountHandler) bool
+	HasPendingGuardianCalled     func(uah state.UserAccountHandler) (bool, error)
 	HasActiveGuardianCalled      func(uah state.UserAccountHandler) bool
 	CleanOtherThanActiveCalled   func(uah vmcommon.UserAccountHandler)
 	GetConfiguredGuardiansCalled func(uah state.UserAccountHandler) (active *guardians.Guardian, pending *guardians.Guardian, err error)
@@ -32,12 +32,11 @@ func (gahs *GuardedAccountHandlerStub) HasActiveGuardian(uah state.UserAccountHa
 	return false
 }
 
-// HasPendingGuardian -
-func (gahs *GuardedAccountHandlerStub) HasPendingGuardian(uah state.UserAccountHandler) bool {
+func (gahs *GuardedAccountHandlerStub) HasPendingGuardian(uah state.UserAccountHandler) (bool, error) {
 	if gahs.HasPendingGuardianCalled != nil {
 		return gahs.HasPendingGuardianCalled(uah)
 	}
-	return false
+	return false, nil
 }
 
 // SetGuardian -

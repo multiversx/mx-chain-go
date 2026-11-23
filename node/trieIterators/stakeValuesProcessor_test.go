@@ -41,8 +41,8 @@ func createMockArgs() ArgTrieIteratorProcessor {
 
 func getAccountWithDataTrie(tr common.Trie) state.UserAccountHandler {
 	dtt := &trieMock.DataTrieTrackerStub{
-		DataTrieCalled: func() common.Trie {
-			return tr
+		DataTrieCalled: func() (common.DataTrieHandler, error) {
+			return tr, nil
 		},
 	}
 

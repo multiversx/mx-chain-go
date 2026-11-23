@@ -3,6 +3,7 @@ package hooks
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"math/big"
 	"path"
@@ -307,6 +308,9 @@ func (bh *BlockChainHookImpl) GetStorageData(accountAddress []byte, index []byte
 		messages = append(messages, err)
 
 		bh.syncIfMissingDataTrieNode(err)
+		if errors.Is(err, state.ErrDataTrieLoadFailed) {
+			return nil, trieDepth, err
+		}
 	}
 	log.Trace("GetStorageData ", messages...)
 
@@ -1088,7 +1092,11 @@ func (bh *BlockChainHookImpl) ExecuteSmartContractCallOnOtherVM(input *vmcommon.
 	if err != nil {
 		return nil, err
 	}
-	return vmExec.RunSmartContractCall(input)
+	output, err := vmExec.RunSmartContractCall(input)
+	if loadError := scrCommon.GetDataTrieLoadError(vmExec, err); loadError != nil {
+		return nil, loadError
+	}
+	return output, err
 }
 
 // SetVMContainer sets the vm container in order to be used for sc execution via blockchain

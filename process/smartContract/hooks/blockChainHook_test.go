@@ -3,11 +3,13 @@ package hooks_test
 import (
 	"bytes"
 	"encoding/hex"
+	stdErrors "errors"
 	"fmt"
 	"math"
 	"math/big"
 	"strings"
 	"sync"
+	stdAtomic "sync/atomic"
 	"testing"
 	"time"
 
@@ -16,33 +18,51 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	"github.com/multiversx/mx-chain-core-go/data/guardians"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+	vmhost "github.com/multiversx/mx-chain-vm-go/vmhost"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
+	commonDisabled "github.com/multiversx/mx-chain-go/common/disabled"
+	"github.com/multiversx/mx-chain-go/common/holders"
+	statsDisabled "github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/guardian"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
+	"github.com/multiversx/mx-chain-go/state/disabled"
+	stateFactory "github.com/multiversx/mx-chain-go/state/factory"
+	pruningDisabled "github.com/multiversx/mx-chain-go/state/storagePruningManager/disabled"
+	"github.com/multiversx/mx-chain-go/state/triesHolder"
 	"github.com/multiversx/mx-chain-go/storage"
+	storageMock "github.com/multiversx/mx-chain-go/storage/mock"
+	"github.com/multiversx/mx-chain-go/storage/pruning"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/trie"
+	patriciaTrie "github.com/multiversx/mx-chain-go/trie"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
+	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
 )
 
 func createMockBlockChainHookArgs() hooks.ArgBlockChainHook {
@@ -2589,7 +2609,6 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 		args.Accounts = &stateMock.AccountsStub{
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				addressHandler := stateMock.NewAccountWrapMock(address)
-				addressHandler.SetDataTrie(nil)
 
 				return addressHandler, nil
 			},
@@ -2610,12 +2629,16 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 		args := createMockBlockChainHookArgs()
 		args.Accounts = &stateMock.AccountsStub{
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
-				addressHandler := stateMock.NewAccountWrapMock(address)
-				addressHandler.SetDataTrie(&trie.TrieStub{
-					GetCalled: func(_ []byte) ([]byte, uint32, error) {
-						return make([]byte, 0), 0, nil
+				dth := &trie.TriesHolderStub{
+					GetCalled: func(_ []byte) common.Trie {
+						return &trie.TrieStub{
+							GetCalled: func(_ []byte) ([]byte, uint32, error) {
+								return make([]byte, 0), 0, nil
+							},
+						}
 					},
-				})
+				}
+				addressHandler := stateMock.NewAccountWrapMockWithDataTrieHolder(dth)
 
 				return addressHandler, nil
 			},
@@ -3244,4 +3267,489 @@ func TestBlockChainHookImpl_ConcurrencyTimeOperations(t *testing.T) {
 
 	wg.Wait()
 
+}
+
+func TestLazyDataTrieLoad_RealStorageConsumers(t *testing.T) {
+	for _, version := range []int{0, 1} {
+		for _, fault := range []string{"healthy", "missing-key", "empty-account", "missing-root", "missing-descendants"} {
+			t.Run(fmt.Sprintf("version-%d/%s", version, fault), func(t *testing.T) {
+				db := testscommon.CreateMemUnit()
+				flags := enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.FixDataTrieLeafValidationFlag)
+				if version == 1 {
+					flags.AddActiveFlags(common.AutoBalanceDataTriesFlag)
+				}
+				writer := integrationtests.CreateAccountsDB(db, flags)
+				address := bytes.Repeat([]byte{'a'}, 32)
+				account, err := writer.LoadAccount(address)
+				require.NoError(t, err)
+				user := account.(state.UserAccountHandler)
+				guardianKey := []byte(core.ProtectedKeyPrefix + core.GuardiansKeyIdentifier)
+				gs, err := integrationtests.TestMarshalizer.Marshal(&guardians.Guardians{Slice: []*guardians.Guardian{
+					{Address: []byte("active"), ActivationEpoch: 0, ServiceUID: []byte("svc")},
+					{Address: []byte("pending"), ActivationEpoch: 100, ServiceUID: []byte("svc")},
+				}})
+				require.NoError(t, err)
+				if fault != "empty-account" {
+					require.NoError(t, user.SaveKeyValue([]byte("slot-one"), []byte("value-one")))
+					require.NoError(t, user.SaveKeyValue([]byte("slot-two"), []byte("value-two")))
+					require.NoError(t, user.SaveKeyValue(guardianKey, gs))
+				}
+				require.NoError(t, writer.SaveAccount(user))
+				root, err := writer.Commit()
+				require.NoError(t, err)
+				dataRoot := bytes.Clone(user.GetRootHash())
+				var rootBytes []byte
+				if fault == "missing-root" {
+					rootBytes, err = db.Get(dataRoot)
+					require.NoError(t, err)
+					require.NoError(t, db.Remove(dataRoot))
+				}
+				if fault == "missing-descendants" {
+					tr, errTrie := writer.GetTrie(dataRoot)
+					require.NoError(t, errTrie)
+					hashes, errHashes := tr.GetAllHashes()
+					require.NoError(t, errHashes)
+					removed := 0
+					for _, hash := range hashes {
+						if !bytes.Equal(hash, dataRoot) {
+							require.NoError(t, db.Remove(hash))
+							removed++
+						}
+					}
+					require.Positive(t, removed)
+				}
+				fresh := integrationtests.CreateAccountsDB(db, flags)
+				require.NoError(t, fresh.RecreateTrie(holders.NewDefaultRootHashesHolder(root)))
+				args := createMockBlockChainHookArgs()
+				args.Accounts = fresh
+				notifications := 0
+				args.MissingTrieNodesNotifier = &testscommon.MissingTrieNodesNotifierStub{AsyncNotifyMissingTrieNodeCalled: func(hash []byte) {
+					notifications++
+					if fault == "missing-root" {
+						require.Equal(t, dataRoot, hash)
+					}
+				}}
+				hook, err := hooks.NewBlockChainHookImpl(args)
+				require.NoError(t, err)
+				key := []byte("slot-one")
+				if fault == "missing-key" {
+					key = []byte("unset")
+				}
+				for attempt := 0; attempt < 2; attempt++ {
+					value, _, readErr := hook.GetStorageData(address, key)
+					if fault == "missing-root" {
+						require.ErrorIs(t, readErr, state.ErrDataTrieLoadFailed)
+						require.True(t, core.IsGetNodeFromDBError(readErr))
+						require.Equal(t, dataRoot, core.UnwrapGetNodeFromDBErr(readErr).GetKey())
+					} else {
+						require.NoError(t, readErr)
+						if fault == "healthy" {
+							require.Equal(t, []byte("value-one"), value)
+						} else {
+							require.Empty(t, value)
+						}
+					}
+				}
+				if fault == "missing-root" || fault == "missing-descendants" {
+					require.Equal(t, 2, notifications)
+				} else {
+					require.Zero(t, notifications)
+				}
+				acc, err := fresh.GetExistingAccount(address)
+				require.NoError(t, err)
+				ua := acc.(state.UserAccountHandler)
+				_, _, storageErr := ua.RetrieveValue([]byte("slot-one"))
+				if fault == "missing-descendants" {
+					require.Error(t, storageErr)
+					require.False(t, stdErrors.Is(storageErr, state.ErrDataTrieLoadFailed))
+				}
+				checker, err := guardian.NewGuardedAccount(integrationtests.TestMarshalizer, &epochNotifier.EpochNotifierStub{}, 10)
+				require.NoError(t, err)
+				active, pending, guardianErr := checker.GetConfiguredGuardians(ua)
+				hasPending, pendingErr := checker.HasPendingGuardian(ua)
+				if fault == "missing-root" {
+					require.ErrorIs(t, guardianErr, state.ErrDataTrieLoadFailed)
+					require.ErrorIs(t, pendingErr, state.ErrDataTrieLoadFailed)
+					_, activeErr := checker.GetActiveGuardian(acc.(vmcommon.UserAccountHandler))
+					require.ErrorIs(t, activeErr, state.ErrDataTrieLoadFailed)
+					require.NoError(t, db.Put(dataRoot, rootBytes))
+					value, _, retryErr := hook.GetStorageData(address, []byte("slot-one"))
+					require.NoError(t, retryErr)
+					require.Equal(t, []byte("value-one"), value)
+					active, pending, guardianErr = checker.GetConfiguredGuardians(ua)
+					require.NoError(t, guardianErr)
+					require.Equal(t, []byte("active"), active.Address)
+					require.Equal(t, []byte("pending"), pending.Address)
+				} else {
+					require.NoError(t, guardianErr)
+					require.NoError(t, pendingErr)
+					if fault == "healthy" || fault == "missing-key" {
+						require.Equal(t, []byte("active"), active.Address)
+						require.NotNil(t, pending)
+						require.True(t, hasPending)
+					} else {
+						require.Nil(t, active)
+						require.Nil(t, pending)
+						require.False(t, hasPending)
+					}
+				}
+			})
+		}
+	}
+}
+
+type crossVMLoadError struct {
+	mock.VMExecutionHandlerStub
+	runtimeError error
+}
+
+func (vm *crossVMLoadError) GetRuntimeErrors() error { return vm.runtimeError }
+
+func TestLazyDataTrieLoad_CrossVMBoundary(t *testing.T) {
+	cause := core.NewGetNodeFromDBErrWithKey([]byte("root"), stdErrors.New("missing"), "test")
+	for _, path := range []string{"direct", "runtime", "legacy-descendant"} {
+		t.Run(path, func(t *testing.T) {
+			loadErr := &state.DataTrieLoadError{Cause: cause}
+			executor := &crossVMLoadError{}
+			executor.RunSmartContractCallCalled = func(*vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+				if path == "direct" {
+					return nil, loadErr
+				}
+				var recorded error = loadErr
+				if path == "legacy-descendant" {
+					recorded = cause
+				}
+				executor.runtimeError = vmhost.WrapError(stdErrors.New("earlier failure")).WrapWithError(recorded)
+				return &vmcommon.VMOutput{ReturnCode: vmcommon.Ok}, nil
+			}
+			hook, err := hooks.NewBlockChainHookImpl(createMockBlockChainHookArgs())
+			require.NoError(t, err)
+			require.NoError(t, hook.SetVMContainer(&mock.VMContainerMock{GetCalled: func([]byte) (vmcommon.VMExecutionHandler, error) { return executor, nil }}))
+			output, err := hook.ExecuteSmartContractCallOnOtherVM(&vmcommon.ContractCallInput{RecipientAddr: make([]byte, 32)})
+			if path == "legacy-descendant" {
+				require.NoError(t, err)
+				require.NotNil(t, output)
+			} else {
+				require.Same(t, loadErr, err)
+				require.Nil(t, output)
+				require.Same(t, cause, core.UnwrapGetNodeFromDBErr(err))
+			}
+		})
+	}
+}
+
+func scQueryArchiveValue(epoch uint32, key int) []byte {
+	return []byte(fmt.Sprintf("epoch-%d/value-%d", epoch, key))
+}
+
+type scQueryArchiveFixture struct {
+	api              state.AccountsAdapterAPI
+	hook             *hooks.BlockChainHookImpl
+	address          []byte
+	accountBytes     map[uint32][]byte
+	selectEpoch      func(*testing.T, uint32, bool)
+	copyRootToActive func(*testing.T, uint32)
+}
+
+func newSCQueryArchiveFixture(t *testing.T, version core.TrieNodeVersion) *scQueryArchiveFixture {
+	t.Helper()
+	msh, hsh := &marshal.GogoProtoMarshalizer{}, blake2b.NewBlake2b()
+	flags := enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
+	if version == core.AutoBalanceEnabled {
+		flags.AddActiveFlags(common.AutoBalanceDataTriesFlag)
+	}
+
+	persisters := make(map[string]*testscommon.MemDbMock)
+	var mutPersisters sync.Mutex
+	getPersister := func(path string) *testscommon.MemDbMock {
+		mutPersisters.Lock()
+		defer mutPersisters.Unlock()
+		db := persisters[path]
+		if db == nil {
+			db = testscommon.NewMemDbMock()
+			persisters[path] = db
+		}
+		return db
+	}
+
+	var writerEpoch stdAtomic.Uint32
+	writerEpoch.Store(7)
+	// Keep all nodes visible to the writer and record each write in its epoch's persister.
+	writerDb := testscommon.NewMemDbMock()
+	writerDb.PutCalled = func(key, val []byte) error {
+		return getPersister(fmt.Sprintf("epoch-%d", writerEpoch.Load())).Put(key, val)
+	}
+	writerStore := &storageStubs.SnapshotPruningStorerStub{
+		MemDbMock:                   writerDb,
+		GetLatestStorageEpochCalled: func() (uint32, error) { return writerEpoch.Load(), nil },
+	}
+	wTsm, err := patriciaTrie.NewTrieStorageManager(patriciaTrie.NewTrieStorageManagerArgs{
+		MainStorer: writerStore, Marshalizer: msh, Hasher: hsh, Identifier: "writer",
+		IdleProvider: commonDisabled.NewProcessStatusHandler(), StatsCollector: statsDisabled.NewStateStatistics(),
+		GeneralConfig: config.TrieStorageManagerConfig{SnapshotsGoroutinesPerCore: 1},
+	})
+	require.NoError(t, err)
+	defer func() { _ = wTsm.Close() }()
+	wTrie, err := patriciaTrie.NewTrie(wTsm, msh, hsh, flags, collapseManager.NewDisabledCollapseManager())
+	require.NoError(t, err)
+	wHolder, _ := triesHolder.NewDataTriesHolder(1 << 20)
+	wFactory, err := stateFactory.NewAccountCreator(stateFactory.ArgsAccountCreator{
+		Hasher: hsh, Marshaller: msh, EnableEpochsHandler: flags,
+		StateAccessesCollector: disabled.NewDisabledStateAccessesCollector(),
+		DataTriesHolder:        wHolder, DataTrieCreator: wTrie,
+	})
+	require.NoError(t, err)
+	writer, err := state.NewAccountsDB(state.ArgsAccountsDB{
+		Trie: wTrie, Hasher: hsh, Marshaller: msh, AccountFactory: wFactory, DataTriesHolder: wHolder,
+		StateAccessesCollector: disabled.NewDisabledStateAccessesCollector(),
+		StoragePruningManager:  pruningDisabled.NewDisabledStoragePruningManager(),
+		AddressConverter:       &testscommon.PubkeyConverterStub{}, SnapshotsManager: disabled.NewDisabledSnapshotsManager(),
+	})
+	require.NoError(t, err)
+
+	scAddress := make([]byte, 32)
+	scAddress[10], scAddress[31] = 5, 1
+	roots := make(map[uint32][]byte)
+	dataRoots := make(map[uint32][]byte)
+	accountBytes := make(map[uint32][]byte)
+	for _, epoch := range []uint32{7, 12, 20} {
+		writerEpoch.Store(epoch)
+		acc, errL := writer.LoadAccount(scAddress)
+		require.NoError(t, errL)
+		user := acc.(state.UserAccountHandler)
+		user.IncreaseNonce(1)
+		for k := 0; k < 16; k++ {
+			require.NoError(t, user.SaveKeyValue([]byte(fmt.Sprintf("key-%d", k)), scQueryArchiveValue(epoch, k)))
+		}
+		require.NoError(t, writer.SaveAccount(user))
+		root, errC := writer.Commit()
+		require.NoError(t, errC)
+		roots[epoch] = root
+		acc2, _ := writer.GetExistingAccount(scAddress)
+		dataRoots[epoch] = acc2.(state.UserAccountHandler).GetRootHash()
+		accountBytes[epoch], err = msh.Marshal(acc2)
+		require.NoError(t, err)
+	}
+
+	// Only epochs 20 and 19 are active, so reading epoch 7 requires archive storage.
+	epochs := pruning.EpochArgs{StartingEpoch: 20, NumOfEpochsToKeep: 3, NumOfActivePersisters: 2}
+	fullStore, err := pruning.NewFullHistoryTriePruningStorer(pruning.FullHistoryStorerArgs{
+		NumOfOldActivePersisters: 2,
+		StorerArgs: pruning.StorerArgs{
+			Identifier: "UserAccountsUnit", PruningEnabled: true, EpochsData: epochs,
+			CacheConf:        storageunit.CacheConfig{Capacity: 100, Type: "LRU", Shards: 1},
+			ShardCoordinator: storageMock.NewShardCoordinatorMock(0, 2),
+			PathManager: &testscommon.PathManagerStub{PathForEpochCalled: func(_ string, e uint32, _ string) string {
+				return fmt.Sprintf("epoch-%d", e)
+			}},
+			PersisterFactory: &storageMock.PersisterFactoryStub{
+				CreateCalled: func(path string) (storage.Persister, error) { return getPersister(path), nil },
+				PersisterExistsCalled: func(path string) (bool, error) {
+					_, ok := persisters[path]
+					return ok, nil
+				},
+			},
+			Notifier:               &storageMock.EpochStartNotifierStub{},
+			OldDataCleanerProvider: &testscommon.OldDataCleanerProviderStub{},
+			CustomDatabaseRemover:  &testscommon.CustomDatabaseRemoverStub{},
+			MaxBatchSize:           10, PersistersTracker: pruning.NewPersistersTracker(epochs),
+			StateStatsHandler: statsDisabled.NewStateStatistics(),
+		},
+	})
+	require.NoError(t, err)
+	_, err = fullStore.Get(dataRoots[7])
+	require.Error(t, err, "epoch-7 data root must be outside the active persisters")
+	v, err := fullStore.GetFromEpoch(dataRoots[7], 7)
+	require.NoError(t, err)
+	require.NotEmpty(t, v)
+
+	trFactory, err := trieFactory.NewTrieFactory(trieFactory.TrieFactoryArgs{
+		Marshalizer: msh, Hasher: hsh, PathManager: &testscommon.PathManagerStub{},
+		TrieStorageManagerConfig: config.TrieStorageManagerConfig{SnapshotsGoroutinesPerCore: 1, PruningBufferLen: 10, SnapshotsBufferLen: 10},
+	})
+	require.NoError(t, err)
+	tsm, startupTrie, err := trFactory.Create(trieFactory.TrieCreateArgs{
+		MainStorer: fullStore, PruningEnabled: false, SnapshotsEnabled: false,
+		IdleProvider: commonDisabled.NewProcessStatusHandler(), Identifier: "UserAccountsUnit",
+		EnableEpochsHandler: flags, StatsCollector: statsDisabled.NewStateStatistics(),
+		MaxSizeInMemory: 1 << 30, NumLeavesToCollapseSingleRun: 100,
+	})
+	require.NoError(t, err)
+	defer func() { _ = tsm.Close() }()
+	dth, _ := triesHolder.NewDataTriesHolder(1 << 20)
+	accFactory, err := stateFactory.NewAccountCreator(stateFactory.ArgsAccountCreator{
+		Hasher: hsh, Marshaller: msh, EnableEpochsHandler: flags,
+		StateAccessesCollector: disabled.NewDisabledStateAccessesCollector(),
+		DataTriesHolder:        dth,
+		DataTrieCreator:        startupTrie,
+	})
+	require.NoError(t, err)
+	inner, err := state.NewAccountsDB(state.ArgsAccountsDB{
+		Trie: startupTrie, Hasher: hsh, Marshaller: msh, AccountFactory: accFactory,
+		StoragePruningManager: pruningDisabled.NewDisabledStoragePruningManager(),
+		AddressConverter:      &testscommon.PubkeyConverterStub{}, SnapshotsManager: disabled.NewDisabledSnapshotsManager(),
+		StateAccessesCollector: disabled.NewDisabledStateAccessesCollector(), DataTriesHolder: dth,
+	})
+	require.NoError(t, err)
+	var selected stdAtomic.Uint32
+	selected.Store(20)
+	api, err := state.NewAccountsDBApi(inner, &testscommon.BlockInfoProviderStub{
+		GetBlockInfoCalled: func() common.BlockInfo {
+			epoch := selected.Load()
+			return holders.NewBlockInfo([]byte(fmt.Sprintf("block-%d", epoch)), uint64(epoch)*10, roots[epoch])
+		},
+	})
+	require.NoError(t, err)
+
+	hookArgs := createMockBlockChainHookArgs()
+	hookArgs.Accounts = api
+	hookArgs.EnableEpochsHandler = flags
+	hookArgs.GasSchedule = testscommon.NewGasScheduleNotifierMock(map[string]map[string]uint64{common.MaxPerTransaction: {"MaxBuiltInCallsPerTx": 1000, "MaxNumberOfTransfersPerTx": 1000, "MaxNumberOfTrieReadsPerTx": 1000}})
+	hook, err := hooks.NewBlockChainHookImpl(hookArgs)
+	require.NoError(t, err)
+	fixture := &scQueryArchiveFixture{api: api, hook: hook, address: scAddress, accountBytes: accountBytes}
+	fixture.selectEpoch = func(t *testing.T, epoch uint32, ifNeeded bool) {
+		t.Helper()
+		selected.Store(epoch)
+		options := holders.NewRootHashHolder(roots[epoch], core.OptionalUint32{Value: epoch, HasValue: true})
+		if ifNeeded {
+			require.NoError(t, api.RecreateTrieIfNeeded(options))
+		} else {
+			require.NoError(t, api.RecreateTrie(options))
+		}
+	}
+	fixture.copyRootToActive = func(t *testing.T, epoch uint32) {
+		t.Helper()
+		encoded, errGet := getPersister(fmt.Sprintf("epoch-%d", epoch)).Get(dataRoots[epoch])
+		require.NoError(t, errGet)
+		require.NoError(t, getPersister("epoch-20").Put(dataRoots[epoch], encoded))
+		_, errGet = fullStore.Get(dataRoots[epoch])
+		require.NoError(t, errGet)
+	}
+	return fixture
+}
+
+func (fixture *scQueryArchiveFixture) account(t *testing.T, method string, epoch uint32) state.UserAccountHandler {
+	t.Helper()
+	var account vmcommon.AccountHandler
+	var err error
+	switch method {
+	case "existing":
+		account, err = fixture.api.GetExistingAccount(fixture.address)
+	case "load":
+		account, err = fixture.api.LoadAccount(fixture.address)
+	case "bytes":
+		account, err = fixture.api.GetAccountFromBytes(fixture.address, fixture.accountBytes[epoch])
+	}
+	require.NoError(t, err)
+	return account.(state.UserAccountHandler)
+}
+
+func TestSCQueryArchiveAccountEntryPoints(t *testing.T) {
+	for _, version := range []core.TrieNodeVersion{core.NotSpecified, core.AutoBalanceEnabled} {
+		for _, method := range []string{"existing", "load", "bytes"} {
+			for _, epoch := range []uint32{7, 12, 20} {
+				t.Run(fmt.Sprintf("version-%d/%s/epoch-%d", version, method, epoch), func(t *testing.T) {
+					f := newSCQueryArchiveFixture(t, version)
+					f.selectEpoch(t, epoch, method == "load")
+					account := f.account(t, method, epoch)
+					require.Equal(t, map[uint32]uint64{7: 1, 12: 2, 20: 3}[epoch], account.GetNonce())
+					for k := 0; k < 16; k++ {
+						value, _, err := account.RetrieveValue([]byte(fmt.Sprintf("key-%d", k)))
+						require.NoError(t, err)
+						require.Equal(t, scQueryArchiveValue(epoch, k), value)
+					}
+				})
+			}
+		}
+	}
+}
+
+func TestSCQueryArchiveRootActiveChildrenArchived(t *testing.T) {
+	for _, version := range []core.TrieNodeVersion{core.NotSpecified, core.AutoBalanceEnabled} {
+		for _, method := range []string{"existing", "load", "bytes"} {
+			t.Run(fmt.Sprintf("version-%d/%s", version, method), func(t *testing.T) {
+				f := newSCQueryArchiveFixture(t, version)
+				f.copyRootToActive(t, 7)
+				f.selectEpoch(t, 7, false)
+				account := f.account(t, method, 7)
+				value, _, err := account.RetrieveValue([]byte("key-0"))
+				require.NoError(t, err)
+				require.Equal(t, scQueryArchiveValue(7, 0), value)
+			})
+		}
+	}
+}
+
+func TestSCQueryArchiveHookStorage(t *testing.T) {
+	for _, version := range []core.TrieNodeVersion{core.NotSpecified, core.AutoBalanceEnabled} {
+		for _, epoch := range []uint32{7, 12, 20} {
+			t.Run(fmt.Sprintf("version-%d/epoch-%d", version, epoch), func(t *testing.T) {
+				f := newSCQueryArchiveFixture(t, version)
+				f.selectEpoch(t, epoch, false)
+				value, _, err := f.hook.GetStorageData(f.address, []byte("key-0"))
+				require.NoError(t, err)
+				require.Equal(t, scQueryArchiveValue(epoch, 0), value)
+			})
+		}
+	}
+}
+
+func TestSCQueryArchiveDelayedAccountReads(t *testing.T) {
+	for _, version := range []core.TrieNodeVersion{core.NotSpecified, core.AutoBalanceEnabled} {
+		for _, method := range []string{"existing", "load", "bytes"} {
+			t.Run(fmt.Sprintf("version-%d/%s", version, method), func(t *testing.T) {
+				f := newSCQueryArchiveFixture(t, version)
+				f.selectEpoch(t, 7, false)
+				old := f.account(t, method, 7)
+				f.selectEpoch(t, 12, true)
+				value, _, err := f.hook.GetStorageData(f.address, []byte("key-0"))
+				require.NoError(t, err)
+				require.Equal(t, scQueryArchiveValue(12, 0), value)
+				value, _, err = old.RetrieveValue([]byte("key-0"))
+				require.NoError(t, err)
+				require.Equal(t, scQueryArchiveValue(7, 0), value)
+				value, _, err = f.hook.GetStorageData(f.address, []byte("key-0"))
+				require.NoError(t, err)
+				require.Equal(t, scQueryArchiveValue(12, 0), value)
+			})
+		}
+	}
+}
+
+func TestSCQueryArchiveParallelReturnedAccounts(t *testing.T) {
+	for _, version := range []core.TrieNodeVersion{core.NotSpecified, core.AutoBalanceEnabled} {
+		t.Run(fmt.Sprintf("version-%d", version), func(t *testing.T) {
+			f := newSCQueryArchiveFixture(t, version)
+			accounts := make(map[uint32]state.UserAccountHandler)
+			for _, epoch := range []uint32{7, 12, 20} {
+				f.selectEpoch(t, epoch, false)
+				accounts[epoch] = f.account(t, "existing", epoch)
+			}
+			var wg sync.WaitGroup
+			failures := make(chan error, 3)
+			start := make(chan struct{})
+			for epoch, account := range accounts {
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					<-start
+					for k := 0; k < 16; k++ {
+						value, _, err := account.RetrieveValue([]byte(fmt.Sprintf("key-%d", k)))
+						if err != nil || !bytes.Equal(scQueryArchiveValue(epoch, k), value) {
+							failures <- fmt.Errorf("epoch %d key %d: value %q err %v", epoch, k, value, err)
+							return
+						}
+					}
+				}()
+			}
+			close(start)
+			f.selectEpoch(t, 12, false)
+			wg.Wait()
+			close(failures)
+			for err := range failures {
+				require.NoError(t, err)
+			}
+		})
+	}
 }

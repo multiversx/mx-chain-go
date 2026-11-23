@@ -24,6 +24,9 @@ import (
 	dataTx "github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/state/triesHolder"
+	testCommon "github.com/multiversx/mx-chain-go/testscommon/common"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 	"github.com/multiversx/mx-chain-storage-go/types"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
@@ -55,7 +58,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
-	testStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
 )
 
@@ -272,13 +274,12 @@ func TestAccountsDB_CommitTwoOkAccountsShouldWork(t *testing.T) {
 func TestTrieDB_RecreateFromStorageShouldWork(t *testing.T) {
 	hasher := integrationTests.TestHasher
 	store := integrationTests.CreateMemUnit()
-	args := testStorage.GetStorageManagerArgs()
+	args := testCommon.GetStorageManagerArgs()
 	args.MainStorer = store
 	args.Hasher = hasher
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 
-	maxTrieLevelInMemory := uint(5)
-	tr1, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
+	tr1, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager())
 
 	key := hasher.Compute("key")
 	value := hasher.Compute("value")
@@ -684,8 +685,7 @@ func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 	rootHash, err = adb.RootHash()
 	require.Nil(t, err)
 	hrCreated1 := base64.StdEncoding.EncodeToString(rootHash)
-	rootHash, err = state1.(state.UserAccountHandler).DataTrie().RootHash()
-	require.Nil(t, err)
+	rootHash = requireDataTrieRootHash(t, state1.(state.UserAccountHandler))
 	hrRoot1 := base64.StdEncoding.EncodeToString(rootHash)
 
 	fmt.Printf("State root - created 1-st account: %v\n", hrCreated1)
@@ -700,8 +700,7 @@ func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 	rootHash, err = adb.RootHash()
 	require.Nil(t, err)
 	hrCreated2 := base64.StdEncoding.EncodeToString(rootHash)
-	rootHash, err = state1.(state.UserAccountHandler).DataTrie().RootHash()
-	require.Nil(t, err)
+	rootHash = requireDataTrieRootHash(t, state1.(state.UserAccountHandler))
 	hrRoot2 := base64.StdEncoding.EncodeToString(rootHash)
 
 	fmt.Printf("State root - created 2-nd account: %v\n", hrCreated2)
@@ -763,8 +762,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	rootHash, err = adb.RootHash()
 	require.Nil(t, err)
 	hrCreated1 := base64.StdEncoding.EncodeToString(rootHash)
-	rootHash, err = state1.(state.UserAccountHandler).DataTrie().RootHash()
-	require.Nil(t, err)
+	rootHash = requireDataTrieRootHash(t, state1.(state.UserAccountHandler))
 	hrRoot1 := base64.StdEncoding.EncodeToString(rootHash)
 
 	fmt.Printf("State root - created 1-st account: %v\n", hrCreated1)
@@ -779,8 +777,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	rootHash, err = adb.RootHash()
 	require.Nil(t, err)
 	hrCreated2 := base64.StdEncoding.EncodeToString(rootHash)
-	rootHash, err = userAccount.(state.UserAccountHandler).DataTrie().RootHash()
-	require.Nil(t, err)
+	rootHash = requireDataTrieRootHash(t, userAccount.(state.UserAccountHandler))
 	hrRoot2 := base64.StdEncoding.EncodeToString(rootHash)
 
 	fmt.Printf("State root - created 2-nd account: %v\n", hrCreated2)
@@ -809,8 +806,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	rootHash, err = adb.RootHash()
 	require.Nil(t, err)
 	hrCreated2p1 := base64.StdEncoding.EncodeToString(rootHash)
-	rootHash, err = userAccount.(state.UserAccountHandler).DataTrie().RootHash()
-	require.Nil(t, err)
+	rootHash = requireDataTrieRootHash(t, userAccount.(state.UserAccountHandler))
 	hrRoot2p1 := base64.StdEncoding.EncodeToString(rootHash)
 
 	fmt.Printf("State root - modified 2-nd account: %v\n", hrCreated2p1)
@@ -831,8 +827,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 
 	userAccount, err = adb.LoadAccount(adr2)
 	require.Nil(t, err)
-	rootHash, err = userAccount.(state.UserAccountHandler).DataTrie().RootHash()
-	require.Nil(t, err)
+	rootHash = requireDataTrieRootHash(t, userAccount.(state.UserAccountHandler))
 	hrRoot2Rev := base64.StdEncoding.EncodeToString(rootHash)
 	fmt.Printf("State root - reverted 2-nd account: %v\n", hrCreated2Rev)
 	fmt.Printf("data root - 2-nd account: %v\n", hrRoot2Rev)
@@ -1057,17 +1052,19 @@ func createAccounts(
 		HashesSize:     evictionWaitListSize * 100,
 	}
 	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(ewlArgs)
-	args := testStorage.GetStorageManagerArgs()
+	args := testCommon.GetStorageManagerArgs()
 	args.MainStorer = store
 	trieStorage, _ := trie.NewTrieStorageManager(args)
-	maxTrieLevelInMemory := uint(5)
-	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
+	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager())
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
+	dth, _ := triesHolder.NewDataTriesHolder(integrationTests.TenMbSize)
 	argsAccCreator := factory.ArgsAccountCreator{
 		Hasher:                 integrationTests.TestHasher,
 		Marshaller:             integrationTests.TestMarshalizer,
 		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
+		DataTriesHolder:        dth,
+		DataTrieCreator:        tr,
 	}
 	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
 	snapshotsManager, _ := state.NewSnapshotsManager(state.ArgsNewSnapshotsManager{
@@ -1090,6 +1087,7 @@ func createAccounts(
 		AddressConverter:       &testscommon.PubkeyConverterMock{},
 		SnapshotsManager:       snapshotsManager,
 		StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
+		DataTriesHolder:        dth,
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
@@ -1277,8 +1275,11 @@ func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 	require.NotNil(t, acc)
 	require.Nil(t, err)
 
-	collapseTrie(state1, t)
-	collapseTrie(userAccount, t)
+	acc1, _ = adb.LoadAccount(address1)
+	state1 = acc1.(state.UserAccountHandler)
+
+	acc2, _ = adb.LoadAccount(address2)
+	userAccount = acc2.(state.UserAccountHandler)
 
 	val, _, err := state1.RetrieveValue(key1)
 	require.Nil(t, err)
@@ -1287,15 +1288,6 @@ func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 	val, _, err = userAccount.RetrieveValue(key2)
 	require.Nil(t, err)
 	require.Equal(t, value1, val)
-}
-
-func collapseTrie(state state.UserAccountHandler, t *testing.T) {
-	stateRootHash := state.GetRootHash()
-	stateTrie := state.DataTrie().(common.Trie)
-	stateNewTrie, _ := stateTrie.Recreate(holders.NewDefaultRootHashesHolder(stateRootHash))
-	require.NotNil(t, stateNewTrie)
-
-	state.SetDataTrie(stateNewTrie)
 }
 
 func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T) {
@@ -2563,7 +2555,9 @@ func getAddressMigrationStatus(t *testing.T, adb state.AccountsAdapter, address 
 	userAccount, ok := account.(state.UserAccountHandler)
 	require.True(t, ok)
 
-	isMigrated, err := userAccount.DataTrie().IsMigratedToLatestVersion()
+	dataTrie, err := userAccount.DataTrie()
+	require.NoError(t, err)
+	isMigrated, err := dataTrie.IsMigratedToLatestVersion()
 	require.Nil(t, err)
 
 	return isMigrated
@@ -2734,17 +2728,19 @@ func createAccountsDBTestSetup() *state.AccountsDB {
 		HashesSize:     evictionWaitListSize * 100,
 	}
 	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(ewlArgs)
-	args := testStorage.GetStorageManagerArgs()
+	args := testCommon.GetStorageManagerArgs()
 	args.GeneralConfig = generalCfg
 	trieStorage, _ := trie.NewTrieStorageManager(args)
-	maxTrieLevelInMemory := uint(5)
-	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
+	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager())
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
+	dth, _ := triesHolder.NewDataTriesHolder(integrationTests.TenMbSize)
 	argsAccCreator := factory.ArgsAccountCreator{
 		Hasher:                 integrationTests.TestHasher,
 		Marshaller:             integrationTests.TestMarshalizer,
 		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
+		DataTriesHolder:        dth,
+		DataTrieCreator:        tr,
 	}
 	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
 
@@ -2769,6 +2765,7 @@ func createAccountsDBTestSetup() *state.AccountsDB {
 		AddressConverter:       &testscommon.PubkeyConverterMock{},
 		SnapshotsManager:       snapshotsManager,
 		StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
+		DataTriesHolder:        dth,
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
@@ -2790,11 +2787,10 @@ func TestStateSnapshot_MultipleEpochsWithoutCompleteSnapshot(t *testing.T) {
 	numEpochs := 5
 	getCounters := make([]int, numEpochs)
 
-	args := testStorage.GetStorageManagerArgs()
+	args := testCommon.GetStorageManagerArgs()
 	args.MainStorer = mainStorer
 	trieStorage, _ := trie.NewTrieStorageManager(args)
-	maxTrieLevelInMemory := uint(5)
-	tr, _ := trie.NewTrie(trieStorage, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
+	tr, _ := trie.NewTrie(trieStorage, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager())
 	defer func() {
 		_ = trieStorage.Close()
 	}()
@@ -2878,4 +2874,14 @@ func addDataToTrie(t *testing.T, tr common.Trie, startIndex int, numEntries int)
 	}
 
 	return numLeaves
+}
+
+func requireDataTrieRootHash(t *testing.T, account state.UserAccountHandler) []byte {
+	t.Helper()
+	dataTrie, err := account.DataTrie()
+	require.NoError(t, err)
+	require.NotNil(t, dataTrie)
+	rootHash, err := dataTrie.RootHash()
+	require.NoError(t, err)
+	return rootHash
 }

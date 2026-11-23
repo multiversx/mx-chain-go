@@ -3,6 +3,7 @@ package trie
 import (
 	"context"
 	"errors"
+
 	"sync"
 	"testing"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	trieMock "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -18,8 +20,8 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
-	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
+	"github.com/multiversx/mx-chain-go/trie/trieMetricsCollector"
 )
 
 func createMockArgument(timeout time.Duration) ArgTrieSyncer {
@@ -225,10 +227,10 @@ func TestTrieSync_FoundInStorageShouldNotRequest(t *testing.T) {
 		},
 	}
 
-	err = bn.commitDirty(0, 5, db, db)
+	err = bn.commitDirty(db, db)
 	require.Nil(t, err)
 
-	leaves, err := bn.getChildren(db)
+	leaves, err := bn.getChildren(trieMetricsCollector.NewDisabledTrieMetricsCollector(), db)
 	require.Nil(t, err)
 	numLeaves := len(leaves)
 

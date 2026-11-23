@@ -1,6 +1,7 @@
 package components
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
@@ -539,14 +540,23 @@ func (node *testOnlyProcessingNode) SetStateForAddress(address []byte, addressSt
 	if err != nil {
 		return err
 	}
-	if len(rootHash) != 0 {
-		userAccount.SetRootHash(rootHash)
-	}
 
 	accountsAdapter := node.StateComponentsHolder.AccountsAdapter()
+	var snapshot int
+	if len(rootHash) != 0 {
+		snapshot = accountsAdapter.JournalLen()
+	}
 	err = accountsAdapter.SaveAccount(userAccount)
 	if err != nil {
 		return err
+	}
+
+	if len(rootHash) != 0 && !bytes.Equal(userAccount.GetRootHash(), rootHash) {
+		mismatchErr := fmt.Errorf("account root hash does not match the provided one, expected: %s, got: %s", rootHash, userAccount.GetRootHash())
+		if revertErr := accountsAdapter.RevertToSnapshot(snapshot); revertErr != nil {
+			return errors.Join(mismatchErr, fmt.Errorf("could not revert rejected account state: %w", revertErr))
+		}
+		return mismatchErr
 	}
 
 	newRootHash, err := accountsAdapter.Commit()

@@ -38,7 +38,9 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
 
-const unreachableStep = 10000
+const (
+	unreachableStep = 10000
+)
 
 type failingSteps struct {
 	marshallerStepCounter int
@@ -331,7 +333,9 @@ func createMockSCQueryElementArgs() api.SCQueryElementArgs {
 				SnapshotsGoroutinesPerCore: 1,
 			},
 			StateTriesConfig: config.StateTriesConfig{
-				MaxStateTrieLevelInMemory: 5,
+				MaxUserTrieSizeInMemory: common.TenMbSize,
+				MaxPeerTrieSizeInMemory: common.TenMbSize,
+				DataTriesSizeInMemory:   common.TenMbSize,
 			},
 			VirtualMachine: config.VirtualMachineServicesConfig{
 				Querying: config.QueryVirtualMachineConfig{

@@ -23,9 +23,8 @@ func (dga *disabledGuardedAccount) HasActiveGuardian(_ state.UserAccountHandler)
 	return false
 }
 
-// HasPendingGuardian returns false as this is a disabled implementation
-func (dga *disabledGuardedAccount) HasPendingGuardian(_ state.UserAccountHandler) bool {
-	return false
+func (dga *disabledGuardedAccount) HasPendingGuardian(_ state.UserAccountHandler) (bool, error) {
+	return false, nil
 }
 
 // SetGuardian returns nil as this is a disabled implementation

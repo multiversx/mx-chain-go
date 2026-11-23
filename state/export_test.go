@@ -13,11 +13,6 @@ func (adb *AccountsDB) LoadCode(accountHandler baseAccountHandler) error {
 	return adb.loadCode(accountHandler)
 }
 
-// LoadDataTrieConcurrentSafe -
-func (adb *AccountsDB) LoadDataTrieConcurrentSafe(accountHandler baseAccountHandler) error {
-	return adb.loadDataTrieConcurrentSafe(accountHandler, adb.getMainTrie())
-}
-
 // GetAccount -
 func (adb *AccountsDB) GetAccount(address []byte) (vmcommon.AccountHandler, error) {
 	return adb.getAccount(address, adb.getMainTrie())

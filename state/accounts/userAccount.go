@@ -147,6 +147,22 @@ func (a *userAccount) SetCodeHash(codeHash []byte) {
 // SetRootHash sets the root hash associated with the account
 func (a *userAccount) SetRootHash(roothash []byte) {
 	a.RootHash = roothash
+	a.dataTrieInteractor.SetRootHash(roothash)
+}
+
+// SetDataTrieRootHash sets the root hash of the data trie to the one stored in the account
+func (a *userAccount) SetDataTrieRootHash() {
+	a.dataTrieInteractor.SetRootHash(a.RootHash)
+}
+
+// SetDataTrieCreator binds the lazy loader before the account is returned to its caller.
+func (a *userAccount) SetDataTrieCreator(creator common.DataTrieCreator) {
+	a.dataTrieInteractor.SetDataTrieCreator(creator)
+}
+
+// EnableDataTrieRootValidation enables cache-root checks for a read-only account.
+func (a *userAccount) EnableDataTrieRootValidation() {
+	a.dataTrieInteractor.EnableDataTrieRootValidation()
 }
 
 // SetCodeMetadata sets the code metadata
@@ -166,7 +182,10 @@ func (a *userAccount) GetAllLeaves(
 	leavesChannels *common.TrieIteratorChannels,
 	ctx context.Context,
 ) error {
-	dt := a.DataTrie()
+	dt, err := a.DataTrie()
+	if err != nil {
+		return err
+	}
 	if check.IfNil(dt) {
 		return errors.ErrNilTrie
 	}
@@ -181,7 +200,10 @@ func (a *userAccount) GetAllLeaves(
 
 // IsDataTrieMigrated returns true if the data trie is migrated to the latest version
 func (a *userAccount) IsDataTrieMigrated() (bool, error) {
-	dt := a.DataTrie()
+	dt, err := a.DataTrie()
+	if err != nil {
+		return false, err
+	}
 	if check.IfNil(dt) {
 		return false, errors.ErrNilTrie
 	}

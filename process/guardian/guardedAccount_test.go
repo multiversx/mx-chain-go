@@ -818,7 +818,9 @@ func TestGuardedAccount_HasPendingGuardian(t *testing.T) {
 
 	t.Run("nil account type should return false", func(t *testing.T) {
 		var uah *stateMocks.UserAccountStub
-		require.False(t, ga.HasPendingGuardian(uah))
+		hasPending, err := ga.HasPendingGuardian(uah)
+		require.NoError(t, err)
+		require.False(t, hasPending)
 	})
 	t.Run("getConfiguredGuardians with err should return false", func(t *testing.T) {
 		expectedErr := errors.New("expected error")
@@ -827,7 +829,9 @@ func TestGuardedAccount_HasPendingGuardian(t *testing.T) {
 				return nil, 0, expectedErr
 			},
 		}
-		require.False(t, ga.HasPendingGuardian(uah))
+		hasPending, err := ga.HasPendingGuardian(uah)
+		require.NoError(t, err)
+		require.False(t, hasPending)
 	})
 	t.Run("no guardian should return false", func(t *testing.T) {
 		configuredGuardians := &guardians.Guardians{}
@@ -838,7 +842,9 @@ func TestGuardedAccount_HasPendingGuardian(t *testing.T) {
 			},
 		}
 
-		require.False(t, ga.HasPendingGuardian(uah))
+		hasPending, err := ga.HasPendingGuardian(uah)
+		require.NoError(t, err)
+		require.False(t, hasPending)
 	})
 	t.Run("one pending guardian should return true", func(t *testing.T) {
 		pendingGuardian := &guardians.Guardian{
@@ -853,7 +859,9 @@ func TestGuardedAccount_HasPendingGuardian(t *testing.T) {
 			},
 		}
 
-		require.True(t, ga.HasPendingGuardian(uah))
+		hasPending, err := ga.HasPendingGuardian(uah)
+		require.NoError(t, err)
+		require.True(t, hasPending)
 	})
 	t.Run("one active guardian should return false", func(t *testing.T) {
 		activeGuardian := &guardians.Guardian{
@@ -868,7 +876,9 @@ func TestGuardedAccount_HasPendingGuardian(t *testing.T) {
 			},
 		}
 
-		require.False(t, ga.HasPendingGuardian(uah))
+		hasPending, err := ga.HasPendingGuardian(uah)
+		require.NoError(t, err)
+		require.False(t, hasPending)
 	})
 	t.Run("one active guardian and one pending new guardian should return true", func(t *testing.T) {
 		activeGuardian := &guardians.Guardian{
@@ -888,7 +898,9 @@ func TestGuardedAccount_HasPendingGuardian(t *testing.T) {
 			},
 		}
 
-		require.True(t, ga.HasPendingGuardian(uah))
+		hasPending, err := ga.HasPendingGuardian(uah)
+		require.NoError(t, err)
+		require.True(t, hasPending)
 	})
 	t.Run("one active guardian and one disabled (old) guardian should return false", func(t *testing.T) {
 		activeGuardian := &guardians.Guardian{
@@ -908,7 +920,9 @@ func TestGuardedAccount_HasPendingGuardian(t *testing.T) {
 			},
 		}
 
-		require.False(t, ga.HasPendingGuardian(uah))
+		hasPending, err := ga.HasPendingGuardian(uah)
+		require.NoError(t, err)
+		require.False(t, hasPending)
 	})
 }
 

@@ -149,7 +149,7 @@ func TestDirectStakedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 
 func createScAccount(address []byte, leaves [][]byte, rootHash []byte, timeSleep time.Duration) state.UserAccountHandler {
 	dtt := &trieMock.DataTrieTrackerStub{
-		DataTrieCalled: func() common.Trie {
+		DataTrieCalled: func() (common.DataTrieHandler, error) {
 			return &trieMock.TrieStub{
 				RootCalled: func() ([]byte, error) {
 					return rootHash, nil
@@ -168,7 +168,7 @@ func createScAccount(address []byte, leaves [][]byte, rootHash []byte, timeSleep
 
 					return nil
 				},
-			}
+			}, nil
 		},
 	}
 
