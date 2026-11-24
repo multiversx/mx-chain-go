@@ -1092,11 +1092,7 @@ func (bh *BlockChainHookImpl) ExecuteSmartContractCallOnOtherVM(input *vmcommon.
 	if err != nil {
 		return nil, err
 	}
-	output, err := vmExec.RunSmartContractCall(input)
-	if loadError := scrCommon.GetDataTrieLoadError(vmExec, err); loadError != nil {
-		return nil, loadError
-	}
-	return output, err
+	return vmExec.RunSmartContractCall(input)
 }
 
 // SetVMContainer sets the vm container in order to be used for sc execution via blockchain

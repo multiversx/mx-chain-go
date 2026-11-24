@@ -36,7 +36,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
-	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	syncDisabled "github.com/multiversx/mx-chain-go/process/sync/disabled"
 	processTransaction "github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/state"
@@ -1325,21 +1324,17 @@ func TestLazyDataTrieLoad_WASMExecutionAndQuery(t *testing.T) {
 				require.NoError(t, err)
 				require.Equal(t, vmcommon.Ok, output.ReturnCode)
 				require.Equal(t, [][]byte{{1}}, output.ReturnData)
-				require.NoError(t, scrCommon.GetDataTrieLoadError(vmExec, nil))
 				require.NoError(t, storage.Remove(dataRoot))
 				require.NoError(t, ctx.Accounts.RecreateTrie(holders.NewDefaultRootHashesHolder(root)))
 				// The real VM turns a hook error into ExecutionFailed with a nil Go error.
 				output, err = vmExec.RunSmartContractCall(input)
 				require.NoError(t, err)
 				require.Equal(t, vmcommon.ExecutionFailed, output.ReturnCode)
-				loadErr := scrCommon.GetDataTrieLoadError(vmExec, err)
-				require.ErrorIs(t, loadErr, state.ErrDataTrieLoadFailed)
-				require.Equal(t, dataRoot, core.UnwrapGetNodeFromDBErr(loadErr).GetKey())
 				// A read-only method isolates the VM fault from any later SaveAccount error.
 				tx = vm.CreateTransaction(1, big.NewInt(0), owner, address, 10, 100000, []byte("get"))
-				_, err = ctx.TxProcessor.ProcessTransaction(tx)
-				require.ErrorIs(t, err, state.ErrDataTrieLoadFailed)
-				require.Equal(t, dataRoot, core.UnwrapGetNodeFromDBErr(err).GetKey())
+				result, err = ctx.TxProcessor.ProcessTransaction(tx)
+				require.NoError(t, err)
+				require.Equal(t, vmcommon.UserError, result)
 				require.NoError(t, ctx.Accounts.RecreateTrie(holders.NewDefaultRootHashesHolder(root)))
 				queryService, err := smartContract.NewSCQueryService(smartContract.ArgsNewSCQueryService{
 					VmContainer: ctx.VMContainer, EconomicsFee: &economicsmocks.EconomicsHandlerMock{},
@@ -1353,9 +1348,8 @@ func TestLazyDataTrieLoad_WASMExecutionAndQuery(t *testing.T) {
 				require.NoError(t, err)
 				query := &process.SCQuery{ScAddress: address, FuncName: "get", CallValue: big.NewInt(0)}
 				output, _, err = queryService.ExecuteQuery(query)
-				require.ErrorIs(t, err, state.ErrDataTrieLoadFailed)
-				require.Nil(t, output)
-				// Repair the node, then retry on the same VM to detect stale runtime failures.
+				require.NoError(t, err)
+				require.Equal(t, vmcommon.ExecutionFailed, output.ReturnCode)
 				require.NoError(t, storage.Put(dataRoot, encodedRoot))
 				output, _, err = queryService.ExecuteQuery(query)
 				require.NoError(t, err)

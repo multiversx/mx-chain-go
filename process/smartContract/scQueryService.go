@@ -245,10 +245,6 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 	query = prepareScQuery(query)
 	vmInput := service.createVMCallInput(query, gasPrice)
 	vmOutput, err := vm.RunSmartContractCall(vmInput)
-	if loadError := scrCommon.GetDataTrieLoadError(vm, err); loadError != nil {
-		service.wasmVMChangeLocker.RUnlock()
-		return nil, nil, loadError
-	}
 	service.wasmVMChangeLocker.RUnlock()
 	if err != nil {
 		return nil, nil, err

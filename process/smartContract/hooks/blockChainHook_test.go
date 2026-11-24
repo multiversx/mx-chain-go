@@ -25,7 +25,6 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
-	vmhost "github.com/multiversx/mx-chain-vm-go/vmhost"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -3398,44 +3397,23 @@ func TestLazyDataTrieLoad_RealStorageConsumers(t *testing.T) {
 	}
 }
 
-type crossVMLoadError struct {
-	mock.VMExecutionHandlerStub
-	runtimeError error
-}
-
-func (vm *crossVMLoadError) GetRuntimeErrors() error { return vm.runtimeError }
-
 func TestLazyDataTrieLoad_CrossVMBoundary(t *testing.T) {
 	cause := core.NewGetNodeFromDBErrWithKey([]byte("root"), stdErrors.New("missing"), "test")
-	for _, path := range []string{"direct", "runtime", "legacy-descendant"} {
-		t.Run(path, func(t *testing.T) {
-			loadErr := &state.DataTrieLoadError{Cause: cause}
-			executor := &crossVMLoadError{}
-			executor.RunSmartContractCallCalled = func(*vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
-				if path == "direct" {
-					return nil, loadErr
-				}
-				var recorded error = loadErr
-				if path == "legacy-descendant" {
-					recorded = cause
-				}
-				executor.runtimeError = vmhost.WrapError(stdErrors.New("earlier failure")).WrapWithError(recorded)
-				return &vmcommon.VMOutput{ReturnCode: vmcommon.Ok}, nil
-			}
-			hook, err := hooks.NewBlockChainHookImpl(createMockBlockChainHookArgs())
-			require.NoError(t, err)
-			require.NoError(t, hook.SetVMContainer(&mock.VMContainerMock{GetCalled: func([]byte) (vmcommon.VMExecutionHandler, error) { return executor, nil }}))
-			output, err := hook.ExecuteSmartContractCallOnOtherVM(&vmcommon.ContractCallInput{RecipientAddr: make([]byte, 32)})
-			if path == "legacy-descendant" {
-				require.NoError(t, err)
-				require.NotNil(t, output)
-			} else {
-				require.Same(t, loadErr, err)
-				require.Nil(t, output)
-				require.Same(t, cause, core.UnwrapGetNodeFromDBErr(err))
-			}
-		})
+	loadErr := &state.DataTrieLoadError{Cause: cause}
+	executor := &mock.VMExecutionHandlerStub{
+		RunSmartContractCallCalled: func(*vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+			return nil, loadErr
+		},
 	}
+	hook, err := hooks.NewBlockChainHookImpl(createMockBlockChainHookArgs())
+	require.NoError(t, err)
+	require.NoError(t, hook.SetVMContainer(&mock.VMContainerMock{
+		GetCalled: func([]byte) (vmcommon.VMExecutionHandler, error) { return executor, nil },
+	}))
+
+	output, err := hook.ExecuteSmartContractCallOnOtherVM(&vmcommon.ContractCallInput{RecipientAddr: make([]byte, 32)})
+	require.Same(t, loadErr, err)
+	require.Nil(t, output)
 }
 
 func scQueryArchiveValue(epoch uint32, key int) []byte {
