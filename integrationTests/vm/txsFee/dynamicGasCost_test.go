@@ -36,7 +36,9 @@ func TestDynamicGasCostForDataTrieStorageLoad(t *testing.T) {
 
 	scAddress, _ := utils.DoDeployNoChecks(t, testContext, "../wasm/testdata/trieStoreAndLoad/output/storage.wasm")
 	acc := getAccount(t, testContext, scAddress)
-	require.Nil(t, acc.DataTrie())
+	dataTrie, err := acc.DataTrie()
+	require.NoError(t, err)
+	require.Nil(t, dataTrie)
 
 	sndNonce := uint64(0)
 	sndAddr := []byte("12345678901234567890123456789112")

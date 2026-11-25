@@ -43,6 +43,8 @@ func (d *disabledCollapseManager) CloneWithoutState() common.TrieCollapseManager
 	return NewDisabledCollapseManager()
 }
 
+func (d *disabledCollapseManager) Reset() {}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (d *disabledCollapseManager) IsInterfaceNil() bool {
 	return d == nil

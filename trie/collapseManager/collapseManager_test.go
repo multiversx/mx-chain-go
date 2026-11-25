@@ -1,11 +1,13 @@
 package collapseManager
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewCollapseManager(t *testing.T) {
@@ -194,4 +196,50 @@ func TestCollapseManager_CloneWithoutState(t *testing.T) {
 	assert.Equal(t, 0, len(clonedCM.accessedKeys))
 	assert.Equal(t, 0, clonedCM.orderAccess.Len())
 	assert.Equal(t, 0, clone.GetSizeInMemory())
+}
+
+func TestCollapseManager_ShouldCollapseTrieRegardlessOfTrackedKeyCount(t *testing.T) {
+	for _, count := range []int{0, 999, 1000, 1200} {
+		t.Run(fmt.Sprintf("keys-%d", count), func(t *testing.T) {
+			manager, err := NewCollapseManager(minSizeInMemory, 100)
+			require.NoError(t, err)
+			for i := 0; i < count; i++ {
+				manager.MarkKeyAsAccessed([]byte(fmt.Sprintf("key-%d", i)), 0)
+			}
+			require.False(t, manager.ShouldCollapseTrie())
+			manager.AddSizeInMemory(minSizeInMemory)
+			require.False(t, manager.ShouldCollapseTrie(), "the exact budget is allowed")
+			manager.AddSizeInMemory(1)
+			require.True(t, manager.ShouldCollapseTrie())
+		})
+	}
+}
+
+func TestCollapseManager_ResetReleasesTrackingAndKeepsConfig(t *testing.T) {
+	const budget = 2 << 20
+	manager, err := NewCollapseManager(budget, 1)
+	require.NoError(t, err)
+	for _, key := range []string{"old a", "old b", "old c"} {
+		manager.MarkKeyAsAccessed([]byte(key), budget)
+	}
+	require.True(t, manager.ShouldCollapseTrie())
+	oldKeys := manager.accessedKeys
+
+	manager.Reset()
+	require.Empty(t, manager.accessedKeys)
+	require.Zero(t, manager.orderAccess.Len())
+	require.Zero(t, manager.GetSizeInMemory())
+	require.False(t, manager.ShouldCollapseTrie())
+	require.Len(t, oldKeys, 3, "replacing the map releases its retained capacity")
+
+	clone := manager.CloneWithoutState().(*collapseManager)
+	require.EqualValues(t, budget, clone.maxSizeInMem)
+	require.Equal(t, 1, clone.numLeavesToCollapseSingleRun)
+	require.Zero(t, clone.GetSizeInMemory())
+
+	manager.MarkKeyAsAccessed([]byte("oldest"), budget)
+	manager.MarkKeyAsAccessed([]byte("newest"), 0)
+	keys, err := manager.GetCollapsibleLeaves()
+	require.NoError(t, err)
+	require.Equal(t, [][]byte{[]byte("oldest")}, keys)
 }

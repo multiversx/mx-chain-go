@@ -7,9 +7,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/storage"
 	logger "github.com/multiversx/mx-chain-logger-go"
-	"github.com/multiversx/mx-chain-storage-go/lrucache/capacity"
+	storageCommon "github.com/multiversx/mx-chain-storage-go/common"
 )
 
 const maxTrieSizeMinValue = 1 * 1024 * 1024 // 1 MB
@@ -20,7 +19,7 @@ var log = logger.GetOrCreate("state/dataTriesHolder")
 // It uses a doubly linked list to keep track of the order in which the tries were used
 // and evicts the oldest used tries when the total size exceeds a maximum limit.
 type dataTriesHolder struct {
-	cacher        storage.AdaptedSizedLRUCache
+	cacher        dataTrieCache
 	dirtyTries    map[string]struct{}    // These are the tries that have been modified and need to be persisted
 	touchedTries  map[string]struct{}    // These are needed to compute an accurate totalTriesSize
 	evictedBuffer map[string]common.Trie // in case eviction happens for a dirty trie, we keep it here until we commit it
@@ -35,13 +34,12 @@ func NewDataTriesHolder(maxTriesSize uint64) (*dataTriesHolder, error) {
 	}
 	log.Trace("creating new data tries holder", "maxTriesSize", maxTriesSize)
 
-	c, err := capacity.NewCapacityLRU(math.MaxInt, int64(maxTriesSize))
-	if err != nil {
-		return nil, err
+	if maxTriesSize > math.MaxInt64 {
+		return nil, storageCommon.ErrCacheCapacityInvalid
 	}
 
 	return &dataTriesHolder{
-		cacher:        c,
+		cacher:        newDataTrieCache(maxTriesSize),
 		dirtyTries:    make(map[string]struct{}),
 		touchedTries:  make(map[string]struct{}),
 		evictedBuffer: make(map[string]common.Trie),
@@ -63,57 +61,35 @@ func (dth *dataTriesHolder) putNoLock(key []byte, tr common.Trie) {
 		return
 	}
 
-	dth.clearFromEvictedBuffer(key)
-
-	keyString := string(key)
-	evicted := dth.cacher.AddSizedAndReturnEvicted(keyString, tr, int64(tr.SizeInMemory()))
-	dth.dirtyTries[keyString] = struct{}{}
-	dth.touchedTries[keyString] = struct{}{}
-
-	if log.GetLevel() == logger.LogTrace {
-		log.Trace("put trie in data tries holder", "key", key, "trieSize", tr.SizeInMemory(), "totalCacheSize", dth.cacher.SizeInBytesContained())
-	}
-
-	if len(evicted) == 0 {
+	size := tr.SizeInMemory()
+	if size < 0 {
+		log.Warn("invalid data trie size", "key", key, "size", size)
 		return
 	}
 
-	for evictedKey, evictedValue := range evicted {
-		evictedKeyString, ok := evictedKey.(string)
-		if !ok {
-			log.Warn("invalid data in dataTriesHolder cache", "entry type", fmt.Sprintf("%T", evictedKey))
-			continue
-		}
-		log.Trace("trie evicted from dataTriesHolder cache", "key", []byte(evictedKeyString))
+	keyString := string(key)
+	if _, wasEvicted := dth.evictedBuffer[keyString]; wasEvicted {
+		delete(dth.evictedBuffer, keyString)
+		log.Trace("removed trie from evicted buffer", "key", key)
+	}
+	dth.cacher.put(keyString, tr, uint64(size))
+	dth.dirtyTries[keyString] = struct{}{}
+	dth.touchedTries[keyString] = struct{}{}
+	dth.evictOverBudget()
 
-		_, ok = dth.dirtyTries[evictedKeyString]
-		if !ok {
-			continue
-		}
-
-		evictedTrie, ok := evictedValue.(common.Trie)
-		if !ok {
-			log.Warn("invalid data in dataTriesHolder cache", "entry type", fmt.Sprintf("%T", evictedValue))
-			continue
-		}
-		log.Trace("storing evicted dirty trie in evicted buffer", "key", []byte(evictedKeyString))
-		dth.evictedBuffer[evictedKeyString] = evictedTrie
+	if log.GetLevel() == logger.LogTrace {
+		log.Trace("put trie in data tries holder", "key", key, "trieSize", size, "totalCacheSize", dth.cacher.size)
 	}
 }
 
-func (dth *dataTriesHolder) clearFromEvictedBuffer(key []byte) {
-	if len(dth.evictedBuffer) == 0 {
-		return
+func (dth *dataTriesHolder) evictOverBudget() {
+	for evicted := dth.cacher.evictOldestOverBudget(); evicted != nil; evicted = dth.cacher.evictOldestOverBudget() {
+		log.Trace("trie evicted from dataTriesHolder cache", "key", []byte(evicted.key))
+		if _, dirty := dth.dirtyTries[evicted.key]; dirty {
+			log.Trace("storing evicted dirty trie in evicted buffer", "key", []byte(evicted.key))
+			dth.evictedBuffer[evicted.key] = evicted.trie
+		}
 	}
-
-	_, ok := dth.evictedBuffer[string(key)]
-	if !ok {
-		return
-	}
-
-	// this means that this trie was evicted while being dirty
-	delete(dth.evictedBuffer, string(key))
-	log.Trace("removed trie from evicted buffer", "key", key)
 }
 
 // Get returns the trie pointer that is stored in the map at the given key
@@ -127,8 +103,8 @@ func (dth *dataTriesHolder) Get(key []byte) common.Trie {
 
 	keyString := string(key)
 
-	val, ok := dth.cacher.Get(keyString)
-	if !ok {
+	tr := dth.cacher.get(keyString)
+	if tr == nil {
 		// maybe it was evicted while being dirty
 		evictedTr, exists := dth.evictedBuffer[keyString]
 		if !exists {
@@ -136,25 +112,18 @@ func (dth *dataTriesHolder) Get(key []byte) common.Trie {
 			return nil
 		}
 
-		log.Trace("trie found in evicted buffer of data tries holder, cancel eviction", "key", key)
-		delete(dth.evictedBuffer, keyString)
 		dth.putNoLock(key, evictedTr)
 		return evictedTr
 	}
 
 	dth.touchedTries[keyString] = struct{}{}
-	tr, ok := val.(common.Trie)
-	if !ok {
-		log.Warn("invalid data in dataTriesHolder cache", "entry type", fmt.Sprintf("%T", val))
-		return nil
-	}
 	log.Trace("trie found in data tries holder cache", "key", key)
 
 	return tr
 }
 
 // GetAll returns all the tries that are marked as dirty for this implementation.
-// It also resets their dirty flag and recomputes the total size.
+// Pending tries remain retained until MarkAllAsCommitted or an explicit reset.
 func (dth *dataTriesHolder) GetAll() []common.Trie {
 	dth.mutex.Lock()
 	defer dth.mutex.Unlock()
@@ -168,49 +137,58 @@ func (dth *dataTriesHolder) GetAll() []common.Trie {
 		log.Trace("getting dirty trie from data tries holder", "key", []byte(keyString))
 		tries = append(tries, tr)
 	}
-	dth.dirtyTries = make(map[string]struct{})
-	dth.evictedBuffer = make(map[string]common.Trie)
-	dth.recomputeTotalSize()
-	log.Trace("data tries holder returned all dirty tries", "numTries", len(tries), "totalCacheSize", dth.cacher.SizeInBytesContained())
+	log.Trace("data tries holder returned all dirty tries", "numTries", len(tries), "totalCacheSize", dth.cacher.size)
 	return tries
 }
 
+// MarkAllAsCommitted releases evicted tries and reconciles cache sizes only after
+// all pending data tries have been successfully persisted.
+func (dth *dataTriesHolder) MarkAllAsCommitted() {
+	dth.mutex.Lock()
+	defer dth.mutex.Unlock()
+
+	dth.dirtyTries = make(map[string]struct{})
+	dth.evictedBuffer = make(map[string]common.Trie)
+	dth.recomputeTotalSize()
+}
+
 func (dth *dataTriesHolder) getDirtyTrieNoLock(key string) common.Trie {
-	entry, exists := dth.cacher.Get(key)
-	if exists {
-		tr, ok := entry.(common.Trie)
-		if !ok {
-			log.Warn("invalid data in dataTriesHolder cache", "entry type", fmt.Sprintf("%T", entry))
-			return nil
-		}
-
-		return tr
+	entry := dth.cacher.peek(key)
+	if entry != nil {
+		return entry.trie
 	}
-
-	tr, ok := dth.evictedBuffer[key]
-	if !ok {
-		return nil
-	}
-	return tr
+	return dth.evictedBuffer[key]
 }
 
 func (dth *dataTriesHolder) recomputeTotalSize() {
 	for keyString := range dth.touchedTries {
-		entry, exists := dth.cacher.Get(keyString)
-		if !exists {
-			continue
-		}
-		tr, ok := entry.(common.Trie)
-		if !ok {
-			log.Warn("invalid data in dataTriesHolder cache", "entry type", fmt.Sprintf("%T", entry))
+		entry := dth.cacher.peek(keyString)
+		if entry == nil {
 			continue
 		}
 
-		evicted := dth.cacher.AddSized(keyString, tr, int64(tr.SizeInMemory()))
-		if evicted {
-			log.Warn("unexpected eviction while recomputing total size in dataTriesHolder")
+		// Only committed empty tries can be dropped from the cache.
+		rootHash, err := entry.trie.RootHash()
+		if err == nil && common.IsEmptyTrie(rootHash) {
+			dth.cacher.remove(keyString)
+			continue
 		}
+
+		size := entry.trie.SizeInMemory()
+		if size < 0 {
+			log.Warn("invalid data trie size", "key", []byte(keyString), "size", size)
+			continue
+		}
+		sizeInBytes := uint64(size)
+		if sizeInBytes > dth.cacher.budget {
+			dth.cacher.remove(keyString)
+			continue
+		}
+		dth.cacher.setSize(entry, sizeInBytes)
 	}
+	// Apply every size change before eviction so growing tries can use space
+	// released by tries that shrank or became empty in the same commit.
+	dth.evictOverBudget()
 	dth.touchedTries = make(map[string]struct{})
 }
 
@@ -226,7 +204,7 @@ func (dth *dataTriesHolder) Remove(key []byte) {
 	defer dth.mutex.Unlock()
 
 	keyString := string(key)
-	dth.cacher.Remove(keyString)
+	dth.cacher.remove(keyString)
 	delete(dth.dirtyTries, keyString)
 	delete(dth.touchedTries, keyString)
 	delete(dth.evictedBuffer, keyString)
@@ -254,7 +232,7 @@ func (dth *dataTriesHolder) MarkAsDirty(key []byte) {
 func (dth *dataTriesHolder) reset() {
 	log.Trace("reset data tries holder")
 
-	dth.cacher.Purge()
+	dth.cacher.reset()
 	dth.dirtyTries = make(map[string]struct{})
 	dth.touchedTries = make(map[string]struct{})
 	dth.evictedBuffer = make(map[string]common.Trie)

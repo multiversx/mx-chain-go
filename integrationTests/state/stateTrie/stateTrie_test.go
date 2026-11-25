@@ -685,8 +685,7 @@ func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 	rootHash, err = adb.RootHash()
 	require.Nil(t, err)
 	hrCreated1 := base64.StdEncoding.EncodeToString(rootHash)
-	rootHash, err = state1.(state.UserAccountHandler).DataTrie().RootHash()
-	require.Nil(t, err)
+	rootHash = requireDataTrieRootHash(t, state1.(state.UserAccountHandler))
 	hrRoot1 := base64.StdEncoding.EncodeToString(rootHash)
 
 	fmt.Printf("State root - created 1-st account: %v\n", hrCreated1)
@@ -701,8 +700,7 @@ func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 	rootHash, err = adb.RootHash()
 	require.Nil(t, err)
 	hrCreated2 := base64.StdEncoding.EncodeToString(rootHash)
-	rootHash, err = state1.(state.UserAccountHandler).DataTrie().RootHash()
-	require.Nil(t, err)
+	rootHash = requireDataTrieRootHash(t, state1.(state.UserAccountHandler))
 	hrRoot2 := base64.StdEncoding.EncodeToString(rootHash)
 
 	fmt.Printf("State root - created 2-nd account: %v\n", hrCreated2)
@@ -764,8 +762,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	rootHash, err = adb.RootHash()
 	require.Nil(t, err)
 	hrCreated1 := base64.StdEncoding.EncodeToString(rootHash)
-	rootHash, err = state1.(state.UserAccountHandler).DataTrie().RootHash()
-	require.Nil(t, err)
+	rootHash = requireDataTrieRootHash(t, state1.(state.UserAccountHandler))
 	hrRoot1 := base64.StdEncoding.EncodeToString(rootHash)
 
 	fmt.Printf("State root - created 1-st account: %v\n", hrCreated1)
@@ -780,8 +777,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	rootHash, err = adb.RootHash()
 	require.Nil(t, err)
 	hrCreated2 := base64.StdEncoding.EncodeToString(rootHash)
-	rootHash, err = userAccount.(state.UserAccountHandler).DataTrie().RootHash()
-	require.Nil(t, err)
+	rootHash = requireDataTrieRootHash(t, userAccount.(state.UserAccountHandler))
 	hrRoot2 := base64.StdEncoding.EncodeToString(rootHash)
 
 	fmt.Printf("State root - created 2-nd account: %v\n", hrCreated2)
@@ -810,8 +806,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	rootHash, err = adb.RootHash()
 	require.Nil(t, err)
 	hrCreated2p1 := base64.StdEncoding.EncodeToString(rootHash)
-	rootHash, err = userAccount.(state.UserAccountHandler).DataTrie().RootHash()
-	require.Nil(t, err)
+	rootHash = requireDataTrieRootHash(t, userAccount.(state.UserAccountHandler))
 	hrRoot2p1 := base64.StdEncoding.EncodeToString(rootHash)
 
 	fmt.Printf("State root - modified 2-nd account: %v\n", hrCreated2p1)
@@ -832,8 +827,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 
 	userAccount, err = adb.LoadAccount(adr2)
 	require.Nil(t, err)
-	rootHash, err = userAccount.(state.UserAccountHandler).DataTrie().RootHash()
-	require.Nil(t, err)
+	rootHash = requireDataTrieRootHash(t, userAccount.(state.UserAccountHandler))
 	hrRoot2Rev := base64.StdEncoding.EncodeToString(rootHash)
 	fmt.Printf("State root - reverted 2-nd account: %v\n", hrCreated2Rev)
 	fmt.Printf("data root - 2-nd account: %v\n", hrRoot2Rev)
@@ -2561,7 +2555,9 @@ func getAddressMigrationStatus(t *testing.T, adb state.AccountsAdapter, address 
 	userAccount, ok := account.(state.UserAccountHandler)
 	require.True(t, ok)
 
-	isMigrated, err := userAccount.DataTrie().IsMigratedToLatestVersion()
+	dataTrie, err := userAccount.DataTrie()
+	require.NoError(t, err)
+	isMigrated, err := dataTrie.IsMigratedToLatestVersion()
 	require.Nil(t, err)
 
 	return isMigrated
@@ -2878,4 +2874,14 @@ func addDataToTrie(t *testing.T, tr common.Trie, startIndex int, numEntries int)
 	}
 
 	return numLeaves
+}
+
+func requireDataTrieRootHash(t *testing.T, account state.UserAccountHandler) []byte {
+	t.Helper()
+	dataTrie, err := account.DataTrie()
+	require.NoError(t, err)
+	require.NotNil(t, dataTrie)
+	rootHash, err := dataTrie.RootHash()
+	require.NoError(t, err)
+	return rootHash
 }

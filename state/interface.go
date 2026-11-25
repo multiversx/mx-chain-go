@@ -163,7 +163,7 @@ type baseAccountHandler interface {
 	SetRootHash([]byte)
 	SetDataTrieRootHash()
 	GetRootHash() []byte
-	DataTrie() common.DataTrieHandler
+	DataTrie() (common.DataTrieHandler, error)
 	SaveDirtyData(trie common.Trie) ([]*data.DataTrieChange, []core.TrieData, error)
 	IsInterfaceNil() bool
 }
@@ -233,6 +233,8 @@ type DataTrie interface {
 // UserAccountHandler models a user account, which can journalize account's data with some extra features
 // like balance, developer rewards, owner
 type UserAccountHandler interface {
+	SetDataTrieCreator(creator common.DataTrieCreator)
+	EnableDataTrieRootValidation()
 	SetCode(code []byte)
 	SetCodeMetadata(codeMetadata []byte)
 	GetCodeMetadata() []byte
@@ -240,7 +242,7 @@ type UserAccountHandler interface {
 	GetCodeHash() []byte
 	SetRootHash([]byte)
 	GetRootHash() []byte
-	DataTrie() common.DataTrieHandler
+	DataTrie() (common.DataTrieHandler, error)
 	RetrieveValue(key []byte) ([]byte, uint32, error)
 	SaveKeyValue(key []byte, value []byte) error
 	AddToBalance(value *big.Int) error
@@ -261,10 +263,12 @@ type UserAccountHandler interface {
 
 // DataTrieTracker models how to manipulate data held by a SC account
 type DataTrieTracker interface {
+	SetDataTrieCreator(creator common.DataTrieCreator)
+	EnableDataTrieRootValidation()
 	RetrieveValue(key []byte) ([]byte, uint32, error)
 	SaveKeyValue(key []byte, value []byte) error
 	SetRootHash(rootHash []byte)
-	DataTrie() common.DataTrieHandler
+	DataTrie() (common.DataTrieHandler, error)
 	SaveDirtyData(common.Trie) ([]*data.DataTrieChange, []core.TrieData, error)
 	MigrateDataTrieLeaves(args vmcommon.ArgsMigrateDataTrieLeaves) error
 	IsInterfaceNil() bool

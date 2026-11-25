@@ -155,6 +155,9 @@ type TriesHolder interface {
 	Put([]byte, Trie)
 	Get([]byte) Trie
 	GetAll() []Trie
+	// MarkAllAsCommitted acknowledges persistence of all pending tries. The caller
+	// must serialize state changes across GetAll and this acknowledgment.
+	MarkAllAsCommitted()
 	Remove([]byte)
 	MarkAsDirty([]byte)
 	Reset()
@@ -559,5 +562,6 @@ type TrieCollapseManager interface {
 	AddSizeInMemory(size int)
 	GetSizeInMemory() int
 	CloneWithoutState() TrieCollapseManager
+	Reset()
 	IsInterfaceNil() bool
 }

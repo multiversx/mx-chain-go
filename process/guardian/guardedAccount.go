@@ -2,6 +2,7 @@ package guardian
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"sync"
 
@@ -99,19 +100,19 @@ func (agc *guardedAccount) HasActiveGuardian(uah state.UserAccountHandler) bool 
 }
 
 // HasPendingGuardian return true if the account has a pending guardian, false otherwise
-func (agc *guardedAccount) HasPendingGuardian(uah state.UserAccountHandler) bool {
+func (agc *guardedAccount) HasPendingGuardian(uah state.UserAccountHandler) (bool, error) {
 	if check.IfNil(uah) {
-		return false
+		return false, nil
 	}
 
 	configuredGuardians, err := agc.getConfiguredGuardians(uah)
 	if err != nil {
-		return false
+		return false, err
 	}
 
 	_, err = agc.getPendingGuardian(configuredGuardians)
 
-	return err == nil
+	return err == nil, nil
 }
 
 // SetGuardian sets a guardian for an account
@@ -246,6 +247,9 @@ func (agc *guardedAccount) saveAccountGuardians(account vmcommon.UserAccountHand
 
 func (agc *guardedAccount) getConfiguredGuardians(uah state.UserAccountHandler) (*guardians.Guardians, error) {
 	guardiansMarshalled, _, err := uah.RetrieveValue(guardianKey)
+	if errors.Is(err, state.ErrDataTrieLoadFailed) {
+		return nil, err
+	}
 	if err != nil || len(guardiansMarshalled) == 0 {
 		return &guardians.Guardians{Slice: make([]*guardians.Guardian, 0)}, nil
 	}

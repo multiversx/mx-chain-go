@@ -1551,7 +1551,7 @@ type InterceptedSignedTransactionHandler interface {
 type GuardianChecker interface {
 	GetActiveGuardian(handler vmcommon.UserAccountHandler) ([]byte, error)
 	HasActiveGuardian(uah state.UserAccountHandler) bool
-	HasPendingGuardian(uah state.UserAccountHandler) bool
+	HasPendingGuardian(uah state.UserAccountHandler) (bool, error)
 	IsInterfaceNil() bool
 }
 
@@ -1559,7 +1559,7 @@ type GuardianChecker interface {
 type GuardedAccountHandler interface {
 	GetActiveGuardian(handler vmcommon.UserAccountHandler) ([]byte, error)
 	HasActiveGuardian(uah state.UserAccountHandler) bool
-	HasPendingGuardian(uah state.UserAccountHandler) bool
+	HasPendingGuardian(uah state.UserAccountHandler) (bool, error)
 	SetGuardian(uah vmcommon.UserAccountHandler, guardianAddress []byte, txGuardianAddress []byte, guardianServiceUID []byte) error
 	CleanOtherThanActive(uah vmcommon.UserAccountHandler)
 	GetConfiguredGuardians(uah state.UserAccountHandler) (active *guardians.Guardian, pending *guardians.Guardian, err error)

@@ -3,6 +3,7 @@ package hooks
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"math/big"
 	"path"
@@ -307,6 +308,9 @@ func (bh *BlockChainHookImpl) GetStorageData(accountAddress []byte, index []byte
 		messages = append(messages, err)
 
 		bh.syncIfMissingDataTrieNode(err)
+		if errors.Is(err, state.ErrDataTrieLoadFailed) {
+			return nil, trieDepth, err
+		}
 	}
 	log.Trace("GetStorageData ", messages...)
 

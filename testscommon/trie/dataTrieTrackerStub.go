@@ -11,12 +11,14 @@ import (
 
 // DataTrieTrackerStub -
 type DataTrieTrackerStub struct {
-	dataTrie common.Trie
+	SetDataTrieCreatorCalled           func(creator common.DataTrieCreator)
+	EnableDataTrieRootValidationCalled func()
+	dataTrie                           common.Trie
 
 	RetrieveValueCalled         func(key []byte) ([]byte, uint32, error)
 	SaveKeyValueCalled          func(key []byte, value []byte) error
 	SetRootHashCalled           func(rootHash []byte)
-	DataTrieCalled              func() common.Trie
+	DataTrieCalled              func() (common.DataTrieHandler, error)
 	SaveDirtyDataCalled         func(trie common.Trie) ([]*stateChange.DataTrieChange, []core.TrieData, error)
 	SaveTrieDataCalled          func(trieData core.TrieData) error
 	MigrateDataTrieLeavesCalled func(args vmcommon.ArgsMigrateDataTrieLeaves) error
@@ -48,16 +50,16 @@ func (dtts *DataTrieTrackerStub) SetRootHash(rootHash []byte) {
 }
 
 // DataTrie -
-func (dtts *DataTrieTrackerStub) DataTrie() common.DataTrieHandler {
+func (dtts *DataTrieTrackerStub) DataTrie() (common.DataTrieHandler, error) {
 	if dtts.DataTrieCalled != nil {
 		return dtts.DataTrieCalled()
 	}
 
 	if !check.IfNil(dtts.dataTrie) {
-		return dtts.dataTrie
+		return dtts.dataTrie, nil
 	}
 
-	return nil
+	return nil, nil
 }
 
 // SaveDirtyData -
@@ -81,4 +83,18 @@ func (dtts *DataTrieTrackerStub) MigrateDataTrieLeaves(args vmcommon.ArgsMigrate
 // IsInterfaceNil returns true if there is no value under the interface
 func (dtts *DataTrieTrackerStub) IsInterfaceNil() bool {
 	return dtts == nil
+}
+
+// EnableDataTrieRootValidation -
+func (dtts *DataTrieTrackerStub) EnableDataTrieRootValidation() {
+	if dtts.EnableDataTrieRootValidationCalled != nil {
+		dtts.EnableDataTrieRootValidationCalled()
+	}
+}
+
+// SetDataTrieCreator -
+func (dtts *DataTrieTrackerStub) SetDataTrieCreator(creator common.DataTrieCreator) {
+	if dtts.SetDataTrieCreatorCalled != nil {
+		dtts.SetDataTrieCreatorCalled(creator)
+	}
 }

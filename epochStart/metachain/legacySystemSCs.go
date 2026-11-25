@@ -997,7 +997,11 @@ func (s *legacySystemSCProcessor) getValidatorSystemAccount() (state.UserAccount
 		return nil, fmt.Errorf("%w when loading validator account", epochStart.ErrWrongTypeAssertion)
 	}
 
-	if check.IfNil(userValidatorAccount.DataTrie()) {
+	dataTrie, err := userValidatorAccount.DataTrie()
+	if err != nil {
+		return nil, err
+	}
+	if check.IfNil(dataTrie) {
 		return nil, epochStart.ErrNilDataTrie
 	}
 

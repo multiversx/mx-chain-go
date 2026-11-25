@@ -27,6 +27,10 @@ func (d *disabledDataTriesHolder) GetAll() []common.Trie {
 func (d *disabledDataTriesHolder) MarkAsDirty(_ []byte) {
 }
 
+// MarkAllAsCommitted does nothing for the disabled implementation.
+func (d *disabledDataTriesHolder) MarkAllAsCommitted() {
+}
+
 // Reset does nothing for the disabled implementation.
 func (d *disabledDataTriesHolder) Reset() {
 }

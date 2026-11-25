@@ -172,10 +172,14 @@ func TestTomlParser(t *testing.T) {
 			},
 		},
 		StateTriesConfig: StateTriesConfig{
-			SnapshotsEnabled:             true,
-			AccountsStatePruningEnabled:  true,
-			PeerStatePruningEnabled:      true,
-			NumLeavesToCollapseSingleRun: 100,
+			SnapshotsEnabled:                      true,
+			AccountsStatePruningEnabled:           true,
+			PeerStatePruningEnabled:               true,
+			NumLeavesToCollapseSingleRun:          100,
+			DataTriesSizeInMemoryForCurrentAPI:    1048576,
+			DataTriesSizeInMemoryForFinalAPI:      2097152,
+			DataTriesSizeInMemoryForHistoricalAPI: 3145728,
+			DataTriesSizeInMemoryForProposal:      4194304,
 		},
 		TxCacheBounds: TxCacheBoundsConfig{
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
@@ -640,6 +644,10 @@ func TestTomlParser(t *testing.T) {
     AccountsStatePruningEnabled = true
     PeerStatePruningEnabled = true
 	NumLeavesToCollapseSingleRun = 100
+    DataTriesSizeInMemoryForCurrentAPI = 1048576
+    DataTriesSizeInMemoryForFinalAPI = 2097152
+    DataTriesSizeInMemoryForHistoricalAPI = 3145728
+    DataTriesSizeInMemoryForProposal = 4194304
 `
 	cfg := Config{}
 

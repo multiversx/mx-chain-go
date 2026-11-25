@@ -17,6 +17,7 @@ type accountsDBApi struct {
 	blockInfoProvider         BlockInfoProvider
 	mutRecreatedTrieBlockInfo sync.RWMutex
 	blockInfo                 common.BlockInfo
+	dataTrieCreator           common.DataTrieCreator
 }
 
 // NewAccountsDBApi will create a new instance of type accountsDBApi
@@ -65,15 +66,34 @@ func (accountsDB *accountsDBApi) doRecreateTrieWithBlockInfo(newBlockInfo common
 	}
 
 	rootHashHolder := holders.NewDefaultRootHashesHolder(newBlockInfo.GetRootHash())
+	accountsDB.blockInfo = nil
+	accountsDB.dataTrieCreator = nil
 	err := accountsDB.innerAccountsAdapter.RecreateTrie(rootHashHolder)
 	if err != nil {
-		accountsDB.blockInfo = nil
+		return nil, err
+	}
+	err = accountsDB.prepareDataTrieCreatorUnprotected()
+	if err != nil {
 		return nil, err
 	}
 
 	accountsDB.blockInfo = newBlockInfo
 
 	return newBlockInfo, nil
+}
+
+// prepareDataTrieCreatorUnprotected preserves the selected storage context without
+// retaining the expanded main trie. The caller holds mutRecreatedTrieBlockInfo.
+func (accountsDB *accountsDBApi) prepareDataTrieCreatorUnprotected() error {
+	creator, err := accountsDB.innerAccountsAdapter.GetTrie(nil)
+	if err != nil {
+		return err
+	}
+	if check.IfNil(creator) {
+		return ErrNilTrie
+	}
+	accountsDB.dataTrieCreator = creator
+	return nil
 }
 
 // SetSyncer returns nil for this implementation
@@ -100,7 +120,19 @@ func (accountsDB *accountsDBApi) GetAccountFromBytes(address []byte, accountByte
 		return nil, err
 	}
 
-	return accountsDB.innerAccountsAdapter.GetAccountFromBytes(address, accountBytes)
+	accountsDB.mutRecreatedTrieBlockInfo.RLock()
+	defer accountsDB.mutRecreatedTrieBlockInfo.RUnlock()
+	if check.IfNil(accountsDB.blockInfo) {
+		return nil, ErrNilRootHash
+	}
+	account, err := accountsDB.innerAccountsAdapter.GetAccountFromBytes(address, accountBytes)
+	if err != nil {
+		return nil, err
+	}
+	if userAccount, ok := account.(UserAccountHandler); ok {
+		userAccount.SetDataTrieCreator(accountsDB.dataTrieCreator)
+	}
+	return account, nil
 }
 
 // LoadAccount will call the inner accountsAdapter method after trying to recreate the trie
@@ -110,7 +142,19 @@ func (accountsDB *accountsDBApi) LoadAccount(address []byte) (vmcommon.AccountHa
 		return nil, err
 	}
 
-	return accountsDB.innerAccountsAdapter.LoadAccount(address)
+	accountsDB.mutRecreatedTrieBlockInfo.RLock()
+	defer accountsDB.mutRecreatedTrieBlockInfo.RUnlock()
+	if check.IfNil(accountsDB.blockInfo) {
+		return nil, ErrNilRootHash
+	}
+	account, err := accountsDB.innerAccountsAdapter.LoadAccount(address)
+	if err != nil {
+		return nil, err
+	}
+	if userAccount, ok := account.(UserAccountHandler); ok {
+		userAccount.SetDataTrieCreator(accountsDB.dataTrieCreator)
+	}
+	return account, nil
 }
 
 // SaveAccount is a not permitted operation in this implementation and thus, will return an error
@@ -180,9 +224,14 @@ func (accountsDB *accountsDBApi) RecreateTrie(options common.RootHashHolder) err
 		return nil
 	}
 
+	accountsDB.blockInfo = nil
+	accountsDB.dataTrieCreator = nil
 	err := accountsDB.innerAccountsAdapter.RecreateTrie(options)
 	if err != nil {
-		accountsDB.blockInfo = nil
+		return err
+	}
+	err = accountsDB.prepareDataTrieCreatorUnprotected()
+	if err != nil {
 		return err
 	}
 
@@ -205,9 +254,14 @@ func (accountsDB *accountsDBApi) RecreateTrieIfNeeded(options common.RootHashHol
 		return nil
 	}
 
+	accountsDB.blockInfo = nil
+	accountsDB.dataTrieCreator = nil
 	err := accountsDB.innerAccountsAdapter.RecreateTrieIfNeeded(options)
 	if err != nil {
-		accountsDB.blockInfo = nil
+		return err
+	}
+	err = accountsDB.prepareDataTrieCreatorUnprotected()
+	if err != nil {
 		return err
 	}
 
@@ -286,6 +340,9 @@ func (accountsDB *accountsDBApi) GetAccountWithBlockInfo(address []byte, _ commo
 	defer accountsDB.mutRecreatedTrieBlockInfo.RUnlock()
 
 	blockInfo := accountsDB.blockInfo
+	if check.IfNil(blockInfo) {
+		return nil, nil, ErrNilRootHash
+	}
 
 	account, err := accountsDB.innerAccountsAdapter.GetExistingAccount(address)
 	if err == ErrAccNotFound {
@@ -293,6 +350,10 @@ func (accountsDB *accountsDBApi) GetAccountWithBlockInfo(address []byte, _ commo
 	}
 	if err != nil {
 		return nil, nil, err
+	}
+
+	if userAccount, ok := account.(UserAccountHandler); ok {
+		userAccount.SetDataTrieCreator(accountsDB.dataTrieCreator)
 	}
 
 	return account, blockInfo, nil

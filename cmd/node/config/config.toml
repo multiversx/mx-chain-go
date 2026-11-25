@@ -954,6 +954,12 @@
     MaxUserTrieSizeInMemory = 524288000 #500MB
     MaxPeerTrieSizeInMemory = 104857600 #100MB
     DataTriesSizeInMemory = 524288000 #500MB
+    # Independent account data-trie cache budgets, in bytes (125 MiB per state view).
+    # All four values are required and must be at least 1048576 (1 MiB).
+    DataTriesSizeInMemoryForCurrentAPI = 131072000
+    DataTriesSizeInMemoryForFinalAPI = 131072000
+    DataTriesSizeInMemoryForHistoricalAPI = 131072000
+    DataTriesSizeInMemoryForProposal = 131072000
     NumLeavesToCollapseSingleRun = 100
 
 [TrieLeavesRetrieverConfig]

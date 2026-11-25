@@ -4923,3 +4923,20 @@ func TestSmartContractProcessor_UseLastTransferAsAsyncCallBack_ReturnDataFlag(t 
 		require.Equal(t, returnDataValue, callArgs[len(callArgs)-1])
 	})
 }
+
+func TestLazyDataTrieLoad_V2BuiltinBoundary(t *testing.T) {
+	failure := &state.DataTrieLoadError{Cause: errors.New("missing root")}
+	args := createMockSmartContractProcessorArguments()
+	args.BlockChainHook = &testscommon.BlockChainHookStub{
+		ProcessBuiltInFunctionCalled: func(*vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+			return nil, failure
+		},
+	}
+	processor, err := NewSmartContractProcessorV2(args)
+	require.NoError(t, err)
+
+	output, err := processor.resolveBuiltInFunctions(&vmcommon.ContractCallInput{})
+	require.NoError(t, err)
+	require.Equal(t, vmcommon.UserError, output.ReturnCode)
+	require.Equal(t, failure.Error(), output.ReturnMessage)
+}

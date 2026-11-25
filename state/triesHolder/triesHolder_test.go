@@ -58,6 +58,14 @@ func TestTriesHolder_Reset(t *testing.T) {
 	assert.Nil(t, tr)
 }
 
+func TestTriesHolder_MarkAllAsCommittedPreservesContainer(t *testing.T) {
+	dth := NewTriesHolder()
+	tr := &trieMock.TrieStub{}
+	dth.Put([]byte("trie"), tr)
+	dth.MarkAllAsCommitted()
+	assert.Same(t, tr, dth.Get([]byte("trie")))
+}
+
 func TestTriesHolder_Concurrency(t *testing.T) {
 	t.Parallel()
 

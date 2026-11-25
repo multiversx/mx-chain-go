@@ -4655,3 +4655,29 @@ func TestScProcessor_DisableAsyncCalls(t *testing.T) {
 	require.Equal(t, process.ErrAsyncCallsDisabled.Error(), err.Error())
 	require.Nil(t, scResults)
 }
+
+func TestLazyDataTrieLoad_ProcessorCallBoundary(t *testing.T) {
+	cause := core.NewGetNodeFromDBErrWithKey([]byte("root"), errors.New("missing"), "test")
+	loadErr := &state.DataTrieLoadError{Cause: cause}
+	executor := &mock.VMExecutionHandlerStub{
+		RunSmartContractCallCalled: func(*vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+			return nil, loadErr
+		},
+	}
+	args := createMockSmartContractProcessorArguments()
+	args.VmContainer = &mock.VMContainerMock{
+		GetCalled: func([]byte) (vmcommon.VMExecutionHandler, error) { return executor, nil },
+	}
+	processor, err := NewSmartContractProcessor(args)
+	require.NoError(t, err)
+	address := make([]byte, 32)
+	address[8] = 5
+	tx := &transaction.Transaction{SndAddr: []byte("sender"), RcvAddr: address, Value: big.NewInt(0)}
+	sender, destination := createAccounts(tx)
+	input := &vmcommon.ContractCallInput{RecipientAddr: address}
+
+	output, err := processor.executeSmartContractCall(input, tx, nil, 0, sender, destination, nil)
+	require.Same(t, loadErr, err)
+	require.Nil(t, output)
+	require.Same(t, cause, core.UnwrapGetNodeFromDBErr(err))
+}

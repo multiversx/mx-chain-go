@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -22,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 	"github.com/multiversx/mx-chain-go/trie/trieMetricsCollector"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var dtmc = trieMetricsCollector.NewDisabledTrieMetricsCollector()
@@ -643,7 +645,7 @@ func TestBranchNode_insert(t *testing.T) {
 	newBn, _, err := bn.insert(getTrieDataWithDefaultVersion(string(nodeKey), "dogs"), tmc, nil)
 	assert.NotNil(t, newBn)
 	assert.Nil(t, err)
-	assert.Equal(t, bn.children[0].sizeInBytes(), tmc.GetSizeLoadedInMem())
+	assert.Equal(t, bn.children[0].sizeInBytes()+hashSizeInBytes, tmc.GetSizeLoadedInMem())
 
 	nodeKeyRemainder := nodeKey[1:]
 	bn.children[0], _ = newLeafNode(getTrieDataWithDefaultVersion(string(nodeKeyRemainder), "dogs"), bn.marsh, bn.hasher)
@@ -738,7 +740,7 @@ func TestBranchNode_insertInStoredBnOnNilPos(t *testing.T) {
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedHashes, oldHashes)
-	assert.Equal(t, bn.children[nilChildPos].sizeInBytes(), tmc.GetSizeLoadedInMem())
+	assert.Equal(t, bn.children[nilChildPos].sizeInBytes()+hashSizeInBytes, tmc.GetSizeLoadedInMem())
 }
 
 func TestBranchNode_insertInDirtyBnOnNilPos(t *testing.T) {
@@ -753,7 +755,7 @@ func TestBranchNode_insertInDirtyBnOnNilPos(t *testing.T) {
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{}, oldHashes)
-	assert.Equal(t, bn.children[nilChildPos].sizeInBytes(), tmc.GetSizeLoadedInMem())
+	assert.Equal(t, bn.children[nilChildPos].sizeInBytes()+hashSizeInBytes, tmc.GetSizeLoadedInMem())
 }
 
 func TestBranchNode_insertInDirtyBnOnExistingPos(t *testing.T) {
@@ -973,13 +975,20 @@ func TestBranchNode_reduceNode(t *testing.T) {
 	assert.True(t, newChildHash)
 }
 
-func TestBranchNode_getChildPosition(t *testing.T) {
+func TestBranchNode_remainingChildAfterRemoval(t *testing.T) {
 	t.Parallel()
 
-	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	nr, pos := getChildPosition(bn)
-	assert.Equal(t, 3, nr)
-	assert.Equal(t, 13, pos)
+	bn, collapsed := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
+	for _, branch := range []*branchNode{bn, collapsed} {
+		_, found := branch.remainingChildAfterRemoval(2)
+		assert.False(t, found)
+
+		branch.children[6] = nil
+		branch.EncodedChildren[6] = nil
+		pos, found := branch.remainingChildAfterRemoval(2)
+		assert.True(t, found)
+		assert.Equal(t, byte(13), pos)
+	}
 }
 
 func TestBranchNode_clone(t *testing.T) {
@@ -1660,4 +1669,159 @@ func TestBranchNode_shouldCollapseChild(t *testing.T) {
 		assert.Nil(t, bn.children[2])
 		assert.Equal(t, -leafSize, tmc.GetSizeLoadedInMem())
 	})
+}
+
+func TestTrie_FailedDeletePreparingBranchReduction(t *testing.T) {
+	for _, version := range []core.TrieNodeVersion{core.NotSpecified, core.AutoBalanceEnabled} {
+		for _, failDescendant := range []bool{false, true} {
+			t.Run(fmt.Sprintf("version-%d/descendant-%t", version, failDescendant), func(t *testing.T) {
+				testFailedDeletePreparingBranchReduction(t, version, failDescendant)
+			})
+		}
+	}
+}
+
+func testFailedDeletePreparingBranchReduction(t *testing.T, version core.TrieNodeVersion, failDescendant bool) {
+	t.Helper()
+	args := GetDefaultTrieStorageManagerParameters()
+	store := &TrieReadFailureStore{BaseStorer: args.MainStorer}
+	args.MainStorer = store
+	storage, err := NewTrieStorageManager(args)
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, storage.Close()) })
+	manager, err := collapseManager.NewCollapseManager(1<<20, 100)
+	require.NoError(t, err)
+	tr, err := NewTrie(storage, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, manager)
+	require.NoError(t, err)
+
+	// These physical trie paths make the surviving sibling an extension.
+	target := []byte{0x01}
+	siblingA := []byte{0x02, 0x22}
+	siblingB := []byte{0x03, 0x22}
+	for _, key := range [][]byte{target, siblingA, siblingB} {
+		require.NoError(t, tr.UpdateWithVersion(key, key, version))
+	}
+	require.NoError(t, tr.Commit())
+	hash, err := tr.RootHash()
+	require.NoError(t, err)
+	warmBranch := tr.root.(*branchNode)
+	sibling := warmBranch.children[2].(*extensionNode)
+	failKey := sibling.hash
+	if failDescendant {
+		failKey = sibling.EncodedChild
+	}
+
+	cold, err := tr.recreate(hash, storage)
+	require.NoError(t, err)
+	val, _, err := cold.Get(target)
+	require.NoError(t, err)
+	require.Equal(t, target, val)
+	require.Equal(t, cold.ResidentSizeForTests(), cold.SizeInMemory())
+	branch := cold.root.(*branchNode)
+	require.Nil(t, branch.children[2])
+
+	store.FailKey = failKey
+	err = cold.Delete(target)
+	cause := core.UnwrapGetNodeFromDBErr(err)
+	require.NotNil(t, cause)
+	require.Equal(t, failKey, cause.GetKey())
+	require.False(t, cold.root.isDirty())
+
+	current, err := cold.RootHash()
+	require.NoError(t, err)
+	require.Equal(t, hash, current)
+	require.Empty(t, cold.GetOldRoot())
+	require.Equal(t, cold.ResidentSizeForTests(), cold.SizeInMemory(), "count only nodes actually loaded by the failed delete")
+	val, _, err = cold.Get(target)
+	require.NoError(t, err)
+	require.Equal(t, target, val)
+
+	require.NoError(t, cold.Delete(target))
+	require.NoError(t, cold.Commit())
+	retriedHash, err := cold.RootHash()
+	require.NoError(t, err)
+	require.NoError(t, tr.Delete(target))
+	expectedHash, err := tr.RootHash()
+	require.NoError(t, err)
+	require.Equal(t, expectedHash, retriedHash)
+
+	persisted, err := cold.Recreate(holders.NewDefaultRootHashesHolder(retriedHash))
+	require.NoError(t, err)
+	val, _, err = persisted.Get(target)
+	require.NoError(t, err)
+	require.Empty(t, val)
+	for _, key := range [][]byte{siblingA, siblingB} {
+		val, _, storedVersion, errRead := persisted.GetWithVersion(key)
+		require.NoError(t, errRead)
+		require.Equal(t, key, val)
+		require.EqualValues(t, version, storedVersion)
+	}
+}
+
+func TestTrieMutationSizeAccounting_ExistingBranch(t *testing.T) {
+	tests := []struct {
+		name    string
+		mutate  func(t *testing.T, tr *patriciaMerkleTrie)
+		restore func(t *testing.T, tr *patriciaMerkleTrie)
+	}{
+		{
+			name: "new versioned slot then remove",
+			mutate: func(t *testing.T, tr *patriciaMerkleTrie) {
+				require.NoError(t, tr.UpdateWithVersion([]byte{0x03}, []byte("value"), core.AutoBalanceEnabled))
+			},
+			restore: func(t *testing.T, tr *patriciaMerkleTrie) {
+				require.NoError(t, tr.Delete([]byte{0x03}))
+			},
+		},
+		{
+			name: "version change in occupied slot",
+			mutate: func(t *testing.T, tr *patriciaMerkleTrie) {
+				require.NoError(t, tr.UpdateWithVersion([]byte{0x11}, []byte("newer"), core.AutoBalanceEnabled))
+			},
+			restore: func(t *testing.T, tr *patriciaMerkleTrie) {
+				require.NoError(t, tr.Update([]byte{0x11}, []byte("value")))
+			},
+		},
+		{
+			name: "delete replaces child with versioned survivor",
+			mutate: func(t *testing.T, tr *patriciaMerkleTrie) {
+				// This pair shares slot 1. Its mixed-version branch reports legacy
+				// to the parent until the legacy child is removed.
+				require.NoError(t, tr.UpdateWithVersion([]byte{0x21}, []byte("value"), core.AutoBalanceEnabled))
+				require.NoError(t, tr.Delete([]byte{0x11}))
+			},
+			restore: func(t *testing.T, tr *patriciaMerkleTrie) {
+				require.NoError(t, tr.Update([]byte{0x11}, []byte("value")))
+				require.NoError(t, tr.Delete([]byte{0x21}))
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tr := NewTrieForSizeAccounting(t, 1<<20)
+			require.NoError(t, tr.Update([]byte{0x11}, []byte("value")))
+			require.NoError(t, tr.Update([]byte{0x02}, []byte("value")))
+			require.NoError(t, tr.Commit())
+			root, err := tr.RootHash()
+			require.NoError(t, err)
+			branch := tr.root.(*branchNode)
+			require.Empty(t, branch.ChildrenVersion)
+			initialSize := tr.ResidentSizeForTests()
+
+			tt.mutate(t, tr)
+			require.Same(t, branch, tr.root)
+			require.Len(t, branch.ChildrenVersion, nrOfChildren)
+			assert.Equal(t, tr.ResidentSizeForTests(), tr.SizeInMemory())
+
+			tt.restore(t, tr)
+			require.Same(t, branch, tr.root)
+			require.Empty(t, branch.ChildrenVersion)
+			require.Equal(t, initialSize, tr.ResidentSizeForTests())
+			assert.Equal(t, initialSize, tr.SizeInMemory())
+			restored, err := tr.RootHash()
+			require.NoError(t, err)
+			require.Equal(t, root, restored)
+		})
+	}
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
@@ -17,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/vm/mock"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewVMContext_NilBlockChainHook(t *testing.T) {
@@ -588,4 +590,38 @@ func TestVmContext_AddTxValueToSmartContract_LoadsPersistedBalance(t *testing.T)
 	// GetBalance should compute Balance (1000) + BalanceDelta (250) = 1250
 	totalBalance := vmCtx.GetBalance(scAddr)
 	assert.Equal(t, big.NewInt(1250), totalBalance)
+}
+
+func TestLazyDataTrieLoad_SystemContext(t *testing.T) {
+	cause := core.NewGetNodeFromDBErrWithKey([]byte("root"), errors.New("missing"), "test")
+	loadErr := &state.DataTrieLoadError{Cause: cause}
+	for _, marked := range []bool{false, true} {
+		name := "legacy-descendant"
+		var readErr error = cause
+		if marked {
+			name = "lazy-root"
+			readErr = loadErr
+		}
+		t.Run(name, func(t *testing.T) {
+			args := createDefaultEeiArgs()
+			args.BlockChainHook = &mock.BlockChainHookStub{GetStorageDataCalled: func([]byte, []byte) ([]byte, uint32, error) { return nil, 0, readErr }}
+			ctx, err := NewVMContext(args)
+			require.NoError(t, err)
+			require.Empty(t, ctx.GetStorageFromAddress([]byte("contract"), []byte("key")))
+			if marked {
+				require.Same(t, loadErr, ctx.GetStorageError())
+				ctx.softCleanCache() // Nested calls must not erase the execution's failure.
+				readErr = &state.DataTrieLoadError{Cause: errors.New("second failure")}
+				require.Empty(t, ctx.GetStorageFromAddress([]byte("other"), []byte("key")))
+				require.Same(t, loadErr, ctx.GetStorageError())
+			} else {
+				require.NoError(t, ctx.GetStorageError())
+			}
+			ctx.CleanCache()
+			require.NoError(t, ctx.GetStorageError())
+			readErr = nil
+			require.Empty(t, ctx.GetStorageFromAddress([]byte("contract"), []byte("unset")))
+			require.NoError(t, ctx.GetStorageError())
+		})
+	}
 }

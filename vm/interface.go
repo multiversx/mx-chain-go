@@ -85,6 +85,7 @@ type ContextHandler interface {
 	SetSystemSCContainer(scContainer SystemSCContainer) error
 	CreateVMOutput() *vmcommon.VMOutput
 	CleanCache()
+	GetStorageError() error
 	SetSCAddress(addr []byte)
 	AddCode(addr []byte, code []byte)
 	AddTxValueToSmartContract(value *big.Int, scAddress []byte)
