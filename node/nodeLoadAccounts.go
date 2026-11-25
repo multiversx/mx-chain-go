@@ -37,9 +37,16 @@ func (n *Node) loadUserAccountHandlerByAddress(address string, options api.Accou
 }
 
 func (n *Node) loadUserAccountHandlerByPubKey(pubKey []byte, options api.AccountQueryOptions) (state.UserAccountHandler, api.BlockInfo, error) {
+	userAccount, blockInfo, _, err := n.loadUserAccountHandlerByPubKeyWithOptions(pubKey, options)
+	return userAccount, blockInfo, err
+}
+
+// loadUserAccountHandlerByPubKeyWithOptions also returns the options the account was loaded with, with the block
+// coordinates resolved
+func (n *Node) loadUserAccountHandlerByPubKeyWithOptions(pubKey []byte, options api.AccountQueryOptions) (state.UserAccountHandler, api.BlockInfo, api.AccountQueryOptions, error) {
 	options, err := n.addBlockCoordinatesToAccountQueryOptions(options)
 	if err != nil {
-		return nil, api.BlockInfo{}, err
+		return nil, api.BlockInfo{}, api.AccountQueryOptions{}, err
 	}
 
 	repository := n.stateComponents.AccountsRepository()
@@ -50,19 +57,19 @@ func (n *Node) loadUserAccountHandlerByPubKey(pubKey []byte, options api.Account
 		if ok {
 			blockInfo = mergeAccountQueryOptionsIntoBlockInfo(options, blockInfo)
 			// Return the same error (now with additional block info)
-			return nil, api.BlockInfo{}, state.NewErrAccountNotFoundAtBlock(blockInfo)
+			return nil, api.BlockInfo{}, api.AccountQueryOptions{}, state.NewErrAccountNotFoundAtBlock(blockInfo)
 		}
 
-		return nil, api.BlockInfo{}, err
+		return nil, api.BlockInfo{}, api.AccountQueryOptions{}, err
 	}
 
 	userAccount, err := n.castAccountToUserAccount(account)
 	if err != nil {
-		return nil, api.BlockInfo{}, err
+		return nil, api.BlockInfo{}, api.AccountQueryOptions{}, err
 	}
 
 	blockInfo = mergeAccountQueryOptionsIntoBlockInfo(options, blockInfo)
-	return userAccount, accountBlockInfoToApiResource(blockInfo), nil
+	return userAccount, accountBlockInfoToApiResource(blockInfo), options, nil
 }
 
 func (n *Node) loadAccountCode(codeHash []byte, options api.AccountQueryOptions) ([]byte, api.BlockInfo) {
@@ -127,9 +134,10 @@ func (n *Node) addBlockCoordinatesToAccountQueryOptions(options api.AccountQuery
 	blockRootHash := options.BlockRootHash
 
 	if len(blockRootHash) > 0 {
-		// We cannot infer other block coordinates (hash, nonce, hint for epoch) at this moment
+		// We cannot infer other block coordinates (hash, nonce) at this moment; the hint for epoch is kept when given
 		return api.AccountQueryOptions{
 			BlockRootHash: options.BlockRootHash,
+			HintEpoch:     options.HintEpoch,
 		}, nil
 	}
 

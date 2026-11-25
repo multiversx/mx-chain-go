@@ -146,6 +146,35 @@ func (ps *triePruningStorer) GetFromLastEpoch(key []byte) ([]byte, error) {
 	return ps.activePersisters[lastEpochIndex].getPersister().Get(key)
 }
 
+// GetFromEpoch searches the key only in the persister of the given epoch, when that persister is open. The trie storer
+// is read by epoch only for API queries (trieStorageManagerInEpoch): they must not open a closed epoch database under
+// the storer lock needed by the block processing
+func (ps *triePruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) {
+	v, ok := ps.cacher.Get(key)
+	if ok {
+		ps.stateStatsHandler.IncrCache()
+		return v.([]byte), nil
+	}
+
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+
+	pd, exists := ps.persistersMapByEpoch[epoch]
+	if !exists || pd.getIsClosed() {
+		return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
+	}
+
+	ps.stateStatsHandler.IncrPersister(epoch)
+
+	res, err := pd.getPersister().Get(key)
+	if errors.Is(err, storage.ErrKeyNotFound) {
+		return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
+	}
+
+	// any other error (a closed database, a read failure) is reported as it is
+	return res, err
+}
+
 // GetFromCurrentEpoch searches only the current epoch storer for the given key
 func (ps *triePruningStorer) GetFromCurrentEpoch(key []byte) ([]byte, error) {
 	ps.lock.RLock()

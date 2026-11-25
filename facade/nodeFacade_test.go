@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/checkpoint"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/debug"
 	"github.com/multiversx/mx-chain-go/facade/mock"
@@ -819,18 +820,67 @@ func TestNodeFacade_GetKeyValuePairs(t *testing.T) {
 	t.Parallel()
 
 	expectedPairs := map[string]string{"k": "v"}
+	givenCheckpoint := &checkpoint.Checkpoint{BlockNonce: 1}
+	nextCheckpoint := &checkpoint.Checkpoint{BlockNonce: 2}
 	arg := createMockArguments()
 	arg.Node = &mock.NodeStub{
-		GetKeyValuePairsCalled: func(address string, _ api.AccountQueryOptions, _ context.Context) (map[string]string, api.BlockInfo, error) {
-			return expectedPairs, api.BlockInfo{}, nil
+		GetKeyValuePairsCalled: func(address string, _ api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint, _ context.Context) (map[string]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
+			require.Equal(t, uint(7), numKeys)
+			require.Equal(t, givenCheckpoint, iteratorState)
+			return expectedPairs, nextCheckpoint, api.BlockInfo{}, nil
 		},
 	}
 
 	nf, _ := NewNodeFacade(arg)
 
-	res, _, err := nf.GetKeyValuePairs(context.Background(), "addr", api.AccountQueryOptions{})
+	res, next, _, err := nf.GetKeyValuePairs(context.Background(), "addr", api.AccountQueryOptions{}, 7, givenCheckpoint)
 	require.NoError(t, err)
 	require.Equal(t, expectedPairs, res)
+	require.Equal(t, nextCheckpoint, next)
+}
+
+func TestNodeFacade_GetAccountWithKeys(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		arg.Node = &mock.NodeStub{
+			GetAccountWithKeysCalled: func(_ string, _ api.AccountQueryOptions, _ uint, _ *checkpoint.Checkpoint, _ context.Context) (api.AccountResponse, *checkpoint.Checkpoint, api.BlockInfo, error) {
+				return api.AccountResponse{}, nil, api.BlockInfo{}, expectedErr
+			},
+		}
+		nf, _ := NewNodeFacade(arg)
+
+		_, _, _, err := nf.GetAccountWithKeys(context.Background(), "test", api.AccountQueryOptions{}, 0, nil)
+		require.Equal(t, expectedErr, err)
+	})
+	t.Run("should work, the node response (code included) passed through", func(t *testing.T) {
+		t.Parallel()
+
+		givenCheckpoint := &checkpoint.Checkpoint{BlockNonce: 1}
+		nextCheckpoint := &checkpoint.Checkpoint{BlockNonce: 2}
+		arg := createMockArguments()
+		arg.Node = &mock.NodeStub{
+			GetAccountWithKeysCalled: func(_ string, _ api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint, _ context.Context) (api.AccountResponse, *checkpoint.Checkpoint, api.BlockInfo, error) {
+				require.Equal(t, uint(7), numKeys)
+				require.Equal(t, givenCheckpoint, iteratorState)
+				return api.AccountResponse{Code: "636f6465", Pairs: map[string]string{"k": "v"}}, nextCheckpoint, api.BlockInfo{}, nil
+			},
+			GetCodeCalled: func(_ []byte, _ api.AccountQueryOptions) ([]byte, api.BlockInfo) {
+				require.Fail(t, "the code must be read by the node, from the state the keys are read from")
+				return nil, api.BlockInfo{}
+			},
+		}
+		nf, _ := NewNodeFacade(arg)
+
+		account, next, _, err := nf.GetAccountWithKeys(context.Background(), "test", api.AccountQueryOptions{}, 7, givenCheckpoint)
+		require.NoError(t, err)
+		require.Equal(t, "636f6465", account.Code)
+		require.Equal(t, map[string]string{"k": "v"}, account.Pairs)
+		require.Equal(t, nextCheckpoint, next)
+	})
 }
 
 func TestNodeFacade_GetGuardianData(t *testing.T) {
@@ -881,18 +931,23 @@ func TestNodeFacade_GetAllESDTTokens(t *testing.T) {
 		"token0": {Value: big.NewInt(10)},
 		"token1": {TokenMetaData: &esdt.MetaData{Name: []byte("name1")}},
 	}
+	givenCheckpoint := &checkpoint.Checkpoint{BlockNonce: 1}
+	nextCheckpoint := &checkpoint.Checkpoint{BlockNonce: 2}
 	arg := createMockArguments()
 	arg.Node = &mock.NodeStub{
-		GetAllESDTTokensCalled: func(_ string, _ api.AccountQueryOptions, _ context.Context) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error) {
-			return expectedTokens, api.BlockInfo{}, nil
+		GetAllESDTTokensCalled: func(_ string, _ api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint, _ context.Context) (map[string]*esdt.ESDigitalToken, *checkpoint.Checkpoint, api.BlockInfo, error) {
+			require.Equal(t, uint(7), numKeys)
+			require.Equal(t, givenCheckpoint, iteratorState)
+			return expectedTokens, nextCheckpoint, api.BlockInfo{}, nil
 		},
 	}
 
 	nf, _ := NewNodeFacade(arg)
 
-	res, _, err := nf.GetAllESDTTokens(context.Background(), "addr", api.AccountQueryOptions{})
+	res, next, _, err := nf.GetAllESDTTokens(context.Background(), "addr", api.AccountQueryOptions{}, 7, givenCheckpoint)
 	require.NoError(t, err)
 	require.Equal(t, expectedTokens, res)
+	require.Equal(t, nextCheckpoint, next)
 }
 
 func TestNodeFacade_GetESDTData(t *testing.T) {
@@ -939,16 +994,20 @@ func TestNodeFacade_GetAllIssuedESDTs(t *testing.T) {
 	expectedValue := []string{"value"}
 	arg := createMockArguments()
 	arg.Node = &mock.NodeStub{
-		GetAllIssuedESDTsCalled: func(_ string, _ context.Context) ([]string, error) {
-			return expectedValue, nil
+		GetAllIssuedESDTsCalled: func(tokenType string, _ api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint, _ context.Context) ([]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
+			require.Equal(t, "type", tokenType)
+			require.Equal(t, uint(7), numKeys)
+			require.Equal(t, &checkpoint.Checkpoint{BlockNonce: 1}, iteratorState)
+			return expectedValue, &checkpoint.Checkpoint{BlockNonce: 2}, api.BlockInfo{}, nil
 		},
 	}
 
 	nf, _ := NewNodeFacade(arg)
 
-	res, err := nf.GetAllIssuedESDTs(context.Background(), "")
+	res, next, _, err := nf.GetAllIssuedESDTs(context.Background(), "type", api.AccountQueryOptions{}, 7, &checkpoint.Checkpoint{BlockNonce: 1})
 	require.NoError(t, err)
 	require.Equal(t, expectedValue, res)
+	require.Equal(t, &checkpoint.Checkpoint{BlockNonce: 2}, next)
 }
 
 func TestNodeFacade_GetESDTsWithRole(t *testing.T) {
@@ -958,14 +1017,14 @@ func TestNodeFacade_GetESDTsWithRole(t *testing.T) {
 	args := createMockArguments()
 
 	args.Node = &mock.NodeStub{
-		GetESDTsWithRoleCalled: func(address string, role string, _ api.AccountQueryOptions, _ context.Context) ([]string, api.BlockInfo, error) {
-			return expectedResponse, api.BlockInfo{}, nil
+		GetESDTsWithRoleCalled: func(address string, role string, _ api.AccountQueryOptions, _ uint, _ *checkpoint.Checkpoint, _ context.Context) ([]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
+			return expectedResponse, nil, api.BlockInfo{}, nil
 		},
 	}
 
 	nf, _ := NewNodeFacade(args)
 
-	res, _, err := nf.GetESDTsWithRole(context.Background(), "address", "role", api.AccountQueryOptions{})
+	res, _, _, err := nf.GetESDTsWithRole(context.Background(), "address", "role", api.AccountQueryOptions{}, 0, nil)
 	require.NoError(t, err)
 	require.Equal(t, expectedResponse, res)
 }
@@ -977,14 +1036,14 @@ func TestNodeFacade_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
 	args := createMockArguments()
 
 	args.Node = &mock.NodeStub{
-		GetNFTTokenIDsRegisteredByAddressCalled: func(address string, _ api.AccountQueryOptions, _ context.Context) ([]string, api.BlockInfo, error) {
-			return expectedResponse, api.BlockInfo{}, nil
+		GetNFTTokenIDsRegisteredByAddressCalled: func(address string, _ api.AccountQueryOptions, _ uint, _ *checkpoint.Checkpoint, _ context.Context) ([]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
+			return expectedResponse, nil, api.BlockInfo{}, nil
 		},
 	}
 
 	nf, _ := NewNodeFacade(args)
 
-	res, _, err := nf.GetNFTTokenIDsRegisteredByAddress(context.Background(), "address", api.AccountQueryOptions{})
+	res, _, _, err := nf.GetNFTTokenIDsRegisteredByAddress(context.Background(), "address", api.AccountQueryOptions{}, 0, nil)
 	require.NoError(t, err)
 	require.Equal(t, expectedResponse, res)
 }
@@ -995,14 +1054,14 @@ func TestNodeFacade_GetAllIssuedESDTsWithError(t *testing.T) {
 	localErr := errors.New("local")
 	arg := createMockArguments()
 	arg.Node = &mock.NodeStub{
-		GetAllIssuedESDTsCalled: func(_ string, _ context.Context) ([]string, error) {
-			return nil, localErr
+		GetAllIssuedESDTsCalled: func(_ string, _ api.AccountQueryOptions, _ uint, _ *checkpoint.Checkpoint, _ context.Context) ([]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
+			return nil, nil, api.BlockInfo{}, localErr
 		},
 	}
 
 	nf, _ := NewNodeFacade(arg)
 
-	_, err := nf.GetAllIssuedESDTs(context.Background(), "")
+	_, _, _, err := nf.GetAllIssuedESDTs(context.Background(), "", api.AccountQueryOptions{}, 0, nil)
 	require.Equal(t, err, localErr)
 }
 
@@ -2285,14 +2344,14 @@ func TestNodeFacade_GetESDTsRoles(t *testing.T) {
 	args.WsAntifloodConfig.WebServerAntifloodEnabled = true // coverage
 
 	args.Node = &mock.NodeStub{
-		GetESDTsRolesCalled: func(address string, options api.AccountQueryOptions, ctx context.Context) (map[string][]string, api.BlockInfo, error) {
-			return expectedResponse, api.BlockInfo{}, nil
+		GetESDTsRolesCalled: func(address string, options api.AccountQueryOptions, _ uint, _ *checkpoint.Checkpoint, ctx context.Context) (map[string][]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
+			return expectedResponse, nil, api.BlockInfo{}, nil
 		},
 	}
 
 	nf, _ := NewNodeFacade(args)
 
-	res, _, err := nf.GetESDTsRoles(context.Background(), "address", api.AccountQueryOptions{})
+	res, _, _, err := nf.GetESDTsRoles(context.Background(), "address", api.AccountQueryOptions{}, 0, nil)
 	require.NoError(t, err)
 	require.Equal(t, expectedResponse, res)
 }

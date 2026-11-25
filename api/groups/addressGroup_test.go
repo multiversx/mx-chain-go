@@ -20,6 +20,8 @@ import (
 	"github.com/multiversx/mx-chain-go/api/groups"
 	"github.com/multiversx/mx-chain-go/api/mock"
 	"github.com/multiversx/mx-chain-go/api/shared"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/checkpoint"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -75,7 +77,8 @@ type esdtTokenResponseData struct {
 }
 
 type esdtsWithRoleResponseData struct {
-	Tokens []string `json:"tokens"`
+	Tokens        []string               `json:"tokens"`
+	IteratorState *checkpoint.Checkpoint `json:"iteratorState"`
 }
 
 type esdtsWithRoleResponse struct {
@@ -107,7 +110,8 @@ type esdtNFTResponse struct {
 }
 
 type esdtTokensCompleteResponseData struct {
-	Tokens map[string]esdtNFTTokenData `json:"esdts"`
+	Tokens        map[string]esdtNFTTokenData `json:"esdts"`
+	IteratorState *checkpoint.Checkpoint      `json:"iteratorState"`
 }
 
 type esdtTokensCompleteResponse struct {
@@ -117,7 +121,22 @@ type esdtTokensCompleteResponse struct {
 }
 
 type keyValuePairsResponseData struct {
-	Pairs map[string]string `json:"pairs"`
+	Pairs         map[string]string      `json:"pairs"`
+	IteratorState *checkpoint.Checkpoint `json:"iteratorState"`
+}
+
+type accountWithKeysResponseData struct {
+	Account struct {
+		Address string            `json:"address"`
+		Pairs   map[string]string `json:"pairs"`
+	} `json:"account"`
+	IteratorState *checkpoint.Checkpoint `json:"iteratorState"`
+}
+
+type accountWithKeysResponse struct {
+	Data  accountWithKeysResponseData `json:"data"`
+	Error string                      `json:"error"`
+	Code  string                      `json:"code"`
 }
 
 type keyValuePairsResponse struct {
@@ -137,7 +156,8 @@ type iterateKeysResponse struct {
 }
 
 type esdtRolesResponseData struct {
-	Roles map[string][]string `json:"roles"`
+	Roles         map[string][]string    `json:"roles"`
+	IteratorState *checkpoint.Checkpoint `json:"iteratorState"`
 }
 
 type esdtRolesResponse struct {
@@ -250,6 +270,96 @@ func TestAddressGroup_getAccount(t *testing.T) {
 		assert.Equal(t, "100", accResp.Account.Balance)
 		assert.Equal(t, "120", accResp.Account.DeveloperReward)
 		assert.Empty(t, response.Error)
+	})
+	t.Run("POST without withKeys pages the keys", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			GetAccountWithKeysCalled: func(_ context.Context, address string, options api.AccountQueryOptions, numKeys uint, _ *checkpoint.Checkpoint) (api.AccountResponse, *checkpoint.Checkpoint, api.BlockInfo, error) {
+				assert.True(t, options.WithKeys)
+				assert.Equal(t, uint(3), numKeys)
+				return api.AccountResponse{Address: address}, nil, api.BlockInfo{}, nil
+			},
+		}
+		response := &shared.GenericAPIResponse{}
+		loadAddressGroupResponse(t, facade, "/address/addr", "POST", bytes.NewBufferString(`{"numKeys":3}`), response)
+		assert.Empty(t, response.Error)
+	})
+	t.Run("paging parameters are ignored without withKeys, as before", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			GetAccountCalled: func(_ context.Context, address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
+				return api.AccountResponse{Address: address}, api.BlockInfo{}, nil
+			},
+		}
+		response := &shared.GenericAPIResponse{}
+		loadAddressGroupResponse(t, facade, "/address/addr?numKeys=abc&iteratorState=!!!", "GET", nil, response)
+		assert.Empty(t, response.Error)
+	})
+	t.Run("invalid withKeys should error",
+		testErrorScenario("/address/erd1alice?withKeys=not-bool", "GET", nil,
+			formatExpectedErr(apiErrors.ErrCouldNotGetAccount, errors.New("strconv.ParseBool: parsing \"not-bool\": invalid syntax"))))
+	t.Run("invalid iterator state should error",
+		testErrorScenario("/address/erd1alice?withKeys=true&iteratorState=!!!", "GET", nil,
+			formatExpectedErr(apiErrors.ErrCouldNotGetAccount, apiErrors.ErrBadUrlParams)))
+	t.Run("with keys, unusable iterator state should be a bad request", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			GetAccountWithKeysCalled: func(_ context.Context, _ string, _ api.AccountQueryOptions, _ uint, _ *checkpoint.Checkpoint) (api.AccountResponse, *checkpoint.Checkpoint, api.BlockInfo, error) {
+				return api.AccountResponse{}, nil, api.BlockInfo{}, fmt.Errorf("%w: pruned", common.ErrIteratorNodeUnavailable)
+			},
+		}
+		testAddressGroup(t, facade, "/address/addr?withKeys=true", "GET", nil, http.StatusBadRequest,
+			formatExpectedErr(apiErrors.ErrCouldNotGetAccount, fmt.Errorf("%w: pruned", common.ErrIteratorNodeUnavailable)))
+	})
+	t.Run("with keys should work through GET and POST, returning the iterator state", func(t *testing.T) {
+		t.Parallel()
+
+		givenCheckpoint := &checkpoint.Checkpoint{BlockNonce: 5, BlockHash: "aa", BlockRootHash: "bb", IteratorState: [][]byte{[]byte("s")}}
+		nextCheckpoint := &checkpoint.Checkpoint{BlockNonce: 5, BlockHash: "aa", BlockRootHash: "bb", IteratorState: [][]byte{[]byte("t")}}
+		pairs := map[string]string{"k1": "v1"}
+		facade := &mock.FacadeStub{
+			GetAccountWithKeysCalled: func(_ context.Context, address string, options api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint) (api.AccountResponse, *checkpoint.Checkpoint, api.BlockInfo, error) {
+				assert.True(t, options.WithKeys)
+				assert.Equal(t, uint(7), numKeys)
+				assert.Equal(t, givenCheckpoint, iteratorState)
+				return api.AccountResponse{Address: address, Pairs: pairs}, nextCheckpoint, api.BlockInfo{}, nil
+			},
+			GetAccountCalled: func(_ context.Context, _ string, _ api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
+				assert.Fail(t, "the unpaginated account loader must not be used with keys")
+				return api.AccountResponse{}, api.BlockInfo{}, nil
+			},
+		}
+
+		encodedCheckpoint, err := checkpoint.Encode(givenCheckpoint)
+		require.Nil(t, err)
+		response := &accountWithKeysResponse{}
+		loadAddressGroupResponse(t, facade, "/address/addr?withKeys=true&numKeys=7&iteratorState="+encodedCheckpoint, "GET", nil, response)
+		assert.Equal(t, "addr", response.Data.Account.Address)
+		assert.Equal(t, pairs, response.Data.Account.Pairs)
+		assert.Equal(t, nextCheckpoint, response.Data.IteratorState)
+
+		body, _ := json.Marshal(groups.PagedRequestBody{IteratorState: givenCheckpoint})
+		response = &accountWithKeysResponse{}
+		loadAddressGroupResponse(t, facade, "/address/addr?withKeys=true&numKeys=7", "POST", bytes.NewBuffer(body), response)
+		assert.Equal(t, pairs, response.Data.Account.Pairs)
+		assert.Equal(t, nextCheckpoint, response.Data.IteratorState)
+	})
+	t.Run("without keys, no iterator state is returned", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			GetAccountCalled: func(_ context.Context, address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
+				assert.False(t, options.WithKeys)
+				return api.AccountResponse{Address: address}, api.BlockInfo{}, nil
+			},
+		}
+		response := &accountWithKeysResponse{}
+		loadAddressGroupResponse(t, facade, "/address/addr?withKeys=false", "GET", nil, response)
+		assert.Equal(t, "addr", response.Data.Account.Address)
+		assert.Nil(t, response.Data.IteratorState)
 	})
 }
 
@@ -629,12 +739,18 @@ func TestAddressGroup_getKeyValuePairs(t *testing.T) {
 	t.Run("invalid query options should error",
 		testErrorScenario("/address/erd1alice/keys?blockNonce=not-uint64", "GET", nil,
 			formatExpectedErr(apiErrors.ErrGetKeyValuePairs, apiErrors.ErrBadUrlParams)))
+	t.Run("invalid iterator state should error",
+		testErrorScenario("/address/erd1alice/keys?iteratorState=!!!", "GET", nil,
+			formatExpectedErr(apiErrors.ErrGetKeyValuePairs, apiErrors.ErrBadUrlParams)))
+	t.Run("invalid body should error",
+		testErrorScenario("/address/erd1alice/keys", "POST", strings.NewReader("not json"),
+			formatExpectedErr(apiErrors.ErrGetKeyValuePairs, apiErrors.ErrValidation)))
 	t.Run("with node fail should err", func(t *testing.T) {
 		t.Parallel()
 
 		facade := &mock.FacadeStub{
-			GetKeyValuePairsCalled: func(_ context.Context, _ string, _ api.AccountQueryOptions) (map[string]string, api.BlockInfo, error) {
-				return nil, api.BlockInfo{}, expectedErr
+			GetKeyValuePairsCalled: func(_ context.Context, _ string, _ api.AccountQueryOptions, _ uint, _ *checkpoint.Checkpoint) (map[string]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
+				return nil, nil, api.BlockInfo{}, expectedErr
 			},
 		}
 		testAddressGroup(
@@ -647,6 +763,17 @@ func TestAddressGroup_getKeyValuePairs(t *testing.T) {
 			formatExpectedErr(apiErrors.ErrGetKeyValuePairs, expectedErr),
 		)
 	})
+	t.Run("unusable iterator state should be a bad request", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			GetKeyValuePairsCalled: func(_ context.Context, _ string, _ api.AccountQueryOptions, _ uint, _ *checkpoint.Checkpoint) (map[string]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
+				return nil, nil, api.BlockInfo{}, fmt.Errorf("%w: conflict", common.ErrInvalidIteratorState)
+			},
+		}
+		testAddressGroup(t, facade, "/address/erd1alice/keys", "GET", nil, http.StatusBadRequest,
+			formatExpectedErr(apiErrors.ErrGetKeyValuePairs, fmt.Errorf("%w: conflict", common.ErrInvalidIteratorState)))
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -655,8 +782,11 @@ func TestAddressGroup_getKeyValuePairs(t *testing.T) {
 			"k2": "v2",
 		}
 		facade := &mock.FacadeStub{
-			GetKeyValuePairsCalled: func(_ context.Context, _ string, _ api.AccountQueryOptions) (map[string]string, api.BlockInfo, error) {
-				return pairs, api.BlockInfo{}, nil
+			GetKeyValuePairsCalled: func(_ context.Context, _ string, options api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint) (map[string]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
+				assert.Equal(t, api.AccountQueryOptions{}, options)
+				assert.Zero(t, numKeys)
+				assert.Nil(t, iteratorState)
+				return pairs, nil, api.BlockInfo{}, nil
 			},
 		}
 
@@ -670,6 +800,36 @@ func TestAddressGroup_getKeyValuePairs(t *testing.T) {
 			response,
 		)
 		assert.Equal(t, pairs, response.Data.Pairs)
+		assert.Nil(t, response.Data.IteratorState)
+	})
+	t.Run("should page through GET and POST, returning the iterator state", func(t *testing.T) {
+		t.Parallel()
+
+		givenCheckpoint := &checkpoint.Checkpoint{BlockNonce: 5, BlockHash: "aa", BlockRootHash: "bb", IteratorState: [][]byte{[]byte("s")}}
+		nextCheckpoint := &checkpoint.Checkpoint{BlockNonce: 5, BlockHash: "aa", BlockRootHash: "bb", IteratorState: [][]byte{[]byte("t")}}
+		pairs := map[string]string{"k1": "v1"}
+		facade := &mock.FacadeStub{
+			GetKeyValuePairsCalled: func(_ context.Context, _ string, options api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint) (map[string]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
+				assert.True(t, options.OnFinalBlock)
+				assert.Equal(t, uint(7), numKeys)
+				assert.Equal(t, givenCheckpoint, iteratorState)
+				return pairs, nextCheckpoint, api.BlockInfo{}, nil
+			},
+		}
+
+		encodedCheckpoint, err := checkpoint.Encode(givenCheckpoint)
+		require.Nil(t, err)
+		response := &keyValuePairsResponse{}
+		loadAddressGroupResponse(t, facade, "/address/erd1alice/keys?onFinalBlock=true&numKeys=7&iteratorState="+encodedCheckpoint, "GET", nil, response)
+		assert.Equal(t, pairs, response.Data.Pairs)
+		assert.Equal(t, nextCheckpoint, response.Data.IteratorState)
+
+		numKeys := uint(7)
+		body, _ := json.Marshal(groups.PagedRequestBody{NumKeys: &numKeys, IteratorState: givenCheckpoint})
+		response = &keyValuePairsResponse{}
+		loadAddressGroupResponse(t, facade, "/address/erd1alice/keys?onFinalBlock=true", "POST", bytes.NewBuffer(body), response)
+		assert.Equal(t, pairs, response.Data.Pairs)
+		assert.Equal(t, nextCheckpoint, response.Data.IteratorState)
 	})
 }
 
@@ -838,8 +998,8 @@ func TestAddressGroup_getESDTsRoles(t *testing.T) {
 		t.Parallel()
 
 		facade := &mock.FacadeStub{
-			GetESDTsRolesCalled: func(_ context.Context, _ string, _ api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error) {
-				return nil, api.BlockInfo{}, expectedErr
+			GetESDTsRolesCalled: func(_ context.Context, _ string, _ api.AccountQueryOptions, _ uint, _ *checkpoint.Checkpoint) (map[string][]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
+				return nil, nil, api.BlockInfo{}, expectedErr
 			},
 		}
 		testAddressGroup(
@@ -860,8 +1020,8 @@ func TestAddressGroup_getESDTsRoles(t *testing.T) {
 			"token1": {"role3", "role1"},
 		}
 		facade := &mock.FacadeStub{
-			GetESDTsRolesCalled: func(_ context.Context, _ string, _ api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error) {
-				return roles, api.BlockInfo{}, nil
+			GetESDTsRolesCalled: func(_ context.Context, _ string, _ api.AccountQueryOptions, _ uint, _ *checkpoint.Checkpoint) (map[string][]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
+				return roles, nil, api.BlockInfo{}, nil
 			},
 		}
 
@@ -876,6 +1036,35 @@ func TestAddressGroup_getESDTsRoles(t *testing.T) {
 		)
 		assert.Equal(t, roles, response.Data.Roles)
 	})
+	t.Run("should page through GET and POST, returning the iterator state", func(t *testing.T) {
+		t.Parallel()
+
+		givenCheckpoint := &checkpoint.Checkpoint{BlockNonce: 5, BlockHash: "aa", BlockRootHash: "bb", IteratorState: [][]byte{[]byte("s")}}
+		nextCheckpoint := &checkpoint.Checkpoint{BlockNonce: 5, BlockHash: "aa", BlockRootHash: "bb", IteratorState: [][]byte{[]byte("t")}}
+		facade := &mock.FacadeStub{
+			GetESDTsRolesCalled: func(_ context.Context, _ string, options api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint) (map[string][]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
+				assert.True(t, options.OnFinalBlock)
+				assert.Equal(t, uint(7), numKeys)
+				assert.Equal(t, givenCheckpoint, iteratorState)
+				return map[string][]string{"token0": {"role0"}}, nextCheckpoint, api.BlockInfo{}, nil
+			},
+		}
+
+		encodedCheckpoint, err := checkpoint.Encode(givenCheckpoint)
+		require.Nil(t, err)
+		response := &esdtRolesResponse{}
+		loadAddressGroupResponse(t, facade, "/address/erd1alice/esdts/roles?onFinalBlock=true&numKeys=7&iteratorState="+encodedCheckpoint, "GET", nil, response)
+		assert.Equal(t, map[string][]string{"token0": {"role0"}}, response.Data.Roles)
+		assert.Equal(t, nextCheckpoint, response.Data.IteratorState)
+
+		numKeys := uint(7)
+		body, _ := json.Marshal(groups.PagedRequestBody{NumKeys: &numKeys, IteratorState: givenCheckpoint})
+		response = &esdtRolesResponse{}
+		loadAddressGroupResponse(t, facade, "/address/erd1alice/esdts/roles?onFinalBlock=true", "POST", bytes.NewBuffer(body), response)
+		assert.Equal(t, map[string][]string{"token0": {"role0"}}, response.Data.Roles)
+		assert.Equal(t, nextCheckpoint, response.Data.IteratorState)
+	})
+
 }
 
 func TestAddressGroup_getESDTTokensWithRole(t *testing.T) {
@@ -889,13 +1078,13 @@ func TestAddressGroup_getESDTTokensWithRole(t *testing.T) {
 			formatExpectedErr(apiErrors.ErrGetESDTTokensWithRole, apiErrors.ErrBadUrlParams)))
 	t.Run("invalid role should error",
 		testErrorScenario("/address/erd1alice/esdts-with-role/invalid", "GET", nil,
-			formatExpectedErr(apiErrors.ErrGetESDTTokensWithRole, fmt.Errorf("invalid role: %s", "invalid"))))
+			formatExpectedErr(apiErrors.ErrGetESDTTokensWithRole, fmt.Errorf("%w: invalid role: %s", apiErrors.ErrValidation, "invalid"))))
 	t.Run("with node fail should err", func(t *testing.T) {
 		t.Parallel()
 
 		facade := &mock.FacadeStub{
-			GetESDTsWithRoleCalled: func(_ context.Context, _ string, _ string, _ api.AccountQueryOptions) ([]string, api.BlockInfo, error) {
-				return nil, api.BlockInfo{}, expectedErr
+			GetESDTsWithRoleCalled: func(_ context.Context, _ string, _ string, _ api.AccountQueryOptions, _ uint, _ *checkpoint.Checkpoint) ([]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
+				return nil, nil, api.BlockInfo{}, expectedErr
 			},
 		}
 		testAddressGroup(
@@ -913,8 +1102,8 @@ func TestAddressGroup_getESDTTokensWithRole(t *testing.T) {
 
 		expectedTokens := []string{"ABC-0o9i8u", "XYZ-r5y7i9"}
 		facade := &mock.FacadeStub{
-			GetESDTsWithRoleCalled: func(_ context.Context, address string, role string, _ api.AccountQueryOptions) ([]string, api.BlockInfo, error) {
-				return expectedTokens, api.BlockInfo{}, nil
+			GetESDTsWithRoleCalled: func(_ context.Context, address string, role string, _ api.AccountQueryOptions, _ uint, _ *checkpoint.Checkpoint) ([]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
+				return expectedTokens, nil, api.BlockInfo{}, nil
 			},
 		}
 
@@ -929,6 +1118,36 @@ func TestAddressGroup_getESDTTokensWithRole(t *testing.T) {
 		)
 		assert.Equal(t, expectedTokens, esdtResponseObj.Data.Tokens)
 	})
+	t.Run("should page through GET and POST, returning the iterator state", func(t *testing.T) {
+		t.Parallel()
+
+		givenCheckpoint := &checkpoint.Checkpoint{BlockNonce: 5, BlockHash: "aa", BlockRootHash: "bb", IteratorState: [][]byte{[]byte("s")}}
+		nextCheckpoint := &checkpoint.Checkpoint{BlockNonce: 5, BlockHash: "aa", BlockRootHash: "bb", IteratorState: [][]byte{[]byte("t")}}
+		facade := &mock.FacadeStub{
+			GetESDTsWithRoleCalled: func(_ context.Context, _ string, role string, options api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint) ([]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
+				assert.Equal(t, "ESDTRoleNFTCreate", role)
+				assert.True(t, options.OnFinalBlock)
+				assert.Equal(t, uint(7), numKeys)
+				assert.Equal(t, givenCheckpoint, iteratorState)
+				return []string{"ABC-0o9i8u"}, nextCheckpoint, api.BlockInfo{}, nil
+			},
+		}
+
+		encodedCheckpoint, err := checkpoint.Encode(givenCheckpoint)
+		require.Nil(t, err)
+		response := &esdtsWithRoleResponse{}
+		loadAddressGroupResponse(t, facade, "/address/erd1alice/esdts-with-role/ESDTRoleNFTCreate?onFinalBlock=true&numKeys=7&iteratorState="+encodedCheckpoint, "GET", nil, response)
+		assert.Equal(t, []string{"ABC-0o9i8u"}, response.Data.Tokens)
+		assert.Equal(t, nextCheckpoint, response.Data.IteratorState)
+
+		numKeys := uint(7)
+		body, _ := json.Marshal(groups.PagedRequestBody{NumKeys: &numKeys, IteratorState: givenCheckpoint})
+		response = &esdtsWithRoleResponse{}
+		loadAddressGroupResponse(t, facade, "/address/erd1alice/esdts-with-role/ESDTRoleNFTCreate?onFinalBlock=true", "POST", bytes.NewBuffer(body), response)
+		assert.Equal(t, []string{"ABC-0o9i8u"}, response.Data.Tokens)
+		assert.Equal(t, nextCheckpoint, response.Data.IteratorState)
+	})
+
 }
 
 func TestAddressGroup_getNFTTokenIDsRegisteredByAddress(t *testing.T) {
@@ -944,8 +1163,8 @@ func TestAddressGroup_getNFTTokenIDsRegisteredByAddress(t *testing.T) {
 		t.Parallel()
 
 		facade := &mock.FacadeStub{
-			GetNFTTokenIDsRegisteredByAddressCalled: func(_ context.Context, _ string, _ api.AccountQueryOptions) ([]string, api.BlockInfo, error) {
-				return nil, api.BlockInfo{}, expectedErr
+			GetNFTTokenIDsRegisteredByAddressCalled: func(_ context.Context, _ string, _ api.AccountQueryOptions, _ uint, _ *checkpoint.Checkpoint) ([]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
+				return nil, nil, api.BlockInfo{}, expectedErr
 			},
 		}
 		testAddressGroup(
@@ -963,8 +1182,8 @@ func TestAddressGroup_getNFTTokenIDsRegisteredByAddress(t *testing.T) {
 
 		expectedTokens := []string{"ABC-0o9i8u", "XYZ-r5y7i9"}
 		facade := &mock.FacadeStub{
-			GetNFTTokenIDsRegisteredByAddressCalled: func(_ context.Context, address string, _ api.AccountQueryOptions) ([]string, api.BlockInfo, error) {
-				return expectedTokens, api.BlockInfo{}, nil
+			GetNFTTokenIDsRegisteredByAddressCalled: func(_ context.Context, address string, _ api.AccountQueryOptions, _ uint, _ *checkpoint.Checkpoint) ([]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
+				return expectedTokens, nil, api.BlockInfo{}, nil
 			},
 		}
 
@@ -979,6 +1198,35 @@ func TestAddressGroup_getNFTTokenIDsRegisteredByAddress(t *testing.T) {
 		)
 		assert.Equal(t, expectedTokens, esdtResponseObj.Data.Tokens)
 	})
+	t.Run("should page through GET and POST, returning the iterator state", func(t *testing.T) {
+		t.Parallel()
+
+		givenCheckpoint := &checkpoint.Checkpoint{BlockNonce: 5, BlockHash: "aa", BlockRootHash: "bb", IteratorState: [][]byte{[]byte("s")}}
+		nextCheckpoint := &checkpoint.Checkpoint{BlockNonce: 5, BlockHash: "aa", BlockRootHash: "bb", IteratorState: [][]byte{[]byte("t")}}
+		facade := &mock.FacadeStub{
+			GetNFTTokenIDsRegisteredByAddressCalled: func(_ context.Context, _ string, options api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint) ([]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
+				assert.True(t, options.OnFinalBlock)
+				assert.Equal(t, uint(7), numKeys)
+				assert.Equal(t, givenCheckpoint, iteratorState)
+				return []string{"ABC-0o9i8u"}, nextCheckpoint, api.BlockInfo{}, nil
+			},
+		}
+
+		encodedCheckpoint, err := checkpoint.Encode(givenCheckpoint)
+		require.Nil(t, err)
+		response := &esdtsWithRoleResponse{}
+		loadAddressGroupResponse(t, facade, "/address/erd1alice/registered-nfts?onFinalBlock=true&numKeys=7&iteratorState="+encodedCheckpoint, "GET", nil, response)
+		assert.Equal(t, []string{"ABC-0o9i8u"}, response.Data.Tokens)
+		assert.Equal(t, nextCheckpoint, response.Data.IteratorState)
+
+		numKeys := uint(7)
+		body, _ := json.Marshal(groups.PagedRequestBody{NumKeys: &numKeys, IteratorState: givenCheckpoint})
+		response = &esdtsWithRoleResponse{}
+		loadAddressGroupResponse(t, facade, "/address/erd1alice/registered-nfts?onFinalBlock=true", "POST", bytes.NewBuffer(body), response)
+		assert.Equal(t, []string{"ABC-0o9i8u"}, response.Data.Tokens)
+		assert.Equal(t, nextCheckpoint, response.Data.IteratorState)
+	})
+
 }
 
 func TestAddressGroup_getESDTNFTData(t *testing.T) {
@@ -1055,12 +1303,18 @@ func TestAddressGroup_getAllESDTData(t *testing.T) {
 	t.Run("invalid query options should error",
 		testErrorScenario("/address/erd1alice/esdt?blockNonce=not-uint64", "GET", nil,
 			formatExpectedErr(apiErrors.ErrGetESDTNFTData, apiErrors.ErrBadUrlParams)))
+	t.Run("invalid iterator state should error",
+		testErrorScenario("/address/erd1alice/esdt?iteratorState=!!!", "GET", nil,
+			formatExpectedErr(apiErrors.ErrGetESDTNFTData, apiErrors.ErrBadUrlParams)))
+	t.Run("invalid body should error",
+		testErrorScenario("/address/erd1alice/esdt", "POST", strings.NewReader("not json"),
+			formatExpectedErr(apiErrors.ErrGetESDTNFTData, apiErrors.ErrValidation)))
 	t.Run("with node fail should err", func(t *testing.T) {
 		t.Parallel()
 
 		facade := &mock.FacadeStub{
-			GetAllESDTTokensCalled: func(_ context.Context, address string, options api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error) {
-				return nil, api.BlockInfo{}, expectedErr
+			GetAllESDTTokensCalled: func(_ context.Context, _ string, _ api.AccountQueryOptions, _ uint, _ *checkpoint.Checkpoint) (map[string]*esdt.ESDigitalToken, *checkpoint.Checkpoint, api.BlockInfo, error) {
+				return nil, nil, api.BlockInfo{}, expectedErr
 			},
 		}
 		testAddressGroup(
@@ -1073,17 +1327,31 @@ func TestAddressGroup_getAllESDTData(t *testing.T) {
 			formatExpectedErr(apiErrors.ErrGetESDTNFTData, expectedErr),
 		)
 	})
+	t.Run("unusable iterator state should be a bad request", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			GetAllESDTTokensCalled: func(_ context.Context, _ string, _ api.AccountQueryOptions, _ uint, _ *checkpoint.Checkpoint) (map[string]*esdt.ESDigitalToken, *checkpoint.Checkpoint, api.BlockInfo, error) {
+				return nil, nil, api.BlockInfo{}, fmt.Errorf("%w: pruned", common.ErrIteratorNodeUnavailable)
+			},
+		}
+		testAddressGroup(t, facade, "/address/erd1alice/esdt", "GET", nil, http.StatusBadRequest,
+			formatExpectedErr(apiErrors.ErrGetESDTNFTData, fmt.Errorf("%w: pruned", common.ErrIteratorNodeUnavailable)))
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
 		testValue1 := "token1"
 		testValue2 := "token2"
 		facade := &mock.FacadeStub{
-			GetAllESDTTokensCalled: func(_ context.Context, address string, _ api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error) {
+			GetAllESDTTokensCalled: func(_ context.Context, _ string, options api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint) (map[string]*esdt.ESDigitalToken, *checkpoint.Checkpoint, api.BlockInfo, error) {
+				assert.Equal(t, api.AccountQueryOptions{}, options)
+				assert.Zero(t, numKeys)
+				assert.Nil(t, iteratorState)
 				tokens := make(map[string]*esdt.ESDigitalToken)
 				tokens[testValue1] = &esdt.ESDigitalToken{Value: big.NewInt(10)}
 				tokens[testValue2] = &esdt.ESDigitalToken{Value: big.NewInt(100)}
-				return tokens, api.BlockInfo{}, nil
+				return tokens, nil, api.BlockInfo{}, nil
 			},
 		}
 
@@ -1097,6 +1365,35 @@ func TestAddressGroup_getAllESDTData(t *testing.T) {
 			esdtTokenResponseObj,
 		)
 		assert.Equal(t, 2, len(esdtTokenResponseObj.Data.Tokens))
+		assert.Nil(t, esdtTokenResponseObj.Data.IteratorState)
+	})
+	t.Run("should page through GET and POST, returning the iterator state", func(t *testing.T) {
+		t.Parallel()
+
+		givenCheckpoint := &checkpoint.Checkpoint{BlockNonce: 5, BlockHash: "aa", BlockRootHash: "bb", IteratorState: [][]byte{[]byte("s")}}
+		nextCheckpoint := &checkpoint.Checkpoint{BlockNonce: 5, BlockHash: "aa", BlockRootHash: "bb", IteratorState: [][]byte{[]byte("t")}}
+		facade := &mock.FacadeStub{
+			GetAllESDTTokensCalled: func(_ context.Context, _ string, options api.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint) (map[string]*esdt.ESDigitalToken, *checkpoint.Checkpoint, api.BlockInfo, error) {
+				assert.True(t, options.OnFinalBlock)
+				assert.Equal(t, uint(7), numKeys)
+				assert.Equal(t, givenCheckpoint, iteratorState)
+				return map[string]*esdt.ESDigitalToken{"token1": {Value: big.NewInt(10)}}, nextCheckpoint, api.BlockInfo{}, nil
+			},
+		}
+
+		encodedCheckpoint, err := checkpoint.Encode(givenCheckpoint)
+		require.Nil(t, err)
+		response := &esdtTokensCompleteResponse{}
+		loadAddressGroupResponse(t, facade, "/address/erd1alice/esdt?onFinalBlock=true&numKeys=7&iteratorState="+encodedCheckpoint, "GET", nil, response)
+		assert.Len(t, response.Data.Tokens, 1)
+		assert.Equal(t, nextCheckpoint, response.Data.IteratorState)
+
+		numKeys := uint(7)
+		body, _ := json.Marshal(groups.PagedRequestBody{NumKeys: &numKeys, IteratorState: givenCheckpoint})
+		response = &esdtTokensCompleteResponse{}
+		loadAddressGroupResponse(t, facade, "/address/erd1alice/esdt?onFinalBlock=true", "POST", bytes.NewBuffer(body), response)
+		assert.Len(t, response.Data.Tokens, 1)
+		assert.Equal(t, nextCheckpoint, response.Data.IteratorState)
 	})
 }
 
@@ -1130,8 +1427,8 @@ func TestAddressGroup_UpdateFacade(t *testing.T) {
 		}
 		testAddress := "address"
 		facade := mock.FacadeStub{
-			GetESDTsRolesCalled: func(_ context.Context, _ string, _ api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error) {
-				return roles, api.BlockInfo{}, nil
+			GetESDTsRolesCalled: func(_ context.Context, _ string, _ api.AccountQueryOptions, _ uint, _ *checkpoint.Checkpoint) (map[string][]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
+				return roles, nil, api.BlockInfo{}, nil
 			},
 		}
 
@@ -1151,8 +1448,8 @@ func TestAddressGroup_UpdateFacade(t *testing.T) {
 
 		newErr := errors.New("new error")
 		newFacade := mock.FacadeStub{
-			GetESDTsRolesCalled: func(_ context.Context, _ string, _ api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error) {
-				return nil, api.BlockInfo{}, newErr
+			GetESDTsRolesCalled: func(_ context.Context, _ string, _ api.AccountQueryOptions, _ uint, _ *checkpoint.Checkpoint) (map[string][]string, *checkpoint.Checkpoint, api.BlockInfo, error) {
+				return nil, nil, api.BlockInfo{}, newErr
 			},
 		}
 		err = addrGroup.UpdateFacade(&newFacade)

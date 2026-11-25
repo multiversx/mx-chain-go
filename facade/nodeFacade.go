@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/checkpoint"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/debug"
@@ -196,35 +197,35 @@ func (nf *nodeFacade) GetESDTData(address string, key string, nonce uint64, opti
 }
 
 // GetESDTsRoles returns all the tokens identifiers and roles for the given address
-func (nf *nodeFacade) GetESDTsRoles(ctx context.Context, address string, options apiData.AccountQueryOptions) (map[string][]string, apiData.BlockInfo, error) {
+func (nf *nodeFacade) GetESDTsRoles(ctx context.Context, address string, options apiData.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint) (map[string][]string, *checkpoint.Checkpoint, apiData.BlockInfo, error) {
 	ctx, cancel := nf.getContextForApiTrieRangeOperations(ctx)
 	defer cancel()
 
-	return nf.node.GetESDTsRoles(address, options, ctx)
+	return nf.node.GetESDTsRoles(address, options, numKeys, iteratorState, ctx)
 }
 
 // GetNFTTokenIDsRegisteredByAddress returns all the token identifiers for semi or non fungible tokens registered by the address
-func (nf *nodeFacade) GetNFTTokenIDsRegisteredByAddress(ctx context.Context, address string, options apiData.AccountQueryOptions) ([]string, apiData.BlockInfo, error) {
+func (nf *nodeFacade) GetNFTTokenIDsRegisteredByAddress(ctx context.Context, address string, options apiData.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint) ([]string, *checkpoint.Checkpoint, apiData.BlockInfo, error) {
 	ctx, cancel := nf.getContextForApiTrieRangeOperations(ctx)
 	defer cancel()
 
-	return nf.node.GetNFTTokenIDsRegisteredByAddress(address, options, ctx)
+	return nf.node.GetNFTTokenIDsRegisteredByAddress(address, options, numKeys, iteratorState, ctx)
 }
 
 // GetESDTsWithRole returns all the tokens with the given role for the given address
-func (nf *nodeFacade) GetESDTsWithRole(ctx context.Context, address string, role string, options apiData.AccountQueryOptions) ([]string, apiData.BlockInfo, error) {
+func (nf *nodeFacade) GetESDTsWithRole(ctx context.Context, address string, role string, options apiData.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint) ([]string, *checkpoint.Checkpoint, apiData.BlockInfo, error) {
 	ctx, cancel := nf.getContextForApiTrieRangeOperations(ctx)
 	defer cancel()
 
-	return nf.node.GetESDTsWithRole(address, role, options, ctx)
+	return nf.node.GetESDTsWithRole(address, role, options, numKeys, iteratorState, ctx)
 }
 
-// GetKeyValuePairs returns all the key-value pairs under the provided address
-func (nf *nodeFacade) GetKeyValuePairs(ctx context.Context, address string, options apiData.AccountQueryOptions) (map[string]string, apiData.BlockInfo, error) {
+// GetKeyValuePairs returns a page of the key-value pairs under the provided address
+func (nf *nodeFacade) GetKeyValuePairs(ctx context.Context, address string, options apiData.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint) (map[string]string, *checkpoint.Checkpoint, apiData.BlockInfo, error) {
 	ctx, cancel := nf.getContextForApiTrieRangeOperations(ctx)
 	defer cancel()
 
-	return nf.node.GetKeyValuePairs(address, options, ctx)
+	return nf.node.GetKeyValuePairs(address, options, numKeys, iteratorState, ctx)
 }
 
 // IterateKeys starts from the given iteratorState and returns the next key-value pairs and the new iteratorState
@@ -241,11 +242,11 @@ func (nf *nodeFacade) GetGuardianData(address string, options apiData.AccountQue
 }
 
 // GetAllESDTTokens returns all the esdt tokens for a given address
-func (nf *nodeFacade) GetAllESDTTokens(ctx context.Context, address string, options apiData.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, apiData.BlockInfo, error) {
+func (nf *nodeFacade) GetAllESDTTokens(ctx context.Context, address string, options apiData.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint) (map[string]*esdt.ESDigitalToken, *checkpoint.Checkpoint, apiData.BlockInfo, error) {
 	ctx, cancel := nf.getContextForApiTrieRangeOperations(ctx)
 	defer cancel()
 
-	return nf.node.GetAllESDTTokens(address, options, ctx)
+	return nf.node.GetAllESDTTokens(address, options, numKeys, iteratorState, ctx)
 }
 
 // GetTokenSupply returns the provided token supply
@@ -254,11 +255,11 @@ func (nf *nodeFacade) GetTokenSupply(token string) (*apiData.ESDTSupply, error) 
 }
 
 // GetAllIssuedESDTs returns all the issued esdts from the esdt system smart contract
-func (nf *nodeFacade) GetAllIssuedESDTs(ctx context.Context, tokenType string) ([]string, error) {
+func (nf *nodeFacade) GetAllIssuedESDTs(ctx context.Context, tokenType string, options apiData.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint) ([]string, *checkpoint.Checkpoint, apiData.BlockInfo, error) {
 	ctx, cancel := nf.getContextForApiTrieRangeOperations(ctx)
 	defer cancel()
 
-	return nf.node.GetAllIssuedESDTs(tokenType, ctx)
+	return nf.node.GetAllIssuedESDTs(tokenType, options, numKeys, iteratorState, ctx)
 }
 
 func (nf *nodeFacade) getContextForApiTrieRangeOperations(ctx context.Context) (context.Context, context.CancelFunc) {
@@ -383,20 +384,8 @@ func (nf *nodeFacade) ComputeTransactionGasLimit(tx *transaction.Transaction) (*
 }
 
 // GetAccount returns a response containing information about the account correlated with provided address
-func (nf *nodeFacade) GetAccount(ctx context.Context, address string, options apiData.AccountQueryOptions) (apiData.AccountResponse, apiData.BlockInfo, error) {
-	var accountResponse apiData.AccountResponse
-	var blockInfo apiData.BlockInfo
-	var err error
-
-	if options.WithKeys {
-		ctx, cancel := nf.getContextForApiTrieRangeOperations(ctx)
-		defer cancel()
-
-		accountResponse, blockInfo, err = nf.node.GetAccountWithKeys(address, options, ctx)
-	} else {
-		accountResponse, blockInfo, err = nf.node.GetAccount(address, options)
-	}
-
+func (nf *nodeFacade) GetAccount(_ context.Context, address string, options apiData.AccountQueryOptions) (apiData.AccountResponse, apiData.BlockInfo, error) {
+	accountResponse, blockInfo, err := nf.node.GetAccount(address, options)
 	if err != nil {
 		return apiData.AccountResponse{}, apiData.BlockInfo{}, err
 	}
@@ -405,6 +394,15 @@ func (nf *nodeFacade) GetAccount(ctx context.Context, address string, options ap
 	code, _ := nf.node.GetCode(codeHash, options)
 	accountResponse.Code = hex.EncodeToString(code)
 	return accountResponse, blockInfo, nil
+}
+
+// GetAccountWithKeys returns the account correlated with the provided address (code included, read from the same
+// state as the keys) and a page of its keys
+func (nf *nodeFacade) GetAccountWithKeys(ctx context.Context, address string, options apiData.AccountQueryOptions, numKeys uint, iteratorState *checkpoint.Checkpoint) (apiData.AccountResponse, *checkpoint.Checkpoint, apiData.BlockInfo, error) {
+	ctx, cancel := nf.getContextForApiTrieRangeOperations(ctx)
+	defer cancel()
+
+	return nf.node.GetAccountWithKeys(address, options, numKeys, iteratorState, ctx)
 }
 
 // GetAccounts returns the state of the provided addresses

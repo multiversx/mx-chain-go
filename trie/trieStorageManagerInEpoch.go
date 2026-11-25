@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 // numEpochsToVerify needs to be at least 2 due to a snapshotting edge-case.
@@ -67,6 +68,12 @@ func treatGetFromEpochError(err error, epoch uint32) {
 
 	if core.IsClosingError(err) {
 		log.Debug("trieStorageManagerInEpoch closing err", "error", err.Error(), "epoch", epoch)
+		return
+	}
+
+	if storage.IsNotFoundInStorageErr(err) {
+		// the key is looked up in the previous epoch next: an expected miss, not a failure
+		log.Trace("trieStorageManagerInEpoch", "error", err.Error(), "epoch", epoch)
 		return
 	}
 

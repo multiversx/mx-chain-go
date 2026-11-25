@@ -66,6 +66,18 @@ The node binary has some flags defined (for a brief description, the user can us
 $ go test ./...	
 ```
 
+## Paginated trie API errors
+
+When an observer cannot serve iterator state, paginated trie endpoints return HTTP 400 with
+`code: "iterator_state_unavailable"`. Another observer may still hold the required state;
+consumers can use this code for bounded failover with the same checkpoint. Malformed checkpoints,
+invalid iterator state and invalid request parameters remain HTTP 400 with `code: "bad_request"`.
+Classify these responses by their code, rather than their error text.
+
+The unavailable-state code also applies to errors handled by the shared page-error responder,
+including `/address/iterate-keys`. HTTP statuses and successful response formats remain unchanged.
+Deploy observers supporting this signal before deploying proxy support for it.
+
 ## Compiling new fields in .proto files (should be updated when required PR will be merged in gogo protobuf master branch):
 1. Download protoc compiler: https://github.com/protocolbuffers/protobuf/releases 
  (if you are running under linux on a x64 you might want to download protoc-3.11.4-linux-x86_64.zip)

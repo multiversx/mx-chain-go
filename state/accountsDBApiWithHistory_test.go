@@ -8,6 +8,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
@@ -183,6 +184,42 @@ func TestAccountsDBApiWithHistory_GetAccountWithBlockInfo(t *testing.T) {
 		assert.Equal(t, arbitraryError, err)
 		assert.Equal(t, rootHash, recreatedRootHash)
 	})
+}
+
+func TestAccountsDBApiWithHistory_RecreatesWhenRootHashOrEpochChanges(t *testing.T) {
+	rootHash := []byte("rootHash")
+	numRecreated := 0
+	accountsAdapter := &mockState.AccountsStub{
+		RecreateTrieCalled: func(_ common.RootHashHolder) error {
+			numRecreated++
+			return nil
+		},
+		GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
+			return createUserAcc(address), nil
+		},
+	}
+	accountsApi, _ := state.NewAccountsDBApiWithHistory(accountsAdapter)
+
+	_, _, err := accountsApi.GetAccountWithBlockInfo(testscommon.TestPubKeyAlice, holders.NewDefaultRootHashesHolder(rootHash))
+	assert.Nil(t, err)
+	_, _, err = accountsApi.GetAccountWithBlockInfo(testscommon.TestPubKeyAlice, holders.NewDefaultRootHashesHolder(rootHash))
+	assert.Nil(t, err)
+	assert.Equal(t, 1, numRecreated)
+
+	epoch := core.OptionalUint32{Value: 3, HasValue: true}
+	_, _, err = accountsApi.GetAccountWithBlockInfo(testscommon.TestPubKeyAlice, holders.NewRootHashHolder(rootHash, epoch))
+	assert.Nil(t, err)
+	_, _, err = accountsApi.GetAccountWithBlockInfo(testscommon.TestPubKeyAlice, holders.NewRootHashHolder(rootHash, epoch))
+	assert.Nil(t, err)
+	assert.Equal(t, 2, numRecreated)
+
+	_, _, err = accountsApi.GetCodeWithBlockInfo([]byte("code hash"), holders.NewRootHashHolder(rootHash, core.OptionalUint32{Value: 4, HasValue: true}))
+	assert.Nil(t, err)
+	assert.Equal(t, 3, numRecreated)
+
+	_, _, err = accountsApi.GetAccountWithBlockInfo(testscommon.TestPubKeyAlice, holders.NewDefaultRootHashesHolder(rootHash))
+	assert.Nil(t, err)
+	assert.Equal(t, 4, numRecreated)
 }
 
 func TestAccountsDBApiWithHistory_GetCodeWithBlockInfo(t *testing.T) {

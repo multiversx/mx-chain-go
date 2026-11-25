@@ -77,7 +77,7 @@ func TestInitialNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	assert.Equal(t, emptyString, s1)
 	assert.Equal(t, errNodeStarting, err)
 
-	s3, _, err := inf.GetAllESDTTokens(context.Background(), "", api.AccountQueryOptions{})
+	s3, _, _, err := inf.GetAllESDTTokens(context.Background(), "", api.AccountQueryOptions{}, 0, nil)
 	assert.Nil(t, s3)
 	assert.Equal(t, errNodeStarting, err)
 
@@ -190,11 +190,11 @@ func TestInitialNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	assert.False(t, b)
 	assert.Equal(t, errNodeStarting, err)
 
-	sa, _, err := inf.GetNFTTokenIDsRegisteredByAddress(context.Background(), "", api.AccountQueryOptions{})
+	sa, _, _, err := inf.GetNFTTokenIDsRegisteredByAddress(context.Background(), "", api.AccountQueryOptions{}, 0, nil)
 	assert.Nil(t, sa)
 	assert.Equal(t, errNodeStarting, err)
 
-	sa, _, err = inf.GetESDTsWithRole(context.Background(), "", "", api.AccountQueryOptions{})
+	sa, _, _, err = inf.GetESDTsWithRole(context.Background(), "", "", api.AccountQueryOptions{}, 0, nil)
 	assert.Nil(t, sa)
 	assert.Equal(t, errNodeStarting, err)
 
@@ -205,19 +205,22 @@ func TestInitialNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	assert.Nil(t, asv)
 	assert.Equal(t, errNodeStarting, err)
 
-	mss, _, err := inf.GetKeyValuePairs(context.Background(), "", api.AccountQueryOptions{})
+	mss, _, _, err := inf.GetKeyValuePairs(context.Background(), "", api.AccountQueryOptions{}, 0, nil)
 	assert.Nil(t, mss)
+	assert.Equal(t, errNodeStarting, err)
+
+	_, _, _, err = inf.GetAccountWithKeys(context.Background(), "", api.AccountQueryOptions{}, 0, nil)
 	assert.Equal(t, errNodeStarting, err)
 
 	ds, err := inf.GetDelegatorsList()
 	assert.Nil(t, ds)
 	assert.Equal(t, errNodeStarting, err)
 
-	mssa, _, err := inf.GetESDTsRoles(context.Background(), "", api.AccountQueryOptions{})
+	mssa, _, _, err := inf.GetESDTsRoles(context.Background(), "", api.AccountQueryOptions{}, 0, nil)
 	assert.Nil(t, mssa)
 	assert.Equal(t, errNodeStarting, err)
 
-	sa, err = inf.GetAllIssuedESDTs(context.Background(), "")
+	sa, _, _, err = inf.GetAllIssuedESDTs(context.Background(), "", api.AccountQueryOptions{}, 0, nil)
 	assert.Nil(t, sa)
 	assert.Equal(t, errNodeStarting, err)
 

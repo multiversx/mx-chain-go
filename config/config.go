@@ -213,7 +213,6 @@ type Config struct {
 	StateTriesConfig             StateTriesConfig
 	StateAccessesCollectorConfig StateAccessesCollectorConfig
 	TrieStorageManagerConfig     TrieStorageManagerConfig
-	TrieLeavesRetrieverConfig    TrieLeavesRetrieverConfig
 	TrieOperations               TrieOperationsConfig
 	BadBlocksCache               CacheConfig
 
@@ -899,10 +898,4 @@ type InterceptedDataVerifierConfig struct {
 type DirectSentTransactionsConfig struct {
 	CacheSpanInSec   uint64
 	CacheExpiryInSec uint64
-}
-
-// TrieLeavesRetrieverConfig represents the config options to be used when setting up the trie leaves retriever
-type TrieLeavesRetrieverConfig struct {
-	Enabled        bool
-	MaxSizeInBytes uint64
 }

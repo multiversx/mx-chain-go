@@ -2,6 +2,8 @@ package trie
 
 import (
 	"errors"
+
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 // ErrInvalidNode is raised when we reach an invalid node
@@ -131,4 +133,8 @@ var ErrInvalidNodeVersion = errors.New("invalid node version provided")
 var ErrEmptyInitialIteratorState = errors.New("empty initial iterator state")
 
 // ErrInvalidIteratorState signals that an invalid iterator state was provided
-var ErrInvalidIteratorState = errors.New("invalid iterator state")
+var ErrInvalidIteratorState = common.ErrInvalidIteratorState
+
+// ErrIteratorNodeUnavailable signals that a trie node needed to start or continue an iteration can not be read from
+// the storage; defined in common so the API layer can map it without depending on the trie package
+var ErrIteratorNodeUnavailable = common.ErrIteratorNodeUnavailable
