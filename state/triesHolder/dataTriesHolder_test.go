@@ -560,7 +560,7 @@ func TestDataTriesHolder_ReplacingEntryRetainsEvictedPendingTrie(t *testing.T) {
 	require.ElementsMatch(t, []common.Trie{oldest, replacement}, holder.GetAll())
 	holder.MarkAllAsCommitted()
 	require.Nil(t, holder.Get([]byte("A")))
-	require.Same(t, replacement, holder.Get([]byte("B")), "the oversized singleton stays available")
+	require.Nil(t, holder.Get([]byte("B")), "the oversized singleton is released after commit")
 }
 
 func TestNewDataTriesHolder_RejectsOverflowingBudget(t *testing.T) {

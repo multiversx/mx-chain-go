@@ -131,7 +131,6 @@ func (accountsDB *accountsDBApi) GetAccountFromBytes(address []byte, accountByte
 	}
 	if userAccount, ok := account.(UserAccountHandler); ok {
 		userAccount.SetDataTrieCreator(accountsDB.dataTrieCreator)
-		userAccount.EnableDataTrieRootValidation()
 	}
 	return account, nil
 }
@@ -154,7 +153,6 @@ func (accountsDB *accountsDBApi) LoadAccount(address []byte) (vmcommon.AccountHa
 	}
 	if userAccount, ok := account.(UserAccountHandler); ok {
 		userAccount.SetDataTrieCreator(accountsDB.dataTrieCreator)
-		userAccount.EnableDataTrieRootValidation()
 	}
 	return account, nil
 }
@@ -356,7 +354,6 @@ func (accountsDB *accountsDBApi) GetAccountWithBlockInfo(address []byte, _ commo
 
 	if userAccount, ok := account.(UserAccountHandler); ok {
 		userAccount.SetDataTrieCreator(accountsDB.dataTrieCreator)
-		userAccount.EnableDataTrieRootValidation()
 	}
 
 	return account, blockInfo, nil

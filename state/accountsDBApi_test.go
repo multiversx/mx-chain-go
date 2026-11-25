@@ -1020,10 +1020,10 @@ func TestAccountsDBApi_RejectsSelectionThatFailedBeforeAccountLock(t *testing.T)
 	}
 }
 
-func TestAccountsDBApi_AccountEntryPointsBindRootValidation(t *testing.T) {
+func TestAccountsDBApi_AccountEntryPointsBindDataTrieCreator(t *testing.T) {
 	t.Parallel()
 
-	for _, method := range []string{"GetAccountFromBytes", "LoadAccount"} {
+	for _, method := range []string{"GetAccountFromBytes", "LoadAccount", "GetExistingAccount"} {
 		t.Run(method, func(t *testing.T) {
 			t.Parallel()
 
@@ -1032,13 +1032,20 @@ func TestAccountsDBApi_AccountEntryPointsBindRootValidation(t *testing.T) {
 					t.Parallel()
 
 					address, accountBytes := []byte("address"), []byte("serialized account")
-					validations, innerCalls := 0, 0
+					bindings, innerCalls := 0, 0
+					creator := &testTrie.TrieStub{}
 					var expected vmcommon.AccountHandler
 					var innerErr error
 					switch scenario {
 					case "user account":
 						expected = &mockState.UserAccountStub{
-							EnableDataTrieRootValidationCalled: func() { validations++ },
+							SetDataTrieCreatorCalled: func(gotCreator common.DataTrieCreator) {
+								require.Same(t, creator, gotCreator)
+								bindings++
+							},
+							EnableDataTrieRootValidationCalled: func() {
+								t.Fatal("binding the creator already enables root validation")
+							},
 							RetrieveValueCalled: func([]byte) ([]byte, uint32, error) {
 								t.Fatal("returning an account must not read its storage")
 								return nil, 0, nil
@@ -1051,7 +1058,7 @@ func TestAccountsDBApi_AccountEntryPointsBindRootValidation(t *testing.T) {
 					}
 
 					inner := &mockState.AccountsStub{
-						GetTrieCalled: func(_ []byte) (common.Trie, error) { return &testTrie.TrieStub{}, nil },
+						GetTrieCalled: func(_ []byte) (common.Trie, error) { return creator, nil },
 						RecreateTrieCalled: func(options common.RootHashHolder) error {
 							require.Equal(t, dummyRootHash, options.GetRootHash())
 							return nil
@@ -1060,6 +1067,12 @@ func TestAccountsDBApi_AccountEntryPointsBindRootValidation(t *testing.T) {
 							require.Equal(t, "GetAccountFromBytes", method)
 							require.Equal(t, address, gotAddress)
 							require.Equal(t, accountBytes, gotBytes)
+							innerCalls++
+							return expected, innerErr
+						},
+						GetExistingAccountCalled: func(gotAddress []byte) (vmcommon.AccountHandler, error) {
+							require.Equal(t, "GetExistingAccount", method)
+							require.Equal(t, address, gotAddress)
 							innerCalls++
 							return expected, innerErr
 						},
@@ -1074,10 +1087,13 @@ func TestAccountsDBApi_AccountEntryPointsBindRootValidation(t *testing.T) {
 					require.NoError(t, err)
 
 					var account vmcommon.AccountHandler
-					if method == "GetAccountFromBytes" {
+					switch method {
+					case "GetAccountFromBytes":
 						account, err = adapter.GetAccountFromBytes(address, accountBytes)
-					} else {
+					case "LoadAccount":
 						account, err = adapter.LoadAccount(address)
+					case "GetExistingAccount":
+						account, err = adapter.GetExistingAccount(address)
 					}
 					require.Equal(t, 1, innerCalls)
 					if innerErr != nil {
@@ -1087,11 +1103,11 @@ func TestAccountsDBApi_AccountEntryPointsBindRootValidation(t *testing.T) {
 						require.NoError(t, err)
 						require.Equal(t, expected, account)
 					}
-					expectedValidations := 0
+					expectedBindings := 0
 					if scenario == "user account" {
-						expectedValidations = 1
+						expectedBindings = 1
 					}
-					require.Equal(t, expectedValidations, validations, "bind validation before publishing a user account")
+					require.Equal(t, expectedBindings, bindings)
 				})
 			}
 		})

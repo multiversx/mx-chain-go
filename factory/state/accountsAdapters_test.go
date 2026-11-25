@@ -434,6 +434,86 @@ func TestAccountsAdapters_DataTrieSizeAcrossCommitsAndRevert(t *testing.T) {
 	}
 }
 
+func TestAccountsAdapters_CommitEvictsOversizedCleanDataTrie(t *testing.T) {
+	for _, scenario := range []string{"singleton", "with small trie"} {
+		t.Run(scenario, func(t *testing.T) {
+			const budget = 1 << 20
+			scf, container := newAccountsViewsFactory(t)
+			scf.config.StateTriesConfig.DataTriesSizeInMemory = budget
+			trieKey := []byte(dataRetriever.UserAccountsUnit.String())
+			flags := scf.core.EnableEpochsHandler().(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
+			flags.AddActiveFlags(common.FixDataTrieLeafValidationFlag)
+			manager, err := collapseManager.NewCollapseManager(budget, 100)
+			require.NoError(t, err)
+			mainTrie, err := trie.NewTrie(container.Get(trieKey).GetStorageManager(), scf.core.InternalMarshalizer(), scf.core.Hasher(), flags, manager)
+			require.NoError(t, err)
+			container.Put(trieKey, mainTrie)
+			adapters, err := scf.createAccountsAdapters(container, disabled.NewDisabledStateAccessesCollector())
+			require.NoError(t, err)
+			db := adapters.accountsAdapter
+
+			load := func(address []byte) state.UserAccountHandler {
+				t.Helper()
+				account, loadErr := db.LoadAccount(address)
+				require.NoError(t, loadErr)
+				return account.(state.UserAccountHandler)
+			}
+			read := func(account state.UserAccountHandler, key, expected []byte) {
+				t.Helper()
+				value, _, readErr := account.RetrieveValue(key)
+				require.NoError(t, readErr)
+				require.Equal(t, expected, value)
+			}
+
+			largeAddress, smallAddress := bytes.Repeat([]byte{1}, 32), bytes.Repeat([]byte{2}, 32)
+			largeValue, smallValue := bytes.Repeat([]byte{3}, 220<<10), []byte("small value")
+			smallKey := []byte("key")
+			large := load(largeAddress)
+			for key := byte(1); key <= 6; key++ {
+				require.NoError(t, large.SaveKeyValue([]byte{key}, largeValue))
+			}
+			require.NoError(t, db.SaveAccount(large))
+			if scenario == "with small trie" {
+				small := load(smallAddress)
+				require.NoError(t, small.SaveKeyValue(smallKey, smallValue))
+				require.NoError(t, db.SaveAccount(small))
+			}
+			root, err := db.Commit()
+			require.NoError(t, err)
+			require.NoError(t, db.RecreateTrie(holders.NewDefaultRootHashesHolder(root)))
+
+			var smallTrie common.DataTrieHandler
+			if scenario == "with small trie" {
+				small := load(smallAddress)
+				read(small, smallKey, smallValue)
+				smallTrie = requireAccountDataTrie(t, small)
+			}
+
+			var resident common.Trie
+			for key := byte(1); key <= 5; key++ {
+				account := load(largeAddress)
+				read(account, []byte{key}, largeValue)
+				current := requireAccountDataTrie(t, account).(common.Trie)
+				if resident != nil {
+					require.Same(t, resident, current)
+				}
+				resident = current
+				committedRoot, commitErr := db.Commit()
+				require.NoError(t, commitErr)
+				require.Equal(t, root, committedRoot)
+			}
+			require.Greater(t, resident.SizeInMemory(), budget)
+
+			if smallTrie != nil {
+				require.Same(t, smallTrie, requireAccountDataTrie(t, load(smallAddress)))
+			}
+			reopened := load(largeAddress)
+			require.NotSame(t, resident, requireAccountDataTrie(t, reopened))
+			read(reopened, []byte{5}, largeValue)
+		})
+	}
+}
+
 func requireAccountDataTrie(t *testing.T, account state.UserAccountHandler) common.DataTrieHandler {
 	t.Helper()
 	dataTrie, err := account.DataTrie()

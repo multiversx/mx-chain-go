@@ -179,7 +179,12 @@ func (dth *dataTriesHolder) recomputeTotalSize() {
 			log.Warn("invalid data trie size", "key", []byte(keyString), "size", size)
 			continue
 		}
-		dth.cacher.setSize(entry, uint64(size))
+		sizeInBytes := uint64(size)
+		if sizeInBytes > dth.cacher.budget {
+			dth.cacher.remove(keyString)
+			continue
+		}
+		dth.cacher.setSize(entry, sizeInBytes)
 	}
 	// Apply every size change before eviction so growing tries can use space
 	// released by tries that shrank or became empty in the same commit.
