@@ -91,9 +91,15 @@ func (adb *PeerAccountsDB) EnableImportDBPeerSnapshots(store storage.Storer, int
 	if adb.pruningEnabled || !adb.getMainTrie().GetStorageManager().IsSnapshotSupported() {
 		return fmt.Errorf("%w: snapshots must be enabled and peer pruning disabled", ErrInvalidImportDBPeerSnapshotConfig)
 	}
+
 	adb.importDBSnapshots = &importDBPeerSnapshots{store: memory, snapshotter: snapshotter, interval: interval}
-	log.Debug("import-db peer snapshots enabled", "rounds interval", interval, "max wait commits", importDBPeerSnapshotMaxWaitCommits)
+	log.Debug("import-db peer snapshots enabled", "rounds interval", interval, "max legacy wait commits", importDBPeerSnapshotMaxLegacyWaitCommits)
 	return nil
+}
+
+// ImportDBPeerSnapshotsEnabled reports whether the peer snapshot lifecycle is active.
+func (adb *PeerAccountsDB) ImportDBPeerSnapshotsEnabled() bool {
+	return adb.importDBSnapshots != nil
 }
 
 // InitializeImportDBPeerState copies the selected startup checkpoint from disk
@@ -111,6 +117,7 @@ func (adb *PeerAccountsDB) InitializeImportDBPeerState() error {
 		log.Debug("import-db peer startup snapshot skipped, no disk source")
 		return nil
 	}
+
 	root, err := adb.RootHash()
 	if err != nil {
 		log.Debug("import-db peer startup root unavailable", "error", err)
@@ -152,13 +159,21 @@ func (adb *PeerAccountsDB) RecordImportDBPeerCommit(header data.HeaderHandler, h
 func (adb *PeerAccountsDB) captureImportDBPeerRoot() bool {
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
+
 	r := adb.importDBSnapshots
 	if r.latest == nil || !bytes.Equal(r.latest.root, adb.lastRootHash) {
 		log.Debug("import-db peer root capture deferred", "has committed root", r.latest != nil, "current rootHash", adb.lastRootHash)
 		return false
 	}
+	if candidate := r.candidate; candidate != nil && len(candidate.conflictingSettledHash) > 0 {
+		latest := r.latest
+		if latest.nonce < candidate.nonce || (latest.nonce == candidate.nonce && !bytes.Equal(latest.hash, candidate.conflictingSettledHash)) {
+			return false
+		}
+	}
+
 	// No newer account commit may write into the source between root selection
-	// and the switch. A timed-out candidate reuses the existing replacement.
+	// and the switch. Recapturing a candidate reuses the existing replacement.
 	r.store.Rotate()
 	candidate := *r.latest
 	r.candidate = &candidate
@@ -177,6 +192,7 @@ func (adb *PeerAccountsDB) ProcessImportDBPeerSnapshot(header data.HeaderHandler
 	}
 	r.processMu.Lock()
 	defer r.processMu.Unlock()
+
 	if bytes.Equal(hash, r.lastHeader) {
 		return
 	}
@@ -186,6 +202,7 @@ func (adb *PeerAccountsDB) ProcessImportDBPeerSnapshot(header data.HeaderHandler
 		r.lastRound, r.initialized = round, true
 		log.Debug("import-db peer snapshot round counter initialized", "round", round, "rounds interval", r.interval)
 	}
+
 	due := r.isDue(round)
 	captured := false
 	if r.candidate == nil {
@@ -196,11 +213,26 @@ func (adb *PeerAccountsDB) ProcessImportDBPeerSnapshot(header data.HeaderHandler
 			"round interval reached", due, "epoch snapshot requested", r.requested.Load())
 		captured = true
 	}
+
 	candidate := r.candidate
+	if candidate.v3 && finalNonce == candidate.nonce && len(finalHash) > 0 && !bytes.Equal(finalHash, candidate.hash) {
+		candidate.conflictingSettledHash = bytes.Clone(finalHash)
+		log.Debug("import-db peer snapshot candidate conflicts with settlement", "nonce", candidate.nonce,
+			"hash", candidate.hash, "settled hash", finalHash)
+	}
+	if len(candidate.conflictingSettledHash) > 0 {
+		if !adb.captureImportDBPeerRoot() {
+			return
+		}
+		candidate = r.candidate
+		captured = true
+	}
+
 	if !candidate.isFinal(header, finalNonce, finalHash) {
-		if !captured {
+		// V3 settlement can trail execution by more than the legacy timeout.
+		if !candidate.v3 && !captured {
 			r.waitCommits++
-			if r.waitCommits >= importDBPeerSnapshotMaxWaitCommits {
+			if r.waitCommits >= importDBPeerSnapshotMaxLegacyWaitCommits {
 				log.Debug("import-db peer snapshot finality wait expired, recapturing root", "nonce", candidate.nonce,
 					"rootHash", candidate.root, "wait commits", r.waitCommits, "final nonce", finalNonce, "final hash", finalHash)
 				adb.captureImportDBPeerRoot()
@@ -210,6 +242,7 @@ func (adb *PeerAccountsDB) ProcessImportDBPeerSnapshot(header data.HeaderHandler
 			"round", round, "committed nonce", header.GetNonce(), "final nonce", finalNonce, "final hash", finalHash, "wait commits", r.waitCommits)
 		return
 	}
+
 	if r.attempted && !due && !r.requested.Load() {
 		log.Debug("import-db peer snapshot retry waiting for trigger", "nonce", candidate.nonce, "round", round, "last snapshot round", r.lastRound)
 		return
@@ -224,6 +257,7 @@ func (adb *PeerAccountsDB) ProcessImportDBPeerSnapshot(header data.HeaderHandler
 		log.Debug("import-db peer finalized snapshot started, round counter reset", "nonce", candidate.nonce,
 			"rootHash", candidate.root, "epoch", candidate.epoch, "round", round)
 	})
+
 	if completed {
 		r.store.SnapshotFinished()
 		r.candidate = nil

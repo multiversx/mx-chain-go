@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestImportDBPeerUpdateStateUsesSettledExecutionInsteadOfHeaderFinality(t *testing.T) {
+func TestImportDBPeerUpdateStateReadsSettledExecutionOnlyWhenEnabled(t *testing.T) {
 	result := func(nonce uint64, hash string) *block.MetaExecutionResultInfo {
 		return &block.MetaExecutionResultInfo{ExecutionResult: &block.BaseMetaExecutionResult{
 			BaseExecutionResult:    &block.BaseExecutionResult{HeaderNonce: nonce, HeaderHash: []byte(hash), RootHash: []byte("root")},
@@ -39,15 +39,19 @@ func TestImportDBPeerUpdateStateUsesSettledExecutionInsteadOfHeaderFinality(t *t
 	dataComponents.DataPool = dataPool
 	var finalNonce uint64
 	var finalHash []byte
+	finalityReads := 0
 	dataComponents.BlockChain = &testscommon.ChainHandlerStub{
 		GetGenesisHeaderCalled:  func() data.HeaderHandler { return createGenesisMetaBlock() },
 		SetFinalBlockInfoCalled: func(nonce uint64, hash, _ []byte) { finalNonce, finalHash = nonce, hash },
-		GetFinalBlockInfoCalled: func() (uint64, []byte, []byte) { return finalNonce, finalHash, nil },
+		GetFinalBlockInfoCalled: func() (uint64, []byte, []byte) {
+			finalityReads++
+			return finalNonce, finalHash, nil
+		},
 	}
 	args := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	args.ForkDetector = &mock.ForkDetectorMock{GetHighestSettledBlockInfoCalled: func() (uint64, []byte) { return 8, []byte("header8") }}
 	calls := 0
-	args.AccountsDB[state.PeerAccountsState] = &stateMock.ImportDBPeerAccountsStub{
+	peer := &stateMock.ImportDBPeerAccountsStub{
 		AccountsStub: &stateMock.AccountsStub{},
 		ProcessImportDBPeerSnapshotCalled: func(header data.HeaderHandler, hash []byte, nonce uint64, blockHash []byte) {
 			calls++
@@ -57,8 +61,17 @@ func TestImportDBPeerUpdateStateUsesSettledExecutionInsteadOfHeaderFinality(t *t
 			require.Equal(t, []byte("executed5"), blockHash)
 		},
 	}
+	args.AccountsDB[state.PeerAccountsState] = peer
 	mp, err := processBlock.NewMetaProcessor(args)
 	require.NoError(t, err)
+
 	mp.UpdateState(committed, []byte("header9"))
+	require.Equal(t, uint64(5), finalNonce, "regular finality updates continue with peer snapshots disabled")
+	require.Zero(t, finalityReads)
+	require.Zero(t, calls)
+
+	peer.SnapshotsEnabled = true
+	mp.UpdateState(committed, []byte("header9"))
+	require.Equal(t, 1, finalityReads)
 	require.Equal(t, 1, calls)
 }

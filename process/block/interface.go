@@ -96,5 +96,6 @@ type importDBPeerCommitObserver interface {
 
 // importDBPeerSnapshotProcessor advances snapshots using canonical import commits.
 type importDBPeerSnapshotProcessor interface {
+	ImportDBPeerSnapshotsEnabled() bool
 	ProcessImportDBPeerSnapshot(data.HeaderHandler, []byte, uint64, []byte)
 }

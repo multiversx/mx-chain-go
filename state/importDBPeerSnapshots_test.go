@@ -161,7 +161,7 @@ func TestImportDBPeerSnapshotPreservesSuccessorAndRepeatsInSameEpoch(t *testing.
 	}
 }
 
-func TestImportDBPeerSnapshotWaitsForSettledExecutionAndRetargetsAfterFiveCommits(t *testing.T) {
+func TestImportDBPeerSnapshotRetargetsAfterConflictingSettlement(t *testing.T) {
 	var copied [][]byte
 	peer, tr, store := newImportPeerFixture(t, 5, func(root []byte, _ uint32, _ common.StorageManager, start func()) bool {
 		start()
@@ -173,24 +173,23 @@ func TestImportDBPeerSnapshotWaitsForSettledExecutionAndRetargetsAfterFiveCommit
 	first := commitImportPeer(t, peer, tr, &block.MetaBlockV3{Nonce: 11, Round: 105, Epoch: 7})
 	peer.ProcessImportDBPeerSnapshot(&block.MetaBlockV3{Nonce: 11, Round: 105}, []byte("11"), 0, nil)
 	require.NoError(t, store.Put([]byte("replacement"), []byte("keep")))
-	// A duplicate imported header is not another commit for the timeout.
-	for i := 0; i < 6; i++ {
-		peer.ProcessImportDBPeerSnapshot(&block.MetaBlockV3{Nonce: 11, Round: 105}, []byte("11"), 0, nil)
-	}
+
+	// Settlement rejects the first candidate before execution has committed a replacement.
+	peer.ProcessImportDBPeerSnapshot(&block.MetaBlockV3{Nonce: 12, Round: 106}, []byte("12"), 11, []byte("settled11"))
+	peer.ProcessImportDBPeerSnapshot(&block.MetaBlockV3{Nonce: 13, Round: 107}, []byte("13"), 12, []byte("settled12"))
+	require.Empty(t, copied, "later settlement must not revive a rejected candidate")
+
 	newRoot := commitImportPeer(t, peer, tr, &block.MetaBlockV3{Nonce: 14, Round: 108, Epoch: 7})
-	for nonce := uint64(12); nonce <= 16; nonce++ {
-		peer.ProcessImportDBPeerSnapshot(&block.MetaBlockV3{Nonce: nonce, Round: nonce + 94, PrevHash: []byte(fmt.Sprint(nonce - 1))}, []byte(fmt.Sprint(nonce)), 0, nil)
-	}
-	require.Empty(t, copied, "a committed child alone does not settle its parent's execution result")
+	peer.ProcessImportDBPeerSnapshot(&block.MetaBlockV3{Nonce: 14, Round: 108}, []byte("14"), 12, []byte("settled12"))
+	require.Empty(t, copied, "the replacement must settle before snapshotting")
 	_, err := store.Get(first)
 	require.NoError(t, err, "retargeting must keep the original source")
 	_, err = store.GetFromCurrentEpoch([]byte("replacement"))
 	require.NoError(t, err, "retargeting must reuse the replacement")
-	peer.ProcessImportDBPeerSnapshot(&block.MetaBlockV3{Nonce: 17, Round: 111}, []byte("17"), 14, []byte("wrong"))
-	require.Empty(t, copied, "equal settled execution nonce must match the block hash")
-	peer.ProcessImportDBPeerSnapshot(&block.MetaBlockV3{Nonce: 18, Round: 112}, []byte("18"), 14, []byte("14"))
+
+	peer.ProcessImportDBPeerSnapshot(&block.MetaBlockV3{Nonce: 18, Round: 112}, []byte("18"), 15, []byte("15"))
 	require.Equal(t, [][]byte{newRoot}, copied)
-	peer.ProcessImportDBPeerSnapshot(&block.MetaBlockV3{Nonce: 19, Round: 116}, []byte("19"), 14, []byte("14"))
+	peer.ProcessImportDBPeerSnapshot(&block.MetaBlockV3{Nonce: 19, Round: 116}, []byte("19"), 15, []byte("15"))
 	require.Len(t, copied, 1, "the round counter must reset on snapshot start, not initial rotation")
 	peer.ProcessImportDBPeerSnapshot(&block.MetaBlockV3{Nonce: 20, Round: 117}, []byte("20"), 15, []byte("15"))
 	require.Len(t, copied, 2, "a later settled execution also settles the recorded earlier canonical candidate")
@@ -327,28 +326,34 @@ func TestImportDBPeerSnapshotDoesNotHoldAccountCommitLock(t *testing.T) {
 	<-done
 }
 
-func TestImportDBPeerSnapshotFinalityWinsBeforeTimeoutRetarget(t *testing.T) {
+func TestImportDBPeerLegacySnapshotRetargetsAfterFiveDistinctCommits(t *testing.T) {
 	var copied []byte
 	peer, tr, _ := newImportPeerFixture(t, 5, func(root []byte, _ uint32, _ common.StorageManager, start func()) bool {
 		start()
 		copied = append([]byte(nil), root...)
 		return true
 	})
-	commitImportPeer(t, peer, tr, &block.MetaBlockV3{Nonce: 10, Round: 100})
-	peer.ProcessImportDBPeerSnapshot(&block.MetaBlockV3{Nonce: 10, Round: 100}, []byte("10"), 0, nil)
-	candidate := commitImportPeer(t, peer, tr, &block.MetaBlockV3{Nonce: 11, Round: 105})
-	peer.ProcessImportDBPeerSnapshot(&block.MetaBlockV3{Nonce: 11, Round: 105}, []byte("11"), 0, nil)
-	commitImportPeer(t, peer, tr, &block.MetaBlockV3{Nonce: 14, Round: 108})
-	for nonce := uint64(12); nonce <= 15; nonce++ {
+	commitImportPeer(t, peer, tr, &block.MetaBlock{Nonce: 10, Round: 100})
+	peer.ProcessImportDBPeerSnapshot(&block.MetaBlock{Nonce: 10, Round: 100}, []byte("10"), 0, nil)
+	commitImportPeer(t, peer, tr, &block.MetaBlock{Nonce: 11, Round: 105})
+	peer.ProcessImportDBPeerSnapshot(&block.MetaBlock{Nonce: 11, Round: 105}, []byte("11"), 0, nil)
+
+	prevHash := []byte("alternate11")
+	var replacement []byte
+	for nonce := uint64(12); nonce <= 16; nonce++ {
+		header := &block.MetaBlock{Nonce: nonce, Round: nonce + 94, PrevHash: prevHash}
+		hash := []byte(fmt.Sprint(nonce))
+		replacement = commitImportPeer(t, peer, tr, header)
 		for duplicate := 0; duplicate < 3; duplicate++ {
-			peer.ProcessImportDBPeerSnapshot(&block.MetaBlockV3{Nonce: nonce, Round: nonce + 94}, []byte(fmt.Sprint(nonce)), 0, nil)
+			peer.ProcessImportDBPeerSnapshot(header, hash, 0, nil)
 		}
+		require.Empty(t, copied)
+		prevHash = hash
 	}
-	require.Empty(t, copied)
-	// On the fifth distinct commit, check the old candidate's finality before
-	// replacing it. Duplicate notifications above must not advance its age.
-	peer.ProcessImportDBPeerSnapshot(&block.MetaBlockV3{Nonce: 16, Round: 110}, []byte("16"), 11, []byte("11"))
-	require.Equal(t, candidate, copied)
+
+	child := &block.MetaBlock{Nonce: 17, Round: 111, PrevHash: prevHash}
+	peer.ProcessImportDBPeerSnapshot(child, []byte("17"), 0, nil)
+	require.Equal(t, replacement, copied)
 }
 
 func TestImportDBPeerSnapshotsRejectInvalidDependencies(t *testing.T) {
@@ -390,25 +395,31 @@ func TestImportDBPeerSnapshotsRejectInvalidDependencies(t *testing.T) {
 }
 
 func TestImportDBPeerSnapshotsContinueAcrossLagAndDuplicateCommits(t *testing.T) {
-	peer, tr, store := newImportPeerFixture(t, 5, nil)
+	const (
+		interval        = 5
+		settlementLag   = 7
+		firstCapture    = 1 + interval
+		firstCompletion = firstCapture + settlementLag
+		cycle           = interval + settlementLag
+	)
+	peer, tr, store := newImportPeerFixture(t, interval, nil)
 	require.NoError(t, tr.Update([]byte("unchanged"), []byte("live")))
 	completed := 0
 	for nonce := uint64(1); nonce <= 65; nonce++ {
 		header := &block.MetaBlockV3{Nonce: nonce, Round: nonce, Epoch: 7}
 		root := commitImportPeer(t, peer, tr, header)
-		// The threshold captures every fifth round; the selected execution
-		// settles four commits later while execution keeps advancing.
-		if nonce >= 6 && (nonce-6)%9 == 0 {
+		// Keep settling behind the tip for longer than the legacy timeout.
+		if nonce >= firstCapture && (nonce-firstCapture)%cycle == 0 {
 			require.NoError(t, store.Put([]byte("obsolete"), []byte("source-only")))
 		}
 		finalNonce := uint64(0)
-		if nonce > 4 {
-			finalNonce = nonce - 4
+		if nonce > settlementLag {
+			finalNonce = nonce - settlementLag
 		}
 		for duplicate := 0; duplicate < 3; duplicate++ {
 			peer.ProcessImportDBPeerSnapshot(header, []byte(fmt.Sprint(nonce)), finalNonce, []byte(fmt.Sprint(finalNonce)))
 		}
-		if nonce >= 10 && (nonce-10)%9 == 0 {
+		if nonce >= firstCompletion && (nonce-firstCompletion)%cycle == 0 {
 			completed++
 			_, err := store.Get([]byte("obsolete"))
 			require.Error(t, err, "each successful snapshot must retire the old generation")
@@ -419,7 +430,7 @@ func TestImportDBPeerSnapshotsContinueAcrossLagAndDuplicateCommits(t *testing.T)
 			require.Equal(t, "live", string(value))
 		}
 	}
-	require.Equal(t, 7, completed)
+	require.Equal(t, 5, completed)
 }
 
 func TestImportDBPeerSnapshotSkipsUnpreparedWorker(t *testing.T) {

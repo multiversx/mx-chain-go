@@ -5,9 +5,15 @@ import "github.com/multiversx/mx-chain-core-go/data"
 // ImportDBPeerAccountsStub extends AccountsStub with optional import-db lifecycle hooks.
 type ImportDBPeerAccountsStub struct {
 	*AccountsStub
+	SnapshotsEnabled                  bool
 	RecordImportDBPeerCommitCalled    func(data.HeaderHandler, []byte)
 	ProcessImportDBPeerSnapshotCalled func(data.HeaderHandler, []byte, uint64, []byte)
 	InitializeImportDBPeerStateCalled func() error
+}
+
+// ImportDBPeerSnapshotsEnabled reports whether to invoke the snapshot hook.
+func (s *ImportDBPeerAccountsStub) ImportDBPeerSnapshotsEnabled() bool {
+	return s.SnapshotsEnabled
 }
 
 // RecordImportDBPeerCommit records a successfully committed execution.

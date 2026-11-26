@@ -8,13 +8,16 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 )
 
-const importDBPeerSnapshotMaxWaitCommits = 5
+const importDBPeerSnapshotMaxLegacyWaitCommits = 5
 
 type importDBPeerRoot struct {
 	root, hash []byte
 	nonce      uint64
 	epoch      uint32
 	v3         bool
+
+	// An observed conflict still invalidates this candidate after settlement advances.
+	conflictingSettledHash []byte
 }
 
 type importDBPeerSnapshots struct {
