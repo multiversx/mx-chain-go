@@ -2529,3 +2529,118 @@ func TestGovernanceContract_ClaimAccumulatedFees(t *testing.T) {
 
 	require.Equal(t, big.NewInt(0), gsc.getAccumulatedFees())
 }
+
+func TestGovernanceContract_CloseProposal_RaisedLostProposalFeeClamped(t *testing.T) {
+	t.Parallel()
+
+	gsc, blockchainHook, eei := createGovernanceBlockChainHookStubContextHandler()
+	gsc.enableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.GovernanceFlag, common.GovernanceFixesFlag)
+
+	issuerAddress := bytes.Repeat([]byte{3}, 32)
+	commitHash := bytes.Repeat([]byte("p"), commitHashLength)
+	proposalCost := int64(500)
+
+	// Create proposal with cost 500
+	callInput := createVMInput(big.NewInt(proposalCost), "proposal", issuerAddress, vm.GovernanceSCAddress, [][]byte{
+		commitHash,
+		big.NewInt(3).Bytes(),
+		big.NewInt(10).Bytes(),
+	})
+	retCode := gsc.Execute(callInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+
+	// Owner raises LostProposalFee to 600 (> 500)
+	ownerAddress := bytes.Repeat([]byte{1}, 32)
+	changeCfgInput := createVMInput(zero, "changeConfig", ownerAddress, vm.GovernanceSCAddress, [][]byte{
+		[]byte("1000"), // proposalFee >= lostProposalFee
+		[]byte("600"),  // lostProposalFee > proposalCost
+		[]byte("100"),  // minQuorum 1%
+		[]byte("5000"), // minVetoThreshold 50%
+		[]byte("5001"), // minPassThreshold 50.01%
+	})
+	retCode = gsc.Execute(changeCfgInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+
+	// Voting ends (epoch 11 > 10), proposal closes as failed (no votes)
+	blockchainHook.CurrentEpochCalled = func() uint32 {
+		return 11
+	}
+	closeInput := createVMInput(zero, "closeProposal", issuerAddress, vm.GovernanceSCAddress, [][]byte{{1}})
+	retCode = gsc.Execute(closeInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+
+	// Refund should be clamped at 0 (tokensToReturn = 0, no negative refund)
+	require.Equal(t, int64(0), eei.GetBalance(issuerAddress).Int64())
+	// SC balance remains 0
+	require.Equal(t, int64(0), eei.GetBalance(vm.GovernanceSCAddress).Int64())
+	// Accumulated fees should be clamped to proposalCost (500, not 600)
+	require.Equal(t, big.NewInt(proposalCost), gsc.getAccumulatedFees())
+}
+
+func TestGovernanceContract_ProcessLastEndedNonce_AdvancingOver999Proposals(t *testing.T) {
+	t.Parallel()
+
+	blockChainHook := &mock.BlockChainHookStub{CurrentEpochCalled: func() uint32 {
+		return 100
+	}}
+	eei := createEEIWithBlockchainHook(blockChainHook)
+	gsc, err := NewGovernanceContract(createArgsWithEEI(eei))
+	require.Nil(t, err)
+
+	// Seed 1000 ended proposals (endVoteEpoch = 1 < currentEpoch = 100)
+	for nonce := uint64(1); nonce <= 1000; nonce++ {
+		nonceBig := big.NewInt(int64(nonce))
+		commitHash := []byte(fmt.Sprintf("commit-%d", nonce))
+		gsc.eei.SetStorage(append([]byte(noncePrefix), nonceBig.Bytes()...), commitHash)
+
+		proposal := &GeneralProposal{
+			Nonce:        nonce,
+			CommitHash:   commitHash,
+			EndVoteEpoch: 1,
+			Closed:       true,
+		}
+		marshaledProposal, mErr := gsc.marshalizer.Marshal(proposal)
+		require.Nil(t, mErr)
+		gsc.eei.SetStorage(append([]byte(proposalPrefix), commitHash...), marshaledProposal)
+	}
+
+	require.Equal(t, uint64(0), gsc.getLastEndedNonce())
+	gsc.processLastEndedNonce()
+
+	// With maxNoncesToCheck = 1000, nonces 1..999 are scanned and ended.
+	// The cursor should advance to 999.
+	require.Equal(t, uint64(999), gsc.getLastEndedNonce())
+}
+
+func TestGovernanceContract_GetTotalStake_NumRegisteredZeroReturnsZeroUnderFlag(t *testing.T) {
+	t.Parallel()
+
+	args := createMockGovernanceArgs()
+	enableEpochs := enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.FixCorrectSmallIntAndGasLimitsFlag)
+	args.EnableEpochsHandler = enableEpochs
+
+	gsc, err := NewGovernanceContract(args)
+	require.Nil(t, err)
+
+	validatorAddr := []byte("validatorAddress")
+	vData := &ValidatorDataV2{
+		TotalStakeValue: big.NewInt(5000),
+		NumRegistered:   0,
+	}
+	marshaled, _ := args.Marshalizer.Marshal(vData)
+	args.Eei.SetStorageForAddress(args.ValidatorSCAddress, validatorAddr, marshaled)
+
+	// Under FixCorrectSmallIntAndGasLimitsFlag with NumRegistered == 0, stake is 0
+	stake, err := gsc.getTotalStake(validatorAddr)
+	require.Nil(t, err)
+	require.Equal(t, big.NewInt(0), stake)
+
+	// With NumRegistered > 0, returns TotalStakeValue
+	vData.NumRegistered = 2
+	marshaled, _ = args.Marshalizer.Marshal(vData)
+	args.Eei.SetStorageForAddress(args.ValidatorSCAddress, validatorAddr, marshaled)
+
+	stake, err = gsc.getTotalStake(validatorAddr)
+	require.Nil(t, err)
+	require.Equal(t, big.NewInt(5000), stake)
+}

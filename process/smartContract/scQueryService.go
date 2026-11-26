@@ -287,7 +287,7 @@ func (service *SCQueryService) setCurrentBlockInfo(
 func (service *SCQueryService) getCurrentBlockRootHash(
 	header data.HeaderHandler,
 ) []byte {
-	if header.IsHeaderV3() {
+	if !check.IfNil(header) && header.IsHeaderV3() {
 		_, _, rootHash := service.apiBlockChain.GetLastExecutedBlockInfo()
 		return rootHash
 	}
@@ -349,14 +349,23 @@ func (service *SCQueryService) extractBlockHeaderAndRootHash(query *process.SCQu
 
 func (service *SCQueryService) getCurrentBlockHeaderAndRootHash() (data.HeaderHandler, []byte, []byte, error) {
 	currentHeader := service.mainBlockChain.GetCurrentBlockHeader()
-	if currentHeader != nil && currentHeader.IsHeaderV3() {
+	if !check.IfNil(currentHeader) && currentHeader.IsHeaderV3() {
 		return service.getCurrentBlockHeaderAndRootHashV3()
 	}
 
-	return service.mainBlockChain.GetCurrentBlockHeader(), service.mainBlockChain.GetCurrentBlockRootHash(), service.mainBlockChain.GetCurrentBlockHeaderHash(), nil
+	return currentHeader, service.mainBlockChain.GetCurrentBlockRootHash(), service.mainBlockChain.GetCurrentBlockHeaderHash(), nil
+}
+
+type lastExecutedBlockHeaderAndInfoProvider interface {
+	GetLastExecutedBlockHeaderAndInfo() (data.HeaderHandler, []byte, []byte)
 }
 
 func (service *SCQueryService) getCurrentBlockHeaderAndRootHashV3() (data.HeaderHandler, []byte, []byte, error) {
+	if provider, ok := service.mainBlockChain.(lastExecutedBlockHeaderAndInfoProvider); ok {
+		lastExecutedHeader, headerHash, rootHash := provider.GetLastExecutedBlockHeaderAndInfo()
+		return lastExecutedHeader, rootHash, headerHash, nil
+	}
+
 	_, headerHash, rootHash := service.mainBlockChain.GetLastExecutedBlockInfo()
 
 	// current header will now be last executed header
@@ -366,6 +375,9 @@ func (service *SCQueryService) getCurrentBlockHeaderAndRootHashV3() (data.Header
 }
 
 func (service *SCQueryService) getHeaderAndRootHashForBlock(currentHeader data.HeaderHandler, currentHeaderHash []byte) (data.HeaderHandler, []byte, []byte, error) {
+	if check.IfNil(currentHeader) {
+		return nil, nil, nil, process.ErrNilBlockHeader
+	}
 	if currentHeader.IsHeaderV3() {
 		return service.getHeaderAndRootHashForBlockV3(currentHeader, currentHeaderHash)
 	}
@@ -625,11 +637,18 @@ func (service *SCQueryService) ComputeScCallGasLimit(tx *transaction.Transaction
 	}
 
 	moveBalanceGasLimit := service.economicsFee.ComputeGasLimit(tx)
-	gasConsumedExecution := service.gasForQuery - vmOutput.GasRemaining
+	gasConsumedExecution := uint64(0)
+	if vmOutput.GasRemaining < service.gasForQuery {
+		gasConsumedExecution = service.gasForQuery - vmOutput.GasRemaining
+	}
 
-	gasLimit := moveBalanceGasLimit + gasConsumedExecution
+	gasLimit, err := core.SafeAddUint64(moveBalanceGasLimit, gasConsumedExecution)
+	if err != nil {
+		return 0, err
+	}
 
 	return gasLimit, nil
+
 }
 
 // Close closes all underlying components

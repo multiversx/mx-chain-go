@@ -32,6 +32,7 @@ type ArgsApiTransactionEvaluator struct {
 	FeeHandler          process.FeeHandler
 	TxSimulator         facade.TransactionSimulatorProcessor
 	Accounts            state.AccountsAdapterWithClean
+	PeerAccounts        state.AccountsAdapterWithClean
 	ShardCoordinator    sharding.Coordinator
 	EnableEpochsHandler common.EnableEpochsHandler
 	BlockChain          data.ChainHandler
@@ -39,6 +40,7 @@ type ArgsApiTransactionEvaluator struct {
 
 type apiTransactionEvaluator struct {
 	accounts            state.AccountsAdapterWithClean
+	peerAccounts        state.AccountsAdapterWithClean
 	shardCoordinator    sharding.Coordinator
 	txTypeHandler       process.TxTypeHandler
 	feeHandler          process.FeeHandler
@@ -65,6 +67,9 @@ func NewAPITransactionEvaluator(args ArgsApiTransactionEvaluator) (*apiTransacti
 	if check.IfNil(args.Accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
+	if args.ShardCoordinator.SelfId() == core.MetachainShardId && check.IfNil(args.PeerAccounts) {
+		return nil, process.ErrNilPeerAccountsAdapter
+	}
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
@@ -83,6 +88,7 @@ func NewAPITransactionEvaluator(args ArgsApiTransactionEvaluator) (*apiTransacti
 		feeHandler:          args.FeeHandler,
 		txSimulator:         args.TxSimulator,
 		accounts:            args.Accounts,
+		peerAccounts:        args.PeerAccounts,
 		shardCoordinator:    args.ShardCoordinator,
 		enableEpochsHandler: args.EnableEpochsHandler,
 		blockChain:          args.BlockChain,
@@ -95,7 +101,7 @@ func NewAPITransactionEvaluator(args ArgsApiTransactionEvaluator) (*apiTransacti
 func (ate *apiTransactionEvaluator) SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
 	ate.mutExecution.Lock()
 	defer func() {
-		ate.accounts.CleanCache()
+		ate.cleanAccounts()
 		ate.mutExecution.Unlock()
 	}()
 
@@ -108,7 +114,7 @@ func (ate *apiTransactionEvaluator) SimulateTransactionExecution(tx *transaction
 func (ate *apiTransactionEvaluator) ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error) {
 	ate.mutExecution.Lock()
 	defer func() {
-		ate.accounts.CleanCache()
+		ate.cleanAccounts()
 		ate.mutExecution.Unlock()
 	}()
 
@@ -147,7 +153,7 @@ func (ate *apiTransactionEvaluator) computeMoveBalanceCost(tx *transaction.Trans
 func (ate *apiTransactionEvaluator) SimulateSCRExecutionCost(scr *smartContractResult.SmartContractResult) (*transaction.CostResponse, error) {
 	ate.mutExecution.Lock()
 	defer func() {
-		ate.accounts.CleanCache()
+		ate.cleanAccounts()
 		ate.mutExecution.Unlock()
 	}()
 
@@ -160,6 +166,13 @@ func (ate *apiTransactionEvaluator) SimulateSCRExecutionCost(scr *smartContractR
 	}
 
 	return ate.prepareCostResponse(res, scr)
+}
+
+func (ate *apiTransactionEvaluator) cleanAccounts() {
+	ate.accounts.CleanCache()
+	if !check.IfNil(ate.peerAccounts) {
+		ate.peerAccounts.CleanCache()
+	}
 }
 
 func (ate *apiTransactionEvaluator) simulateTransactionCost(tx *transaction.Transaction, txType process.TransactionType) (*transaction.CostResponse, error) {

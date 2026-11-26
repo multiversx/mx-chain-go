@@ -1592,6 +1592,43 @@ func TestBlockChainHookImpl_GettersFromRoundHandler(t *testing.T) {
 	assert.Equal(t, uint64(expectedTime.Milliseconds()), bh.RoundTime())
 }
 
+func TestBlockChainHookImpl_RoundTime_UsesCurrentBlockRound(t *testing.T) {
+	t.Parallel()
+
+	supernovaRound := uint64(32170000)
+	preSupernovaDuration := 6000 * time.Millisecond
+	postSupernovaDuration := 600 * time.Millisecond
+
+	args := createMockBlockChainHookArgs()
+	args.RoundHandler = &testscommon.RoundHandlerMock{
+		TimeDurationForRoundCalled: func(round uint64) time.Duration {
+			if round >= supernovaRound {
+				return postSupernovaDuration
+			}
+			return preSupernovaDuration
+		},
+	}
+
+	bh, err := hooks.NewBlockChainHookImpl(args)
+	require.Nil(t, err)
+
+	// Block header at pre-Supernova round (e.g. 32055029 in epoch 2225)
+	err = bh.SetCurrentHeader(&block.Header{
+		Round: 32055029,
+		Epoch: 2225,
+	})
+	require.Nil(t, err)
+	require.Equal(t, uint64(preSupernovaDuration.Milliseconds()), bh.RoundTime())
+
+	// Block header at post-Supernova round (e.g. 33000000)
+	err = bh.SetCurrentHeader(&block.Header{
+		Round: 33000000,
+		Epoch: 2235,
+	})
+	require.Nil(t, err)
+	require.Equal(t, uint64(postSupernovaDuration.Milliseconds()), bh.RoundTime())
+}
+
 func TestBlockChainHookImpl_SaveNFTMetaDataToSystemAccount(t *testing.T) {
 	t.Parallel()
 
@@ -1929,7 +1966,70 @@ func TestBlockChainHookImpl_SaveCompiledCode(t *testing.T) {
 	})
 }
 
+func TestBlockChainHookImpl_CompiledCodeConcurrency(t *testing.T) {
+	t.Parallel()
+
+	args := createMockBlockChainHookArgs()
+	args.NilCompiledSCStore = false
+	args.ConfigSCStorage = config.StorageConfig{
+		Cache: config.CacheConfig{
+			Capacity: 100,
+			Type:     string(storageunit.LRUCache),
+		},
+		DB: config.DBConfig{
+			FilePath:     t.TempDir(),
+			Type:         string(storageunit.MemoryDB),
+			MaxBatchSize: 10,
+		},
+	}
+
+	bh, err := hooks.NewBlockChainHookImpl(args)
+	require.NoError(t, err)
+
+	numGoroutines := 10
+	iterations := 50
+	wg := sync.WaitGroup{}
+	wg.Add(numGoroutines * 4)
+
+	for i := 0; i < numGoroutines; i++ {
+		key := []byte(fmt.Sprintf("codeHash-%d", i))
+		val := []byte(fmt.Sprintf("compiledCode-%d", i))
+
+		go func() {
+			defer wg.Done()
+			for j := 0; j < iterations; j++ {
+				bh.SaveCompiledCode(key, val)
+			}
+		}()
+
+		go func() {
+			defer wg.Done()
+			for j := 0; j < iterations; j++ {
+				_, _ = bh.GetCompiledCode(key)
+			}
+		}()
+
+		go func() {
+			defer wg.Done()
+			for j := 0; j < iterations; j++ {
+				bh.DeleteCompiledCode(key)
+			}
+		}()
+
+		go func() {
+			defer wg.Done()
+			for j := 0; j < iterations; j++ {
+				bh.ClearCompiledCodes()
+			}
+		}()
+	}
+
+	wg.Wait()
+	_ = bh.Close()
+}
+
 func TestBlockChainHookImpl_GetSnapshot(t *testing.T) {
+
 	t.Parallel()
 
 	args := createMockBlockChainHookArgs()
@@ -2630,6 +2730,45 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 		esdtData, err := bh.GetESDTToken(address, token, nftNonce)
 		assert.Equal(t, testESDTData, esdtData)
 		assert.Nil(t, err)
+	})
+	t.Run("empty or oversized tokenID should return error when flag enabled", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockBlockChainHookArgs()
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.FixCorrectSmallIntAndGasLimitsFlag)
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+		address := []byte("address_123456789012345678901234")
+
+		esdtData, err := bh.GetESDTToken(address, []byte{}, 0)
+		assert.Nil(t, esdtData)
+		assert.Equal(t, hooks.ErrInvalidTokenIdentifier, err)
+
+		oversizedToken := bytes.Repeat([]byte("A"), 33)
+		esdtData, err = bh.GetESDTToken(address, oversizedToken, 0)
+		assert.Nil(t, esdtData)
+		assert.Equal(t, hooks.ErrInvalidTokenIdentifier, err)
+
+		assert.False(t, bh.IsPaused([]byte{}))
+		assert.False(t, bh.IsPaused(oversizedToken))
+		assert.False(t, bh.IsLimitedTransfer([]byte{}))
+		assert.False(t, bh.IsLimitedTransfer(oversizedToken))
+	})
+	t.Run("legacy mode when flag disabled does not error on empty tokenID", func(t *testing.T) {
+		t.Parallel()
+
+		address := []byte("address_123456789012345678901234")
+		args := createMockBlockChainHookArgs()
+		args.Accounts = &stateMock.AccountsStub{
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				return stateMock.NewAccountWrapMock(address), nil
+			},
+		}
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.OptimizeNFTStoreFlag)
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+
+		esdtData, err := bh.GetESDTToken(address, []byte{}, 0)
+		assert.Nil(t, err)
+		assert.NotNil(t, esdtData)
 	})
 }
 

@@ -1298,3 +1298,46 @@ func TestDelegationManager_CorrectOwnerOnAccount(t *testing.T) {
 		assert.True(t, updateCalled)
 	})
 }
+
+func TestDelegationManager_ExecuteFuncOnListAddresses_NonZeroCallValueShouldErr(t *testing.T) {
+	t.Parallel()
+
+	t.Run("with FixCorrectSmallIntAndGasLimitsFlag", func(t *testing.T) {
+		t.Parallel()
+		args := createMockArgumentsForDelegationManager()
+		enableHandler := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
+		enableHandler.AddActiveFlags(common.FixCorrectSmallIntAndGasLimitsFlag)
+		eei := createDefaultEei()
+		args.Eei = eei
+		dm, _ := NewDelegationManagerSystemSC(args)
+		eei.SetSCAddress(dm.delegationMgrSCAddress)
+
+		for _, funcName := range []string{"claimMulti", "reDelegateMulti"} {
+			eei.returnMessage = ""
+			vmInput := getDefaultVmInputForDelegationManager(funcName, [][]byte{bytes.Repeat([]byte{1}, 32)})
+			vmInput.CallValue = big.NewInt(100)
+
+			returnCode := dm.Execute(vmInput)
+			assert.Equal(t, vmcommon.UserError, returnCode)
+			assert.Equal(t, vm.ErrCallValueMustBeZero.Error(), eei.GetReturnMessage())
+		}
+	})
+
+	t.Run("legacy without flag does not reject call value upfront", func(t *testing.T) {
+		t.Parallel()
+		args := createMockArgumentsForDelegationManager()
+		eei := createDefaultEei()
+		args.Eei = eei
+		dm, _ := NewDelegationManagerSystemSC(args)
+		eei.SetSCAddress(dm.delegationMgrSCAddress)
+
+		for _, funcName := range []string{"claimMulti", "reDelegateMulti"} {
+			eei.returnMessage = ""
+			vmInput := getDefaultVmInputForDelegationManager(funcName, [][]byte{bytes.Repeat([]byte{1}, 32)})
+			vmInput.CallValue = big.NewInt(100)
+
+			_ = dm.Execute(vmInput)
+			assert.NotEqual(t, vm.ErrCallValueMustBeZero.Error(), eei.GetReturnMessage())
+		}
+	})
+}

@@ -139,8 +139,10 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		FullShardDataValidationEnableEpoch:                       119,
 		ConsumedGasInEconomicsFixEnableEpoch:                     120,
 		AttributeExtraGasUsageEnableEpoch:                        121,
-		SupernovaEnableEpoch:                                     122,
-		FixEpochChangeProposedCurrentEpochEnableEpoch:            123,
+		FixCorrectSmallIntAndGasLimitsEnableEpoch:                122,
+		OutputRollbackOnDestContextEnableEpoch:                   123,
+		SupernovaEnableEpoch:                                     124,
+		FixEpochChangeProposedCurrentEpochEnableEpoch:            125,
 	}
 }
 
@@ -216,6 +218,18 @@ func TestEnableEpochsHandler_FixEpochChangeProposedCurrentEpochFlag(t *testing.T
 	require.False(t, handler.IsFlagEnabledInEpoch(common.FixEpochChangeProposedCurrentEpochFlag, cfg.FixEpochChangeProposedCurrentEpochEnableEpoch-1))
 	require.True(t, handler.IsFlagEnabledInEpoch(common.FixEpochChangeProposedCurrentEpochFlag, cfg.FixEpochChangeProposedCurrentEpochEnableEpoch))
 	require.True(t, handler.IsFlagEnabledInEpoch(common.FixEpochChangeProposedCurrentEpochFlag, cfg.FixEpochChangeProposedCurrentEpochEnableEpoch+1))
+}
+
+func TestEnableEpochsHandler_FixDataTrieLeafValidation(t *testing.T) {
+	cfg := createEnableEpochsConfig()
+	cfg.FixDataTrieLeafValidationEnableEpoch = 200
+	handler, err := NewEnableEpochsHandler(cfg, &epochNotifier.EpochNotifierStub{})
+	require.NoError(t, err)
+	require.True(t, handler.IsFlagDefined(common.FixDataTrieLeafValidationFlag))
+	require.False(t, handler.IsFlagEnabledInEpoch(common.FixDataTrieLeafValidationFlag, 199))
+	require.True(t, handler.IsFlagEnabledInEpoch(common.FixDataTrieLeafValidationFlag, 200))
+	require.True(t, handler.IsFlagEnabledInEpoch(common.FixDataTrieLeafValidationFlag, 201))
+	require.Equal(t, uint32(200), handler.GetActivationEpoch(common.FixDataTrieLeafValidationFlag))
 }
 
 func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
@@ -501,6 +515,8 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.FullShardDataValidationEnableEpoch, handler.GetActivationEpoch(common.FullShardDataValidationFlag))
 	require.Equal(t, cfg.ConsumedGasInEconomicsFixEnableEpoch, handler.GetActivationEpoch(common.ConsumedGasInEconomicsFlag))
 	require.Equal(t, cfg.AttributeExtraGasUsageEnableEpoch, handler.GetActivationEpoch(common.AttributeExtraGasUsageFlag))
+	require.Equal(t, cfg.FixCorrectSmallIntAndGasLimitsEnableEpoch, handler.GetActivationEpoch(common.FixCorrectSmallIntAndGasLimitsFlag))
+	require.Equal(t, cfg.OutputRollbackOnDestContextEnableEpoch, handler.GetActivationEpoch(common.OutputRollbackOnDestContextFlag))
 	require.Equal(t, cfg.SupernovaEnableEpoch, handler.GetActivationEpoch(common.SupernovaFlag))
 	require.Equal(t, cfg.FixEpochChangeProposedCurrentEpochEnableEpoch, handler.GetActivationEpoch(common.FixEpochChangeProposedCurrentEpochFlag))
 }

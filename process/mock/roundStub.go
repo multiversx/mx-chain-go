@@ -6,11 +6,12 @@ import (
 
 // RoundStub -
 type RoundStub struct {
-	IndexCalled         func() int64
-	TimeDurationCalled  func() time.Duration
-	TimeStampCalled     func() time.Time
-	UpdateRoundCalled   func(time.Time, time.Time)
-	RemainingTimeCalled func(time.Time, time.Duration) time.Duration
+	IndexCalled                func() int64
+	TimeDurationCalled         func() time.Duration
+	TimeDurationForRoundCalled func(uint64) time.Duration
+	TimeStampCalled            func() time.Time
+	UpdateRoundCalled          func(time.Time, time.Time)
+	RemainingTimeCalled        func(time.Time, time.Duration) time.Duration
 }
 
 // Index -
@@ -26,6 +27,15 @@ func (rnds *RoundStub) IndexForCurrentTime() int64 {
 // TimeDuration -
 func (rnds *RoundStub) TimeDuration() time.Duration {
 	return rnds.TimeDurationCalled()
+}
+
+// TimeDurationForRound -
+func (rnds *RoundStub) TimeDurationForRound(round uint64) time.Duration {
+	if rnds.TimeDurationForRoundCalled != nil {
+		return rnds.TimeDurationForRoundCalled(round)
+	}
+
+	return rnds.TimeDuration()
 }
 
 // TimeStamp -

@@ -32,6 +32,7 @@ func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 		DynamicGasCostForDataTrieStorageLoadEnableEpoch: 10,
+		FixCorrectSmallIntAndGasLimitsEnableEpoch:       10, // backward compatibility with legacy gas schedule
 	}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()

@@ -1,6 +1,7 @@
 package initial
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -76,7 +77,7 @@ func TestInitialNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	assert.Equal(t, emptyString, s1)
 	assert.Equal(t, errNodeStarting, err)
 
-	s3, _, err := inf.GetAllESDTTokens("", api.AccountQueryOptions{})
+	s3, _, err := inf.GetAllESDTTokens(context.Background(), "", api.AccountQueryOptions{})
 	assert.Nil(t, s3)
 	assert.Equal(t, errNodeStarting, err)
 
@@ -115,7 +116,7 @@ func TestInitialNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	assert.Nil(t, resp)
 	assert.Equal(t, errNodeStarting, err)
 
-	uac, _, err := inf.GetAccount("", api.AccountQueryOptions{})
+	uac, _, err := inf.GetAccount(context.Background(), "", api.AccountQueryOptions{})
 	assert.Equal(t, api.AccountResponse{}, uac)
 	assert.Equal(t, errNodeStarting, err)
 
@@ -189,11 +190,11 @@ func TestInitialNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	assert.False(t, b)
 	assert.Equal(t, errNodeStarting, err)
 
-	sa, _, err := inf.GetNFTTokenIDsRegisteredByAddress("", api.AccountQueryOptions{})
+	sa, _, err := inf.GetNFTTokenIDsRegisteredByAddress(context.Background(), "", api.AccountQueryOptions{})
 	assert.Nil(t, sa)
 	assert.Equal(t, errNodeStarting, err)
 
-	sa, _, err = inf.GetESDTsWithRole("", "", api.AccountQueryOptions{})
+	sa, _, err = inf.GetESDTsWithRole(context.Background(), "", "", api.AccountQueryOptions{})
 	assert.Nil(t, sa)
 	assert.Equal(t, errNodeStarting, err)
 
@@ -204,7 +205,7 @@ func TestInitialNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	assert.Nil(t, asv)
 	assert.Equal(t, errNodeStarting, err)
 
-	mss, _, err := inf.GetKeyValuePairs("", api.AccountQueryOptions{})
+	mss, _, err := inf.GetKeyValuePairs(context.Background(), "", api.AccountQueryOptions{})
 	assert.Nil(t, mss)
 	assert.Equal(t, errNodeStarting, err)
 
@@ -212,11 +213,11 @@ func TestInitialNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	assert.Nil(t, ds)
 	assert.Equal(t, errNodeStarting, err)
 
-	mssa, _, err := inf.GetESDTsRoles("", api.AccountQueryOptions{})
+	mssa, _, err := inf.GetESDTsRoles(context.Background(), "", api.AccountQueryOptions{})
 	assert.Nil(t, mssa)
 	assert.Equal(t, errNodeStarting, err)
 
-	sa, err = inf.GetAllIssuedESDTs("")
+	sa, err = inf.GetAllIssuedESDTs(context.Background(), "")
 	assert.Nil(t, sa)
 	assert.Equal(t, errNodeStarting, err)
 

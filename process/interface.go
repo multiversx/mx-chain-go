@@ -1045,6 +1045,7 @@ type BlockTracker interface {
 	CheckProofAgainstFinal(proof data.HeaderProofHandler) error
 	CheckProofAgainstRoundHandler(proof data.HeaderProofHandler) error
 	CleanupHeadersBehindNonce(shardID uint32, selfNotarizedNonce uint64, crossNotarizedNonce uint64)
+	SetSettledNonceProvider(func() uint64)
 	CleanupInvalidCrossHeaders(metaNewEpoch uint32, metaRoundAttestingEpoch uint64)
 	ComputeLongestChain(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
 	ComputeLongestMetaChainFromLastNotarized() ([]data.HeaderHandler, [][]byte, error)

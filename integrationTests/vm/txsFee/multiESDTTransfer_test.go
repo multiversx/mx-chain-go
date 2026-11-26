@@ -29,9 +29,9 @@ func TestMultiESDTTransferShouldWork(t *testing.T) {
 
 	egldBalance := big.NewInt(100000000)
 	esdtBalance := big.NewInt(100000000)
-	token := []byte("miiutoken")
+	token := []byte("MIIU-123456")
 	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, egldBalance, token, 0, esdtBalance, uint32(core.Fungible))
-	secondToken := []byte("second")
+	secondToken := []byte("SCND-123456")
 	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), secondToken, 0, esdtBalance, uint32(core.Fungible))
 
 	gasLimit := uint64(4000)
@@ -90,9 +90,9 @@ func TestMultiESDTTransferFailsBecauseOfMaxLimit(t *testing.T) {
 
 	egldBalance := big.NewInt(100000000)
 	esdtBalance := big.NewInt(100000000)
-	token := []byte("miiutoken")
+	token := []byte("MIIU-123456")
 	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, egldBalance, token, 0, esdtBalance, uint32(core.Fungible))
-	secondToken := []byte("second")
+	secondToken := []byte("SCND-123456")
 	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), secondToken, 0, esdtBalance, uint32(core.Fungible))
 
 	gasLimit := uint64(4000)

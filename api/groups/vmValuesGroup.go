@@ -12,10 +12,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	apiData "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/api/errors"
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/process"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 const (
@@ -23,6 +24,8 @@ const (
 	stringPath = "/string"
 	intPath    = "/int"
 	queryPath  = "/query"
+
+	maxCallValueLength = 40
 )
 
 // vmValuesFacadeHandler defines the methods to be implemented by a facade for vm-values requests
@@ -174,6 +177,10 @@ func extractBlockCoordinates(context *gin.Context) (core.OptionalUint64, []byte,
 }
 
 func (vvg *vmValuesGroup) createSCQuery(request *VMValueRequest) (*process.SCQuery, error) {
+	if len(request.CallValue) > maxCallValueLength {
+		return nil, errors.ErrCallValueTooLong
+	}
+
 	decodedAddress, err := vvg.getFacade().DecodeAddressPubkey(request.ScAddress)
 	if err != nil {
 		return nil, fmt.Errorf("'%s' is not a valid address: %s", request.ScAddress, err.Error())

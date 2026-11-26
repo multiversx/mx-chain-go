@@ -18,7 +18,7 @@ func TestMarshalAndUnmarshalReceiptsHolder(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, []byte{}, data)
 
-		unmarshalledHolder, err := unmarshalReceiptsHolder(data, marshaller)
+		unmarshalledHolder, err := UnmarshalReceiptsHolder(data, marshaller)
 		require.Nil(t, err)
 		require.Equal(t, createEmptyReceiptsHolder(), unmarshalledHolder)
 	})
@@ -32,7 +32,7 @@ func TestMarshalAndUnmarshalReceiptsHolder(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, []byte{0xa, 0x2, 0x18, 42}, data)
 
-		unmarshalledHolder, err := unmarshalReceiptsHolder(data, marshaller)
+		unmarshalledHolder, err := UnmarshalReceiptsHolder(data, marshaller)
 		require.Nil(t, err)
 		require.Equal(t, holder, unmarshalledHolder)
 
@@ -47,12 +47,12 @@ func TestMarshalAndUnmarshalReceiptsHolder(t *testing.T) {
 		marshaller := &marshal.GogoProtoMarshalizer{}
 
 		// Bad container (batch)
-		holder, err := unmarshalReceiptsHolder([]byte("bad"), marshaller)
+		holder, err := UnmarshalReceiptsHolder([]byte("bad"), marshaller)
 		require.ErrorIs(t, err, errCannotUnmarshalReceipts)
 		require.Nil(t, holder)
 
 		// Bad content (miniblocks)
-		holder, err = unmarshalReceiptsHolder([]byte{0xa, 0x2, 0xff, 42}, marshaller)
+		holder, err = UnmarshalReceiptsHolder([]byte{0xa, 0x2, 0xff, 42}, marshaller)
 		require.ErrorIs(t, err, errCannotUnmarshalReceipts)
 		require.Nil(t, holder)
 	})

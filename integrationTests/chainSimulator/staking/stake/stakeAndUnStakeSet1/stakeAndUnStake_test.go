@@ -1,6 +1,7 @@
 package stakeAndUnStakeSet1
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -110,7 +111,7 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 	require.NotNil(t, stakeTx)
 
 	shardIDValidatorOwner := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(newValidatorOwnerBytes)
-	accountValidatorOwner, _, err := cs.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(newValidatorOwner, coreAPI.AccountQueryOptions{})
+	accountValidatorOwner, _, err := cs.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(context.Background(), newValidatorOwner, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
 	balanceBeforeActiveValidator := accountValidatorOwner.Balance
 
@@ -120,7 +121,7 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 
 	initialAddressWithValidators := cs.GetInitialWalletKeys().StakeWallets[0].Address
 	shardID := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(initialAddressWithValidators.Bytes)
-	initialAccount, _, err := cs.GetNodeHandler(shardID).GetFacadeHandler().GetAccount(initialAddressWithValidators.Bech32, coreAPI.AccountQueryOptions{})
+	initialAccount, _, err := cs.GetNodeHandler(shardID).GetFacadeHandler().GetAccount(context.Background(), initialAddressWithValidators.Bech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
 	tx = &transaction.Transaction{
 		Nonce:     initialAccount.Nonce,
@@ -148,7 +149,7 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 	require.Nil(t, err)
 	checkValidatorsRating(t, validatorStatistics)
 
-	accountValidatorOwner, _, err = cs.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(newValidatorOwner, coreAPI.AccountQueryOptions{})
+	accountValidatorOwner, _, err = cs.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(context.Background(), newValidatorOwner, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
 	balanceAfterActiveValidator := accountValidatorOwner.Balance
 
@@ -379,7 +380,7 @@ func testStakeUnStakeUnBond(t *testing.T, targetEpoch int32) {
 	require.Nil(t, err)
 
 	// check tokens are in the wallet balance
-	walletAccount, _, err := cs.GetNodeHandler(walletAddressShardID).GetFacadeHandler().GetAccount(walletAddress.Bech32, coreAPI.AccountQueryOptions{})
+	walletAccount, _, err := cs.GetNodeHandler(walletAddressShardID).GetFacadeHandler().GetAccount(context.Background(), walletAddress.Bech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
 	walletBalanceBig, _ := big.NewInt(0).SetString(walletAccount.Balance, 10)
 	require.True(t, walletBalanceBig.Cmp(chainSimulatorIntegrationTests.MinimumStakeValue) > 0)

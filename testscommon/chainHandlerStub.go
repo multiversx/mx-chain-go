@@ -22,6 +22,7 @@ type ChainHandlerStub struct {
 	SetCurrentBlockHeaderCalled                 func(header data.HeaderHandler) error
 	SetCurrentBlockHeaderAndHashCalled          func(headerHash []byte, header data.HeaderHandler) error
 	GetLastExecutedBlockHeaderCalled            func() data.HeaderHandler
+	GetLastExecutedBlockHeaderAndInfoCalled     func() (data.HeaderHandler, []byte, []byte)
 	SetLastExecutedBlockHeaderAndRootHashCalled func(header data.HeaderHandler, blockHash []byte, rootHash []byte)
 	GetLastExecutionResultCalled                func() data.BaseExecutionResultHandler
 	SetLastExecutionInfoCalled                  func(header data.HeaderHandler, result data.BaseExecutionResultHandler)
@@ -145,6 +146,17 @@ func (stub *ChainHandlerStub) GetLastExecutedBlockInfo() (nonce uint64, blockHas
 	}
 
 	return 0, nil, nil
+}
+
+// GetLastExecutedBlockHeaderAndInfo -
+func (stub *ChainHandlerStub) GetLastExecutedBlockHeaderAndInfo() (header data.HeaderHandler, blockHash []byte, rootHash []byte) {
+	if stub.GetLastExecutedBlockHeaderAndInfoCalled != nil {
+		return stub.GetLastExecutedBlockHeaderAndInfoCalled()
+	}
+
+	h := stub.GetLastExecutedBlockHeader()
+	_, bHash, rHash := stub.GetLastExecutedBlockInfo()
+	return h, bHash, rHash
 }
 
 // SetCurrentBlockHeader -

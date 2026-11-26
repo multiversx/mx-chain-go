@@ -9,20 +9,22 @@ import (
 	"math/big"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/stretchr/testify/require"
+
 	apiErrors "github.com/multiversx/mx-chain-go/api/errors"
 	"github.com/multiversx/mx-chain-go/api/groups"
 	"github.com/multiversx/mx-chain-go/api/mock"
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewVmValuesGroup(t *testing.T) {
@@ -419,6 +421,60 @@ func TestAllRoutes_SetStringFailsShouldErr(t *testing.T) {
 		CallValue:  "not an int",
 	}
 	requireErrorOnGetSingleValueRoutes(t, &facade, request, errors.New("non numeric call value"))
+}
+
+func TestVMValuesGroup_CallValueLength(t *testing.T) {
+	t.Parallel()
+
+	t.Run("maximum length is accepted", func(t *testing.T) {
+		t.Parallel()
+
+		callValue := strings.Repeat("9", 40)
+		facade := &mock.FacadeStub{
+			ExecuteSCQueryHandler: func(query *process.SCQuery) (*vm.VMOutputApi, api.BlockInfo, error) {
+				require.Equal(t, callValue, query.CallValue.String())
+				return &vm.VMOutputApi{}, api.BlockInfo{}, nil
+			},
+		}
+		request := groups.VMValueRequest{
+			ScAddress: dummyScAddress,
+			FuncName:  "function",
+			CallValue: callValue,
+		}
+		response := vmOutputResponse{}
+
+		statusCode := doPost(t, facade, "/vm-values/query", request, &response)
+
+		require.Equal(t, http.StatusOK, statusCode)
+	})
+
+	t.Run("value above maximum length is rejected before query preparation", func(t *testing.T) {
+		t.Parallel()
+
+		callValue := strings.Repeat("9", 41)
+		facade := &mock.FacadeStub{
+			DecodeAddressPubkeyCalled: func(_ string) ([]byte, error) {
+				require.Fail(t, "address should not be decoded")
+				return nil, nil
+			},
+			ExecuteSCQueryHandler: func(_ *process.SCQuery) (*vm.VMOutputApi, api.BlockInfo, error) {
+				require.Fail(t, "query should not be executed")
+				return nil, api.BlockInfo{}, nil
+			},
+		}
+		request := groups.VMValueRequest{
+			ScAddress: dummyScAddress,
+			FuncName:  "function",
+			CallValue: callValue,
+		}
+
+		requireErrorOnAllRoutes(t, facade, request, apiErrors.ErrCallValueTooLong)
+
+		response := simpleResponse{}
+		statusCode := doPost(t, facade, "/vm-values/query", request, &response)
+		require.Equal(t, http.StatusBadRequest, statusCode)
+		require.NotContains(t, response.Error, callValue)
+	})
 }
 
 func TestVMValuesGroup_UpdateFacade(t *testing.T) {

@@ -214,6 +214,7 @@ type Config struct {
 	StateAccessesCollectorConfig StateAccessesCollectorConfig
 	TrieStorageManagerConfig     TrieStorageManagerConfig
 	TrieLeavesRetrieverConfig    TrieLeavesRetrieverConfig
+	TrieOperations               TrieOperationsConfig
 	BadBlocksCache               CacheConfig
 
 	TxBlockBodyDataPool          CacheConfig

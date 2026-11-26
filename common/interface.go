@@ -42,6 +42,7 @@ type BufferedErrChan interface {
 // Trie is an interface for Merkle Trees implementations
 type Trie interface {
 	Get(key []byte) ([]byte, uint32, error)
+	GetWithVersion(key []byte) (value []byte, depth uint32, version uint32, err error)
 	Update(key, value []byte) error
 	Delete(key []byte) error
 	RootHash() ([]byte, error)

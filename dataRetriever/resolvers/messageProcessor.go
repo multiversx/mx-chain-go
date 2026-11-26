@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/p2p"
@@ -105,12 +106,31 @@ func selectRequestedHashes(hashes [][]byte) [][]byte {
 	return hashes[startIndex:endIndex]
 }
 
+func validateRequestedHashSize(hash []byte) error {
+	if len(hash) > common.HashSize {
+		return dataRetriever.ErrBadRequest
+	}
+
+	return nil
+}
+
+func validateRequestedHashesSize(hashes [][]byte) error {
+	for _, hash := range hashes {
+		err := validateRequestedHashSize(hash)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // parseReceivedMessage will transform the received p2p.Message in a RequestData object.
 func (mp *messageProcessor) parseReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) (*dataRetriever.RequestData, error) {
 	rd := &dataRetriever.RequestData{}
 	err := rd.UnmarshalWith(mp.marshalizer, message)
 	if err != nil {
-		//this situation is so severe that we need to black list the peers
+		// this situation is so severe that we need to black list the peers
 		reason := "unmarshalable data got on request topic " + mp.topic
 		mp.antifloodHandler.BlacklistPeer(message.Peer(), reason, common.InvalidMessageBlacklistDuration)
 		mp.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, common.InvalidMessageBlacklistDuration)

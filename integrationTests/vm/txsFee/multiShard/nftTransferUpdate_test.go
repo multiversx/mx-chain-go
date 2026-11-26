@@ -34,7 +34,7 @@ func TestNFTTransferAndUpdateOnOldTypeToken(t *testing.T) {
 		AlwaysSaveTokenMetaDataEnableEpoch:            3,
 	}
 
-	tokenID := []byte("MYNFT")
+	tokenID := []byte("MYNFT-123456")
 	sh0Addr := []byte("sender-shard0-567890123456789010")
 	sh1Addr := []byte("receiver-shard1-7890123456789011")
 	initialAttribute := []byte("initial attribute")

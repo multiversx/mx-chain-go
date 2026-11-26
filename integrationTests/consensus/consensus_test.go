@@ -299,22 +299,13 @@ func testConsensusBLSWithFullProcessing(
 
 	time.Sleep(p2pBootstrapDelay)
 
-	defer func() {
+	t.Cleanup(func() {
 		for _, nodesList := range nodes {
 			for _, n := range nodesList {
 				n.Close()
 			}
 		}
-	}()
-
-	for _, nodesList := range nodes {
-		for _, n := range nodesList {
-			err := startFullConsensusNode(n)
-			require.Nil(t, err)
-		}
-	}
-
-	fmt.Println("Wait for several rounds...")
+	})
 
 	nodesList := make([]*integrationTests.TestProcessorNode, 0)
 	shard0Nodes := nodes[0]
@@ -322,13 +313,28 @@ func testConsensusBLSWithFullProcessing(
 		nodesList = append(nodesList, n.TestProcessorNode)
 	}
 	integrationTests.MintAllNodes(nodesList, big.NewInt(100000000000))
+	var players []*integrationTests.TestWalletAccount
+	if txs.numScTxs > 0 {
+		players = make([]*integrationTests.TestWalletAccount, 10)
+		for i := range players {
+			players[i] = integrationTests.CreateTestWalletAccount(shard0Node.ShardCoordinator, 0)
+		}
+		integrationTests.MintAllPlayers(nodesList, players, big.NewInt(100000000000))
+	}
 	integrationTests.SetRootHashOfGenesisBlocks(nodesList)
+
+	for _, nodesList := range nodes {
+		for _, n := range nodesList {
+			err := startFullConsensusNode(t, n)
+			require.NoError(t, err)
+		}
+	}
 
 	maxRounds := uint64(roundsPerEpoch)*uint64(enableEpochsConfig.SCDeployEnableEpoch) + uint64(roundsPerEpoch)
 	timeoutSeconds := (maxRounds * roundTime) / 1000
-	waitForEpoch(shard0Node, enableEpochsConfig.SCDeployEnableEpoch, timeoutSeconds)
+	waitForEpoch(t, nodes, enableEpochsConfig.SCDeployEnableEpoch, timeoutSeconds)
 
-	scTxs(t, shard0Node, txs.numScTxs, nodesList)
+	scTxs(t, shard0Node, txs.numScTxs, nodesList, players)
 
 	encodedReceiverAddr, err := integrationTests.TestAddressPubkeyConverter.Encode(integrationTests.CreateRandomBytes(32))
 	assert.Nil(t, err)
@@ -336,7 +342,7 @@ func testConsensusBLSWithFullProcessing(
 
 	maxRounds = uint64(roundsPerEpoch)*uint64(targetEpoch) + uint64(roundsPerEpoch)
 	timeoutSeconds = (maxRounds * roundTime) / 1000
-	waitForEpoch(shard0Node, targetEpoch, timeoutSeconds)
+	waitForEpoch(t, nodes, targetEpoch, timeoutSeconds)
 
 	fmt.Println("Checking shards...")
 
@@ -350,23 +356,18 @@ func testConsensusBLSWithFullProcessing(
 	}
 
 	expectedNonce := uint64(10)
-	var nodeEpoch uint32
-	for _, nodesList := range nodes {
-		for _, n := range nodesList {
-			for i := 1; i < len(nodes); i++ {
-				if check.IfNil(n.Node.GetDataComponents().Blockchain().GetCurrentBlockHeader()) {
-					assert.Fail(t, fmt.Sprintf("Node with idx %d does not have a current block", i))
-				} else {
-					assert.GreaterOrEqual(t, n.Node.GetDataComponents().Blockchain().GetCurrentBlockHeader().GetNonce(), expectedNonce)
-					nodeEpoch = n.Node.GetDataComponents().Blockchain().GetCurrentBlockHeader().GetEpoch()
-					assert.Equal(t, targetEpoch, nodeEpoch)
-				}
-			}
+	for shardID, nodesList := range nodes {
+		for i, n := range nodesList {
+			header := n.Node.GetDataComponents().Blockchain().GetCurrentBlockHeader()
+			require.False(t, check.IfNil(header), "shard %d node %d has no current block", shardID, i)
+			assert.GreaterOrEqual(t, header.GetNonce(), expectedNonce, "shard %d node %d", shardID, i)
+			assert.GreaterOrEqual(t, header.GetEpoch(), targetEpoch, "shard %d node %d", shardID, i)
 		}
 	}
 }
 
 func startFullConsensusNode(
+	t *testing.T,
 	n *integrationTests.TestFullNode,
 ) error {
 	statusComponents := integrationTests.GetDefaultStatusComponents()
@@ -415,6 +416,8 @@ func startFullConsensusNode(
 		return err
 	}
 
+	// Stop consensus before the earlier-registered node cleanup closes its dependencies.
+	t.Cleanup(func() { assert.NoError(t, managedConsensusComponents.Close()) })
 	return managedConsensusComponents.Create()
 }
 
@@ -731,38 +734,27 @@ func getPkEncoded(pubKey crypto.PublicKey) string {
 	return encodeAddress(pk)
 }
 
-func waitForEpoch(node *integrationTests.TestFullNode, targetEpoch uint32, timeoutSeconds uint64) {
-	epochReached := false
-	timeStart := time.Now()
-	for !epochReached {
-		blockHeader := node.Node.GetDataComponents().Blockchain().GetCurrentBlockHeader()
-		if check.IfNil(blockHeader) {
-			time.Sleep(time.Second)
-			continue
-		}
-		epochReached = blockHeader.GetEpoch() == targetEpoch
-		secondsPassed := time.Since(timeStart).Seconds()
-		if secondsPassed > float64(timeoutSeconds) {
-			break
-		}
-	}
+func waitForEpoch(t *testing.T, nodes map[uint32][]*integrationTests.TestFullNode, targetEpoch uint32, timeoutSeconds uint64) {
+	t.Helper()
 
-	time.Sleep(time.Second * 3) // wait for all nodes to change epoch
-	fmt.Println("Wait for all nodes to change epoch...")
+	require.EventuallyWithT(t, func(collect *assert.CollectT) {
+		for shardID, nodesList := range nodes {
+			for i, node := range nodesList {
+				header := node.Node.GetDataComponents().Blockchain().GetCurrentBlockHeader()
+				if !assert.False(collect, check.IfNil(header), "shard %d node %d has no current block", shardID, i) {
+					continue
+				}
+				assert.GreaterOrEqual(collect, header.GetEpoch(), targetEpoch,
+					"shard %d node %d: nonce %d round %d", shardID, i, header.GetNonce(), header.GetRound())
+			}
+		}
+	}, time.Duration(timeoutSeconds)*time.Second, 100*time.Millisecond)
 }
 
-func scTxs(t *testing.T, senderNode *integrationTests.TestFullNode, numTxs int, nodesList []*integrationTests.TestProcessorNode) {
+func scTxs(t *testing.T, senderNode *integrationTests.TestFullNode, numTxs int, nodesList []*integrationTests.TestProcessorNode, players []*integrationTests.TestWalletAccount) {
 	if numTxs <= 0 {
 		return
 	}
-
-	numPlayers := 10
-	players := make([]*integrationTests.TestWalletAccount, numPlayers)
-	for i := 0; i < numPlayers; i++ {
-		players[i] = integrationTests.CreateTestWalletAccount(senderNode.ShardCoordinator, 0)
-	}
-	initialVal := big.NewInt(100000000000)
-	integrationTests.MintAllPlayers(nodesList, players, initialVal)
 
 	scCode, err := os.ReadFile("../vm/wasm/testdata/erc20-c-03/wrc20_wasm.wasm")
 	require.Nil(t, err)

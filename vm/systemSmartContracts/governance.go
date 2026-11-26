@@ -745,8 +745,12 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 
 	tokensToReturn := big.NewInt(0).Set(generalProposal.ProposalCost)
 	if !generalProposal.Passed {
-		tokensToReturn.Sub(tokensToReturn, baseConfig.LostProposalFee)
-		g.addToAccumulatedFees(baseConfig.LostProposalFee)
+		lostFee := big.NewInt(0).Set(baseConfig.LostProposalFee)
+		if lostFee.Cmp(tokensToReturn) > 0 {
+			lostFee.Set(tokensToReturn)
+		}
+		tokensToReturn.Sub(tokensToReturn, lostFee)
+		g.addToAccumulatedFees(lostFee)
 	}
 
 	g.eei.Transfer(generalProposal.IssuerAddress, args.RecipientAddr, tokensToReturn, nil, 0)
@@ -1157,6 +1161,12 @@ func (g *governanceContract) getTotalStake(validatorAddress []byte) (*big.Int, e
 		validatorData.TotalStakeValue = big.NewInt(0)
 	}
 
+	if g.enableEpochsHandler.IsFlagEnabled(common.FixCorrectSmallIntAndGasLimitsFlag) {
+		if validatorData.NumRegistered == 0 {
+			return big.NewInt(0), nil
+		}
+	}
+
 	return validatorData.TotalStakeValue, nil
 }
 
@@ -1416,9 +1426,9 @@ func (g *governanceContract) processLastEndedNonce() {
 		nonceBig := big.NewInt(int64(nonce))
 		proposal, err := g.getProposalFromNonce(nonceBig)
 		if err != nil || proposal.EndVoteEpoch >= uint64(currentEpoch) {
-			nonceFound = nonceBig.Sub(nonceBig, big.NewInt(1))
 			break
 		}
+		nonceFound.Set(nonceBig)
 	}
 
 	g.eei.SetStorage([]byte(lastEndedNonceKey), nonceFound.Bytes())

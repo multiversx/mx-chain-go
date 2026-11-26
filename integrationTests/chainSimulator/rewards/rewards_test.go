@@ -1,6 +1,7 @@
 package rewards
 
 import (
+	"context"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -314,7 +315,7 @@ func generateMoveBalance(t *testing.T, cs chainSimulator.ChainSimulator, numTxs 
 func generateMoveBalanceTxs(t *testing.T, cs chainSimulator.ChainSimulator, sender dtos.WalletAddress, numTxs int, receiverShardID uint32) []*transaction.Transaction {
 	senderShardID := cs.GetNodeHandler(core.MetachainShardId).GetShardCoordinator().ComputeId(sender.Bytes)
 
-	res, _, err := cs.GetNodeHandler(senderShardID).GetFacadeHandler().GetAccount(sender.Bech32, apiCore.AccountQueryOptions{})
+	res, _, err := cs.GetNodeHandler(senderShardID).GetFacadeHandler().GetAccount(context.Background(), sender.Bech32, apiCore.AccountQueryOptions{})
 	require.Nil(t, err)
 
 	txs := make([]*transaction.Transaction, numTxs)

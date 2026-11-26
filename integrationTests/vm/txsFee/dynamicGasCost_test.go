@@ -25,6 +25,7 @@ func TestDynamicGasCostForDataTrieStorageLoad(t *testing.T) {
 
 	enableEpochs := config.EnableEpochs{
 		DynamicGasCostForDataTrieStorageLoadEnableEpoch: 0,
+		FixCorrectSmallIntAndGasLimitsEnableEpoch:       0,
 	}
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(3, 1)
 	gasScheduleNotifier := vm.CreateMockGasScheduleNotifier()
@@ -49,7 +50,7 @@ func TestDynamicGasCostForDataTrieStorageLoad(t *testing.T) {
 
 	initCost := 35
 	apiCallsCost := 3
-	loadValCost := 32
+	loadValCost := 32 + 64
 	wasmOpsCost := 14
 
 	contractCode := wasm.GetSCCode("../wasm/testdata/trieStoreAndLoad/output/storage.wasm")

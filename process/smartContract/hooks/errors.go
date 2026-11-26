@@ -37,3 +37,6 @@ var ErrNilLastCommitedEpochStartHdr = errors.New("nil last commited epoch start 
 
 // ErrLastCommitedEpochStartHdrMismatch signals that the current header epoch and last commited epoch start header epoch do not match
 var ErrLastCommitedEpochStartHdrMismatch = errors.New("current header epoch and last commited epoch start header epoch do not match")
+
+// ErrInvalidTokenIdentifier signals that the provided token identifier is invalid or exceeds maximum length
+var ErrInvalidTokenIdentifier = errors.New("invalid token identifier")

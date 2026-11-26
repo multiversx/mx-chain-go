@@ -35,7 +35,10 @@ func marshalReceiptsHolder(holder common.ReceiptsHolder, marshaller marshal.Mars
 	return receiptsBytes, nil
 }
 
-func unmarshalReceiptsHolder(receiptsBytes []byte, marshaller marshal.Marshalizer) (common.ReceiptsHolder, error) {
+// UnmarshalReceiptsHolder unmarshals the receipts holder from its storage representation.
+// The receipts holder contains the miniblocks created and settled in-shard during the execution
+// of a block, which are not part of the execution result's miniblock headers.
+func UnmarshalReceiptsHolder(receiptsBytes []byte, marshaller marshal.Marshalizer) (common.ReceiptsHolder, error) {
 	if len(receiptsBytes) == 0 {
 		return createEmptyReceiptsHolder(), nil
 	}

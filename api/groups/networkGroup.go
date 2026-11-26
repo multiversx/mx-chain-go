@@ -1,6 +1,8 @@
 package groups
 
 import (
+	"context"
+	stderrors "errors"
 	"fmt"
 	"net/http"
 	"sync"
@@ -43,7 +45,7 @@ type networkFacadeHandler interface {
 	GetDirectStakedList() ([]*api.DirectStakedValue, error)
 	GetDelegatorsList() ([]*api.Delegator, error)
 	StatusMetrics() external.StatusMetricsHandler
-	GetAllIssuedESDTs(tokenType string) ([]string, error)
+	GetAllIssuedESDTs(ctx context.Context, tokenType string) ([]string, error)
 	GetTokenSupply(token string) (*api.ESDTSupply, error)
 	GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string, error)
 	GetGenesisBalances() ([]*common.InitialAccountAPI, error)
@@ -318,8 +320,12 @@ func (ng *networkGroup) economicsMetrics(c *gin.Context) {
 
 func (ng *networkGroup) getHandlerFuncForEsdt(tokenType string) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		tokens, err := ng.getFacade().GetAllIssuedESDTs(tokenType)
+		tokens, err := ng.getFacade().GetAllIssuedESDTs(c.Request.Context(), tokenType)
 		if err != nil {
+			if stderrors.Is(err, common.ErrTrieOperationsBusy) {
+				shared.RespondWith(c, http.StatusTooManyRequests, nil, err.Error(), shared.ReturnCodeSystemBusy)
+				return
+			}
 			c.JSON(
 				http.StatusInternalServerError,
 				shared.GenericAPIResponse{

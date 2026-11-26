@@ -2,6 +2,7 @@ package groups_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -206,7 +207,7 @@ func TestAddressGroup_getAccount(t *testing.T) {
 		t.Parallel()
 
 		facade := &mock.FacadeStub{
-			GetAccountCalled: func(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
+			GetAccountCalled: func(_ context.Context, address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
 				return api.AccountResponse{}, api.BlockInfo{}, expectedErr
 			},
 		}
@@ -225,7 +226,7 @@ func TestAddressGroup_getAccount(t *testing.T) {
 		t.Parallel()
 
 		facade := &mock.FacadeStub{
-			GetAccountCalled: func(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
+			GetAccountCalled: func(_ context.Context, address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
 				return api.AccountResponse{
 					Address:         "addr",
 					Balance:         big.NewInt(100).String(),
@@ -632,7 +633,7 @@ func TestAddressGroup_getKeyValuePairs(t *testing.T) {
 		t.Parallel()
 
 		facade := &mock.FacadeStub{
-			GetKeyValuePairsCalled: func(_ string, _ api.AccountQueryOptions) (map[string]string, api.BlockInfo, error) {
+			GetKeyValuePairsCalled: func(_ context.Context, _ string, _ api.AccountQueryOptions) (map[string]string, api.BlockInfo, error) {
 				return nil, api.BlockInfo{}, expectedErr
 			},
 		}
@@ -654,7 +655,7 @@ func TestAddressGroup_getKeyValuePairs(t *testing.T) {
 			"k2": "v2",
 		}
 		facade := &mock.FacadeStub{
-			GetKeyValuePairsCalled: func(_ string, _ api.AccountQueryOptions) (map[string]string, api.BlockInfo, error) {
+			GetKeyValuePairsCalled: func(_ context.Context, _ string, _ api.AccountQueryOptions) (map[string]string, api.BlockInfo, error) {
 				return pairs, api.BlockInfo{}, nil
 			},
 		}
@@ -720,7 +721,7 @@ func TestAddressGroup_iterateKeys(t *testing.T) {
 		}
 		bodyBytes, _ := json.Marshal(body)
 		facade := &mock.FacadeStub{
-			IterateKeysCalled: func(address string, numKeys uint, iteratorState [][]byte, options api.AccountQueryOptions) (map[string]string, [][]byte, api.BlockInfo, error) {
+			IterateKeysCalled: func(_ context.Context, address string, numKeys uint, iteratorState [][]byte, options api.AccountQueryOptions) (map[string]string, [][]byte, api.BlockInfo, error) {
 				return nil, nil, api.BlockInfo{}, expectedErr
 			},
 		}
@@ -750,7 +751,7 @@ func TestAddressGroup_iterateKeys(t *testing.T) {
 		newIteratorState := [][]byte{[]byte("new"), []byte("state")}
 		bodyBytes, _ := json.Marshal(body)
 		facade := &mock.FacadeStub{
-			IterateKeysCalled: func(address string, numKeys uint, iteratorState [][]byte, options api.AccountQueryOptions) (map[string]string, [][]byte, api.BlockInfo, error) {
+			IterateKeysCalled: func(_ context.Context, address string, numKeys uint, iteratorState [][]byte, options api.AccountQueryOptions) (map[string]string, [][]byte, api.BlockInfo, error) {
 				assert.Equal(t, body.Address, address)
 				assert.Equal(t, body.NumKeys, numKeys)
 				assert.Equal(t, body.IteratorState, iteratorState)
@@ -837,7 +838,7 @@ func TestAddressGroup_getESDTsRoles(t *testing.T) {
 		t.Parallel()
 
 		facade := &mock.FacadeStub{
-			GetESDTsRolesCalled: func(_ string, _ api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error) {
+			GetESDTsRolesCalled: func(_ context.Context, _ string, _ api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error) {
 				return nil, api.BlockInfo{}, expectedErr
 			},
 		}
@@ -859,7 +860,7 @@ func TestAddressGroup_getESDTsRoles(t *testing.T) {
 			"token1": {"role3", "role1"},
 		}
 		facade := &mock.FacadeStub{
-			GetESDTsRolesCalled: func(_ string, _ api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error) {
+			GetESDTsRolesCalled: func(_ context.Context, _ string, _ api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error) {
 				return roles, api.BlockInfo{}, nil
 			},
 		}
@@ -893,7 +894,7 @@ func TestAddressGroup_getESDTTokensWithRole(t *testing.T) {
 		t.Parallel()
 
 		facade := &mock.FacadeStub{
-			GetESDTsWithRoleCalled: func(_ string, _ string, _ api.AccountQueryOptions) ([]string, api.BlockInfo, error) {
+			GetESDTsWithRoleCalled: func(_ context.Context, _ string, _ string, _ api.AccountQueryOptions) ([]string, api.BlockInfo, error) {
 				return nil, api.BlockInfo{}, expectedErr
 			},
 		}
@@ -912,7 +913,7 @@ func TestAddressGroup_getESDTTokensWithRole(t *testing.T) {
 
 		expectedTokens := []string{"ABC-0o9i8u", "XYZ-r5y7i9"}
 		facade := &mock.FacadeStub{
-			GetESDTsWithRoleCalled: func(address string, role string, _ api.AccountQueryOptions) ([]string, api.BlockInfo, error) {
+			GetESDTsWithRoleCalled: func(_ context.Context, address string, role string, _ api.AccountQueryOptions) ([]string, api.BlockInfo, error) {
 				return expectedTokens, api.BlockInfo{}, nil
 			},
 		}
@@ -943,7 +944,7 @@ func TestAddressGroup_getNFTTokenIDsRegisteredByAddress(t *testing.T) {
 		t.Parallel()
 
 		facade := &mock.FacadeStub{
-			GetNFTTokenIDsRegisteredByAddressCalled: func(_ string, _ api.AccountQueryOptions) ([]string, api.BlockInfo, error) {
+			GetNFTTokenIDsRegisteredByAddressCalled: func(_ context.Context, _ string, _ api.AccountQueryOptions) ([]string, api.BlockInfo, error) {
 				return nil, api.BlockInfo{}, expectedErr
 			},
 		}
@@ -962,7 +963,7 @@ func TestAddressGroup_getNFTTokenIDsRegisteredByAddress(t *testing.T) {
 
 		expectedTokens := []string{"ABC-0o9i8u", "XYZ-r5y7i9"}
 		facade := &mock.FacadeStub{
-			GetNFTTokenIDsRegisteredByAddressCalled: func(address string, _ api.AccountQueryOptions) ([]string, api.BlockInfo, error) {
+			GetNFTTokenIDsRegisteredByAddressCalled: func(_ context.Context, address string, _ api.AccountQueryOptions) ([]string, api.BlockInfo, error) {
 				return expectedTokens, api.BlockInfo{}, nil
 			},
 		}
@@ -1058,7 +1059,7 @@ func TestAddressGroup_getAllESDTData(t *testing.T) {
 		t.Parallel()
 
 		facade := &mock.FacadeStub{
-			GetAllESDTTokensCalled: func(address string, options api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error) {
+			GetAllESDTTokensCalled: func(_ context.Context, address string, options api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error) {
 				return nil, api.BlockInfo{}, expectedErr
 			},
 		}
@@ -1078,7 +1079,7 @@ func TestAddressGroup_getAllESDTData(t *testing.T) {
 		testValue1 := "token1"
 		testValue2 := "token2"
 		facade := &mock.FacadeStub{
-			GetAllESDTTokensCalled: func(address string, _ api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error) {
+			GetAllESDTTokensCalled: func(_ context.Context, address string, _ api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error) {
 				tokens := make(map[string]*esdt.ESDigitalToken)
 				tokens[testValue1] = &esdt.ESDigitalToken{Value: big.NewInt(10)}
 				tokens[testValue2] = &esdt.ESDigitalToken{Value: big.NewInt(100)}
@@ -1129,7 +1130,7 @@ func TestAddressGroup_UpdateFacade(t *testing.T) {
 		}
 		testAddress := "address"
 		facade := mock.FacadeStub{
-			GetESDTsRolesCalled: func(_ string, _ api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error) {
+			GetESDTsRolesCalled: func(_ context.Context, _ string, _ api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error) {
 				return roles, api.BlockInfo{}, nil
 			},
 		}
@@ -1150,7 +1151,7 @@ func TestAddressGroup_UpdateFacade(t *testing.T) {
 
 		newErr := errors.New("new error")
 		newFacade := mock.FacadeStub{
-			GetESDTsRolesCalled: func(_ string, _ api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error) {
+			GetESDTsRolesCalled: func(_ context.Context, _ string, _ api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error) {
 				return nil, api.BlockInfo{}, newErr
 			},
 		}

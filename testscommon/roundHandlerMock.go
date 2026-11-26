@@ -13,6 +13,7 @@ type RoundHandlerMock struct {
 	IndexCalled                func() int64
 	IndexForCurrentTimeCalled  func() int64
 	TimeDurationCalled         func() time.Duration
+	TimeDurationForRoundCalled func(round uint64) time.Duration
 	TimeStampCalled            func() time.Time
 	UpdateRoundCalled          func(time.Time, time.Time)
 	RemainingTimeCalled        func(startTime time.Time, maxTime time.Duration) time.Duration
@@ -60,6 +61,15 @@ func (rndm *RoundHandlerMock) TimeDuration() time.Duration {
 	}
 
 	return 4000 * time.Millisecond
+}
+
+// TimeDurationForRound -
+func (rndm *RoundHandlerMock) TimeDurationForRound(round uint64) time.Duration {
+	if rndm.TimeDurationForRoundCalled != nil {
+		return rndm.TimeDurationForRoundCalled(round)
+	}
+
+	return rndm.TimeDuration()
 }
 
 // TimeStamp -

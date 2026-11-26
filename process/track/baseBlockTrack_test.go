@@ -2473,6 +2473,21 @@ func TestBaseBlockTrack_CheckBlockAgainstRoundHandlerUsesTheRoundOfTheCurrentTim
 
 		assert.True(t, errors.Is(err, process.ErrHigherRoundInBlock))
 	})
+	t.Run("header with signed integer overflow round is rejected (BUG-740)", func(t *testing.T) {
+		t.Parallel()
+
+		bbt := track.NewBaseBlockTrack()
+		bbt.SetRoundHandler(
+			&mock.RoundHandlerMock{
+				RoundIndex:               storedRound,
+				RoundIndexForCurrentTime: roundForCurrentTime,
+			},
+		)
+
+		err := bbt.CheckBlockAgainstRoundHandler(&block.Header{Round: uint64(1 << 63)})
+
+		assert.True(t, errors.Is(err, process.ErrHigherRoundInBlock))
+	})
 }
 
 func TestBaseBlockTrack_CheckBlockAgainstRoundHandlerShouldWork(t *testing.T) {
@@ -2695,6 +2710,60 @@ func TestBaseBlockTrack_CheckBlockAgainstFinalShouldWork(t *testing.T) {
 	}
 	err := bbt.CheckBlockAgainstFinal(hdr)
 
+	assert.Nil(t, err)
+}
+
+func TestBaseBlockTrack_CheckBlockAgainstFinal_UnsignedComparison_BUG740(t *testing.T) {
+	t.Parallel()
+
+	crtShard := uint32(0)
+	finalRound := uint64(100)
+	finalNonce := uint64(50)
+	bbt := track.NewBaseBlockTrack()
+	bbt.SetShardCoordinator(mock.NewMultiShardsCoordinatorMock(crtShard))
+	bbt.SetSelfNotarizer(
+		&mock.BlockNotarizerHandlerMock{
+			GetFirstNotarizedHeaderCalled: func(shardID uint32) (handler data.HeaderHandler, bytes []byte, err error) {
+				hdr := &block.Header{
+					ShardID: crtShard,
+					Round:   finalRound,
+					Nonce:   finalNonce,
+				}
+				return hdr, make([]byte, 0), nil
+			},
+		},
+	)
+
+	// Round lower than final round
+	err := bbt.CheckBlockAgainstFinal(&block.Header{
+		ShardID: crtShard,
+		Round:   finalRound - 1,
+		Nonce:   finalNonce,
+	})
+	assert.True(t, errors.Is(err, process.ErrLowerRoundInBlock))
+
+	// Nonce lower than final nonce
+	err = bbt.CheckBlockAgainstFinal(&block.Header{
+		ShardID: crtShard,
+		Round:   finalRound,
+		Nonce:   finalNonce - 1,
+	})
+	assert.True(t, errors.Is(err, process.ErrLowerNonceInBlock))
+
+	// Round diff < Nonce diff
+	err = bbt.CheckBlockAgainstFinal(&block.Header{
+		ShardID: crtShard,
+		Round:   finalRound + 2,
+		Nonce:   finalNonce + 5,
+	})
+	assert.True(t, errors.Is(err, process.ErrHigherNonceInBlock))
+
+	// Valid header
+	err = bbt.CheckBlockAgainstFinal(&block.Header{
+		ShardID: crtShard,
+		Round:   finalRound + 5,
+		Nonce:   finalNonce + 2,
+	})
 	assert.Nil(t, err)
 }
 

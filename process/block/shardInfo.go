@@ -272,17 +272,17 @@ func createShardMiniBlockHeaderFromHeader(
 	shardHdr data.HeaderHandler,
 	enableEpochsHandler common.EnableEpochsHandler,
 ) []block.MiniBlockHeader {
-	shardMiniBlockHeaders := make([]block.MiniBlockHeader, 0)
-	for i := 0; i < len(shardHdr.GetMiniBlockHeaderHandlers()); i++ {
+	mbHeaderHandlers := shardHdr.GetMiniBlockHeaderHandlers()
+	shardMiniBlockHeaders := make([]block.MiniBlockHeader, 0, len(mbHeaderHandlers))
+	for _, miniBlockHeader := range mbHeaderHandlers {
 		if enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
-			miniBlockHeader := shardHdr.GetMiniBlockHeaderHandlers()[i]
 			if !miniBlockHeader.IsFinal() {
 				log.Debug("metaProcessor.createShardInfo: do not create shard data with mini block which is not final", "mb hash", miniBlockHeader.GetHash())
 				continue
 			}
 		}
 
-		shardMiniBlockHeader := miniBlockHeaderFromMiniBlockHeaderHandler(shardHdr.GetMiniBlockHeaderHandlers()[i])
+		shardMiniBlockHeader := miniBlockHeaderFromMiniBlockHeaderHandler(miniBlockHeader)
 		shardMiniBlockHeaders = append(shardMiniBlockHeaders, shardMiniBlockHeader)
 	}
 	return shardMiniBlockHeaders

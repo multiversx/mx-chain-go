@@ -478,7 +478,7 @@ func (thn *TestHeartbeatNode) initDataPools() {
 
 	cacherCfg := storageunit.CacheConfig{Capacity: 10000, Type: storageunit.LRUCache, Shards: 1}
 	suCache, _ := storageunit.NewCache(cacherCfg)
-	thn.WhiteListHandler, _ = interceptors.NewWhiteListDataVerifier(suCache)
+	thn.WhiteListHandler, _ = interceptors.NewWhiteListDataVerifier(suCache, whiteListRequestTTL)
 }
 
 func (thn *TestHeartbeatNode) initStorage() {

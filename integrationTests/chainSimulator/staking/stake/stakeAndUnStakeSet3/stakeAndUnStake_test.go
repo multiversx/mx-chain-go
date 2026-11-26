@@ -1,6 +1,7 @@
 package stakeAndUnStakeSet3
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -203,7 +204,7 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInFirstEpoch(t *testing.
 	stake.TestBLSKeyStaked(t, metachainNode, blsKeys[0])
 
 	shardIDValidatorOwner := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(validatorOwner.Bytes)
-	accountValidatorOwner, _, err := cs.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(validatorOwner.Bech32, coreAPI.AccountQueryOptions{})
+	accountValidatorOwner, _, err := cs.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(context.Background(), validatorOwner.Bech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
 	balanceBeforeUnbonding, _ := big.NewInt(0).SetString(accountValidatorOwner.Balance, 10)
 
@@ -270,7 +271,7 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInFirstEpoch(t *testing.
 	require.Equal(t, expectedStaked.String(), string(result.ReturnData[0]))
 
 	// the owner balance should increase with the (10 EGLD - tx fee)
-	accountValidatorOwner, _, err = cs.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(validatorOwner.Bech32, coreAPI.AccountQueryOptions{})
+	accountValidatorOwner, _, err = cs.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(context.Background(), validatorOwner.Bech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
 	balanceAfterUnbonding, _ := big.NewInt(0).SetString(accountValidatorOwner.Balance, 10)
 
@@ -485,7 +486,7 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInEpoch(t *testing.T, cs
 	stake.TestBLSKeyStaked(t, metachainNode, blsKeys[0])
 
 	shardIDValidatorOwner := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(validatorOwner.Bytes)
-	accountValidatorOwner, _, err := cs.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(validatorOwner.Bech32, coreAPI.AccountQueryOptions{})
+	accountValidatorOwner, _, err := cs.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(context.Background(), validatorOwner.Bech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
 	balanceBeforeUnbonding, _ := big.NewInt(0).SetString(accountValidatorOwner.Balance, 10)
 
@@ -574,7 +575,7 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInEpoch(t *testing.T, cs
 	require.Nil(t, err)
 
 	// the owner balance should increase with the (11+12+13 EGLD - tx fee)
-	accountValidatorOwner, _, err = cs.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(validatorOwner.Bech32, coreAPI.AccountQueryOptions{})
+	accountValidatorOwner, _, err = cs.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(context.Background(), validatorOwner.Bech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
 	balanceAfterUnbonding, _ := big.NewInt(0).SetString(accountValidatorOwner.Balance, 10)
 
@@ -844,7 +845,7 @@ func unStakeOneActiveNode(t *testing.T, cs chainSimulatorIntegrationTests.ChainS
 
 	validatorWallet := cs.GetInitialWalletKeys().StakeWallets[idx].Address
 	shardID := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(validatorWallet.Bytes)
-	initialAccount, _, err := cs.GetNodeHandler(shardID).GetFacadeHandler().GetAccount(validatorWallet.Bech32, coreAPI.AccountQueryOptions{})
+	initialAccount, _, err := cs.GetNodeHandler(shardID).GetFacadeHandler().GetAccount(context.Background(), validatorWallet.Bech32, coreAPI.AccountQueryOptions{})
 
 	require.Nil(t, err)
 	tx := &transaction.Transaction{

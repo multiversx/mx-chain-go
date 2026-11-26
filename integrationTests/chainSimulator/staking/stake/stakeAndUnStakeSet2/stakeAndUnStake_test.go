@@ -1,6 +1,7 @@
 package stakeAndUnStakeSet2
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -667,7 +668,7 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsBeforeUnbonding(t *testi
 	stake.TestBLSKeyStaked(t, metachainNode, blsKeys[0])
 
 	shardIDValidatorOwner := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(validatorOwner.Bytes)
-	accountValidatorOwner, _, err := cs.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(validatorOwner.Bech32, coreAPI.AccountQueryOptions{})
+	accountValidatorOwner, _, err := cs.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(context.Background(), validatorOwner.Bech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
 	balanceBeforeUnbonding, _ := big.NewInt(0).SetString(accountValidatorOwner.Balance, 10)
 
@@ -714,7 +715,7 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsBeforeUnbonding(t *testi
 	require.Equal(t, expectedUnStaked.String(), big.NewInt(0).SetBytes(result.ReturnData[0]).String())
 
 	// the owner balance should decrease only with the txs fee
-	accountValidatorOwner, _, err = cs.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(validatorOwner.Bech32, coreAPI.AccountQueryOptions{})
+	accountValidatorOwner, _, err = cs.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(context.Background(), validatorOwner.Bech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
 	balanceAfterUnbonding, _ := big.NewInt(0).SetString(accountValidatorOwner.Balance, 10)
 

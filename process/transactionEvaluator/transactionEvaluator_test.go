@@ -2,6 +2,7 @@ package transactionEvaluator
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"math/big"
 	"strings"
@@ -16,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
+	stateAccounts "github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -33,6 +35,88 @@ func createArgs() ArgsApiTransactionEvaluator {
 		ShardCoordinator:    &mock.ShardCoordinatorStub{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		BlockChain:          &testscommon.ChainHandlerMock{},
+	}
+}
+
+func TestTransactionEvaluator_MetaRequiresPeerAccounts(t *testing.T) {
+	t.Parallel()
+	args := createArgs()
+	args.ShardCoordinator = &mock.ShardCoordinatorStub{
+		SelfIdCalled: func() uint32 { return core.MetachainShardId },
+	}
+	evaluator, err := NewAPITransactionEvaluator(args)
+	require.Nil(t, evaluator)
+	require.ErrorIs(t, err, process.ErrNilPeerAccountsAdapter)
+}
+
+func TestTransactionEvaluator_CleansBothSimulationAdapters(t *testing.T) {
+	t.Parallel()
+
+	for _, operation := range []string{"simulate", "cost", "scr cost"} {
+		for _, fail := range []bool{false, true} {
+			t.Run(operation+fmt.Sprint(fail), func(t *testing.T) {
+				args := createArgs()
+				reads := 0
+				original := &stateMock.AccountsStub{
+					GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
+						reads++
+						return stateAccounts.NewPeerAccount(address)
+					},
+				}
+				user, err := NewSimulationAccountsDB(original)
+				require.NoError(t, err)
+				peer, err := NewSimulationAccountsDB(original)
+				require.NoError(t, err)
+				args.Accounts = user
+				args.PeerAccounts = peer
+				args.ShardCoordinator = &mock.ShardCoordinatorStub{
+					SelfIdCalled: func() uint32 { return core.MetachainShardId },
+				}
+				args.TxTypeHandler = &testscommon.TxTypeHandlerMock{
+					ComputeTransactionTypeCalled: func(data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+						return process.SCInvoking, process.SCInvoking, false
+					},
+				}
+				run := func() (*txSimData.SimulationResultsWithVMOutput, error) {
+					_, errRead := user.GetExistingAccount([]byte("user"))
+					require.NoError(t, errRead)
+					_, errRead = peer.GetExistingAccount([]byte("peer"))
+					require.NoError(t, errRead)
+					if fail {
+						return nil, errors.New("execution failed")
+					}
+					return &txSimData.SimulationResultsWithVMOutput{
+						VMOutput: &vmcommon.VMOutput{ReturnCode: vmcommon.UserError},
+					}, nil
+				}
+				args.TxSimulator = &mock.TransactionSimulatorStub{
+					ProcessTxCalled: func(*transaction.Transaction, data.HeaderHandler) (*txSimData.SimulationResultsWithVMOutput, error) {
+						return run()
+					},
+					ProcessSCRCalled: func(*smartContractResult.SmartContractResult, data.HeaderHandler) (*txSimData.SimulationResultsWithVMOutput, error) {
+						return run()
+					},
+				}
+				evaluator, err := NewAPITransactionEvaluator(args)
+				require.NoError(t, err)
+				for iteration := 1; iteration <= 2; iteration++ {
+					switch operation {
+					case "simulate":
+						_, err = evaluator.SimulateTransactionExecution(&transaction.Transaction{})
+						require.Equal(t, fail, err != nil)
+					case "cost":
+						_, err = evaluator.ComputeTransactionGasLimit(&transaction.Transaction{GasLimit: 100})
+						require.NoError(t, err)
+					case "scr cost":
+						_, err = evaluator.SimulateSCRExecutionCost(&smartContractResult.SmartContractResult{})
+						require.NoError(t, err)
+					}
+					require.Empty(t, user.cachedAccounts)
+					require.Empty(t, peer.cachedAccounts)
+					require.Equal(t, 2*iteration, reads)
+				}
+			})
+		}
 	}
 }
 

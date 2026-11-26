@@ -262,9 +262,10 @@ func (boot *ShardBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(header
 		return
 	}
 
-	hashes := make([][]byte, 0, len(header.GetMiniBlockHeaderHandlers()))
-	for i := 0; i < len(header.GetMiniBlockHeaderHandlers()); i++ {
-		hashes = append(hashes, header.GetMiniBlockHeaderHandlers()[i].GetHash())
+	miniBlockHeaders := header.GetMiniBlockHeaderHandlers()
+	hashes := make([][]byte, 0, len(miniBlockHeaders))
+	for _, mbHeader := range miniBlockHeaders {
+		hashes = append(hashes, mbHeader.GetHash())
 	}
 
 	_, missingMiniBlocksHashes := boot.miniBlocksProvider.GetMiniBlocksFromPool(hashes)

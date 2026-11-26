@@ -196,40 +196,40 @@ func (nf *nodeFacade) GetESDTData(address string, key string, nonce uint64, opti
 }
 
 // GetESDTsRoles returns all the tokens identifiers and roles for the given address
-func (nf *nodeFacade) GetESDTsRoles(address string, options apiData.AccountQueryOptions) (map[string][]string, apiData.BlockInfo, error) {
-	ctx, cancel := nf.getContextForApiTrieRangeOperations()
+func (nf *nodeFacade) GetESDTsRoles(ctx context.Context, address string, options apiData.AccountQueryOptions) (map[string][]string, apiData.BlockInfo, error) {
+	ctx, cancel := nf.getContextForApiTrieRangeOperations(ctx)
 	defer cancel()
 
 	return nf.node.GetESDTsRoles(address, options, ctx)
 }
 
 // GetNFTTokenIDsRegisteredByAddress returns all the token identifiers for semi or non fungible tokens registered by the address
-func (nf *nodeFacade) GetNFTTokenIDsRegisteredByAddress(address string, options apiData.AccountQueryOptions) ([]string, apiData.BlockInfo, error) {
-	ctx, cancel := nf.getContextForApiTrieRangeOperations()
+func (nf *nodeFacade) GetNFTTokenIDsRegisteredByAddress(ctx context.Context, address string, options apiData.AccountQueryOptions) ([]string, apiData.BlockInfo, error) {
+	ctx, cancel := nf.getContextForApiTrieRangeOperations(ctx)
 	defer cancel()
 
 	return nf.node.GetNFTTokenIDsRegisteredByAddress(address, options, ctx)
 }
 
 // GetESDTsWithRole returns all the tokens with the given role for the given address
-func (nf *nodeFacade) GetESDTsWithRole(address string, role string, options apiData.AccountQueryOptions) ([]string, apiData.BlockInfo, error) {
-	ctx, cancel := nf.getContextForApiTrieRangeOperations()
+func (nf *nodeFacade) GetESDTsWithRole(ctx context.Context, address string, role string, options apiData.AccountQueryOptions) ([]string, apiData.BlockInfo, error) {
+	ctx, cancel := nf.getContextForApiTrieRangeOperations(ctx)
 	defer cancel()
 
 	return nf.node.GetESDTsWithRole(address, role, options, ctx)
 }
 
 // GetKeyValuePairs returns all the key-value pairs under the provided address
-func (nf *nodeFacade) GetKeyValuePairs(address string, options apiData.AccountQueryOptions) (map[string]string, apiData.BlockInfo, error) {
-	ctx, cancel := nf.getContextForApiTrieRangeOperations()
+func (nf *nodeFacade) GetKeyValuePairs(ctx context.Context, address string, options apiData.AccountQueryOptions) (map[string]string, apiData.BlockInfo, error) {
+	ctx, cancel := nf.getContextForApiTrieRangeOperations(ctx)
 	defer cancel()
 
 	return nf.node.GetKeyValuePairs(address, options, ctx)
 }
 
 // IterateKeys starts from the given iteratorState and returns the next key-value pairs and the new iteratorState
-func (nf *nodeFacade) IterateKeys(address string, numKeys uint, iteratorState [][]byte, options apiData.AccountQueryOptions) (map[string]string, [][]byte, apiData.BlockInfo, error) {
-	ctx, cancel := nf.getContextForApiTrieRangeOperations()
+func (nf *nodeFacade) IterateKeys(ctx context.Context, address string, numKeys uint, iteratorState [][]byte, options apiData.AccountQueryOptions) (map[string]string, [][]byte, apiData.BlockInfo, error) {
+	ctx, cancel := nf.getContextForApiTrieRangeOperations(ctx)
 	defer cancel()
 
 	return nf.node.IterateKeys(address, numKeys, iteratorState, options, ctx)
@@ -241,8 +241,8 @@ func (nf *nodeFacade) GetGuardianData(address string, options apiData.AccountQue
 }
 
 // GetAllESDTTokens returns all the esdt tokens for a given address
-func (nf *nodeFacade) GetAllESDTTokens(address string, options apiData.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, apiData.BlockInfo, error) {
-	ctx, cancel := nf.getContextForApiTrieRangeOperations()
+func (nf *nodeFacade) GetAllESDTTokens(ctx context.Context, address string, options apiData.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, apiData.BlockInfo, error) {
+	ctx, cancel := nf.getContextForApiTrieRangeOperations(ctx)
 	defer cancel()
 
 	return nf.node.GetAllESDTTokens(address, options, ctx)
@@ -254,20 +254,20 @@ func (nf *nodeFacade) GetTokenSupply(token string) (*apiData.ESDTSupply, error) 
 }
 
 // GetAllIssuedESDTs returns all the issued esdts from the esdt system smart contract
-func (nf *nodeFacade) GetAllIssuedESDTs(tokenType string) ([]string, error) {
-	ctx, cancel := nf.getContextForApiTrieRangeOperations()
+func (nf *nodeFacade) GetAllIssuedESDTs(ctx context.Context, tokenType string) ([]string, error) {
+	ctx, cancel := nf.getContextForApiTrieRangeOperations(ctx)
 	defer cancel()
 
 	return nf.node.GetAllIssuedESDTs(tokenType, ctx)
 }
 
-func (nf *nodeFacade) getContextForApiTrieRangeOperations() (context.Context, context.CancelFunc) {
+func (nf *nodeFacade) getContextForApiTrieRangeOperations(ctx context.Context) (context.Context, context.CancelFunc) {
 	if !nf.wsAntifloodConfig.WebServerAntifloodEnabled {
-		return context.WithCancel(context.Background())
+		return context.WithCancel(ctx)
 	}
 
 	timeout := time.Duration(nf.wsAntifloodConfig.TrieOperationsDeadlineMilliseconds) * time.Millisecond
-	return context.WithTimeout(context.Background(), timeout)
+	return context.WithTimeout(ctx, timeout)
 }
 
 // CreateTransaction creates a transaction from all needed fields
@@ -383,13 +383,13 @@ func (nf *nodeFacade) ComputeTransactionGasLimit(tx *transaction.Transaction) (*
 }
 
 // GetAccount returns a response containing information about the account correlated with provided address
-func (nf *nodeFacade) GetAccount(address string, options apiData.AccountQueryOptions) (apiData.AccountResponse, apiData.BlockInfo, error) {
+func (nf *nodeFacade) GetAccount(ctx context.Context, address string, options apiData.AccountQueryOptions) (apiData.AccountResponse, apiData.BlockInfo, error) {
 	var accountResponse apiData.AccountResponse
 	var blockInfo apiData.BlockInfo
 	var err error
 
 	if options.WithKeys {
-		ctx, cancel := nf.getContextForApiTrieRangeOperations()
+		ctx, cancel := nf.getContextForApiTrieRangeOperations(ctx)
 		defer cancel()
 
 		accountResponse, blockInfo, err = nf.node.GetAccountWithKeys(address, options, ctx)
@@ -460,7 +460,7 @@ func (nf *nodeFacade) StatusMetrics() external.StatusMetricsHandler {
 
 // GetTotalStakedValue will return total staked value
 func (nf *nodeFacade) GetTotalStakedValue() (*apiData.StakeValues, error) {
-	ctx, cancel := nf.getContextForApiTrieRangeOperations()
+	ctx, cancel := nf.getContextForApiTrieRangeOperations(context.Background())
 	defer cancel()
 
 	return nf.apiResolver.GetTotalStakedValue(ctx)
@@ -468,7 +468,7 @@ func (nf *nodeFacade) GetTotalStakedValue() (*apiData.StakeValues, error) {
 
 // GetDirectStakedList will output the list for the direct staked addresses
 func (nf *nodeFacade) GetDirectStakedList() ([]*apiData.DirectStakedValue, error) {
-	ctx, cancel := nf.getContextForApiTrieRangeOperations()
+	ctx, cancel := nf.getContextForApiTrieRangeOperations(context.Background())
 	defer cancel()
 
 	return nf.apiResolver.GetDirectStakedList(ctx)
@@ -476,7 +476,7 @@ func (nf *nodeFacade) GetDirectStakedList() ([]*apiData.DirectStakedValue, error
 
 // GetDelegatorsList will output the list for the delegators addresses
 func (nf *nodeFacade) GetDelegatorsList() ([]*apiData.Delegator, error) {
-	ctx, cancel := nf.getContextForApiTrieRangeOperations()
+	ctx, cancel := nf.getContextForApiTrieRangeOperations(context.Background())
 	defer cancel()
 
 	return nf.apiResolver.GetDelegatorsList(ctx)

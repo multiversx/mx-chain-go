@@ -68,6 +68,9 @@ type baseBlockTrack struct {
 	lastProofPullRound int64
 
 	cancelFunc context.CancelFunc
+
+	mutSettledNonceProvider sync.RWMutex
+	settledNonceProvider    func() uint64
 }
 
 func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
@@ -503,7 +506,7 @@ func (bbt *baseBlockTrack) checkAgainstRoundHandler(round uint64) error {
 	// bound against the round the current time falls into: gating on the stored index would make a
 	// node that is slow to advance its chronology reject, and stop relaying, the data it needs most
 	nextRound := bbt.roundHandler.IndexForCurrentTime() + 1
-	if int64(round) > nextRound {
+	if nextRound < 0 || round > uint64(nextRound) {
 		return fmt.Errorf("%w header round: %d, next chronology round: %d",
 			process.ErrHigherRoundInBlock,
 			round,
@@ -541,31 +544,34 @@ func (bbt *baseBlockTrack) checkAgainstFinal(shardID uint32, round uint64, nonce
 			nonce)
 	}
 
-	roundDif := int64(round) - int64(finalHeader.GetRound())
-	nonceDif := int64(nonce) - int64(finalHeader.GetNonce())
+	finalRound := finalHeader.GetRound()
+	finalNonce := finalHeader.GetNonce()
 
-	if roundDif < 0 {
+	if round < finalRound {
 		return fmt.Errorf("%w for round: %d, final header round: %d",
 			process.ErrLowerRoundInBlock,
 			round,
-			finalHeader.GetRound())
+			finalRound)
 	}
-	if nonceDif < 0 {
+	if nonce < finalNonce {
 		return fmt.Errorf("%w for nonce: %d, final header nonce: %d",
 			process.ErrLowerNonceInBlock,
 			nonce,
-			finalHeader.GetNonce())
+			finalNonce)
 	}
+
+	roundDif := round - finalRound
+	nonceDif := nonce - finalNonce
 	if roundDif < nonceDif {
 		return fmt.Errorf("%w for "+
 			"round: %d, final header round: %d, round dif: %d, "+
 			"nonce: %d, final header nonce: %d, nonce dif: %d",
 			process.ErrHigherNonceInBlock,
 			round,
-			finalHeader.GetRound(),
+			finalRound,
 			roundDif,
 			nonce,
-			finalHeader.GetNonce(),
+			finalNonce,
 			nonceDif)
 	}
 
@@ -878,6 +884,23 @@ func (bbt *baseBlockTrack) Close() error {
 // IsInterfaceNil returns true if there is no value under the interface
 func (bbt *baseBlockTrack) IsInterfaceNil() bool {
 	return bbt == nil
+}
+
+func (bbt *baseBlockTrack) SetSettledNonceProvider(provider func() uint64) {
+	bbt.mutSettledNonceProvider.Lock()
+	bbt.settledNonceProvider = provider
+	bbt.mutSettledNonceProvider.Unlock()
+}
+
+func (bbt *baseBlockTrack) getSettledNonce() uint64 {
+	bbt.mutSettledNonceProvider.RLock()
+	provider := bbt.settledNonceProvider
+	bbt.mutSettledNonceProvider.RUnlock()
+	if provider == nil {
+		return 0
+	}
+
+	return provider()
 }
 
 func checkTrackerNilParameters(arguments ArgBaseTracker) error {

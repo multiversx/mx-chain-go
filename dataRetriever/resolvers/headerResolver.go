@@ -145,6 +145,10 @@ func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, fro
 
 	switch rd.Type {
 	case dataRetriever.HashType:
+		err = validateRequestedHashSize(rd.Value)
+		if err != nil {
+			return nil, err
+		}
 		buff, err = hdrRes.resolveHeaderFromHash(rd)
 	case dataRetriever.NonceType:
 		buff, err = hdrRes.resolveHeaderFromNonce(rd)

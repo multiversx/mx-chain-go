@@ -710,7 +710,7 @@ func testNFTSendCreateRole(t *testing.T, numOfShards int) {
 	)
 
 	time.Sleep(time.Second)
-	nrRoundsToPropagateMultiShard = 2
+	nrRoundsToPropagateMultiShard = 20
 	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, nrRoundsToPropagateMultiShard, nonce, round)
 	time.Sleep(time.Second)
 

@@ -12,11 +12,22 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 )
 
-// simulationAccountsDB is a wrapper over an accounts db which works read-only. write operation are disabled
+type simulationAccountsReader interface {
+	GetCode([]byte) []byte
+	GetExistingAccount([]byte) (vmcommon.AccountHandler, error)
+	GetAccountFromBytes([]byte, []byte) (vmcommon.AccountHandler, error)
+	LoadAccount([]byte) (vmcommon.AccountHandler, error)
+	JournalLen() int
+	RootHash() ([]byte, error)
+	IsPruningEnabled() bool
+	GetAllLeaves(*common.TrieIteratorChannels, context.Context, []byte, common.TrieLeafParser) error
+}
+
+// simulationAccountsDB keeps account writes local and cannot forward database mutations.
 type simulationAccountsDB struct {
 	mutex            sync.RWMutex
 	cachedAccounts   map[string]vmcommon.AccountHandler
-	originalAccounts state.AccountsAdapter
+	originalAccounts simulationAccountsReader
 }
 
 // NewSimulationAccountsDB returns a new instance of simulationAccountsDB
@@ -184,9 +195,8 @@ func (r *simulationAccountsDB) GetStackDebugFirstEntry() []byte {
 	return nil
 }
 
-// SetTxHashForLatestStateAccesses -
-func (r *simulationAccountsDB) SetTxHashForLatestStateAccesses(txHash []byte) {
-	r.originalAccounts.SetTxHashForLatestStateAccesses(txHash)
+// SetTxHashForLatestStateAccesses does not alter the underlying collector.
+func (r *simulationAccountsDB) SetTxHashForLatestStateAccesses(_ []byte) {
 }
 
 // Close will handle the closing of the underlying components

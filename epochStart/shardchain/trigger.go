@@ -64,6 +64,7 @@ type ArgsShardEpochStartTrigger struct {
 	EnableEpochsHandler        common.EnableEpochsHandler
 	ProcessConfigsHandler      common.ProcessConfigsHandler
 	WaitForBootstrapCompletion bool
+	IsImportDBMode             bool
 	ShardID                    uint32
 
 	Epoch    uint32
@@ -402,7 +403,9 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 	ctx, t.cancelFunc = context.WithCancel(context.Background())
 	go t.requestMissingMiniBlocks(ctx)
 	go t.requestMissingValidatorsInfo(ctx)
-	go t.watchdogRequestEpochStartMetaBlock(ctx)
+	if !args.IsImportDBMode {
+		go t.watchdogRequestEpochStartMetaBlock(ctx)
+	}
 	go t.requestPendingEpochStartProofs(ctx)
 
 	return t, nil

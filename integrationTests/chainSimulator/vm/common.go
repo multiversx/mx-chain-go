@@ -71,6 +71,7 @@ func TransferAndCheckTokensMetaData(t *testing.T, isCrossShard bool, isMultiTran
 		NumNodesWaitingListShard:       0,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
+			cfg.EpochConfig.EnableEpochs.FixCorrectSmallIntAndGasLimitsEnableEpoch = activationEpoch + 10
 			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
 		},
 	})

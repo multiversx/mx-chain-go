@@ -333,7 +333,7 @@ func TestNodeFacade_GetAccount(t *testing.T) {
 		}
 		nf, _ := NewNodeFacade(arg)
 
-		_, _, err := nf.GetAccount("test", api.AccountQueryOptions{})
+		_, _, err := nf.GetAccount(context.Background(), "test", api.AccountQueryOptions{})
 		require.Equal(t, expectedErr, err)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -350,7 +350,7 @@ func TestNodeFacade_GetAccount(t *testing.T) {
 		arg.Node = node
 		nf, _ := NewNodeFacade(arg)
 
-		_, _, _ = nf.GetAccount("test", api.AccountQueryOptions{})
+		_, _, _ = nf.GetAccount(context.Background(), "test", api.AccountQueryOptions{})
 		require.True(t, getAccountCalled)
 	})
 }
@@ -828,7 +828,7 @@ func TestNodeFacade_GetKeyValuePairs(t *testing.T) {
 
 	nf, _ := NewNodeFacade(arg)
 
-	res, _, err := nf.GetKeyValuePairs("addr", api.AccountQueryOptions{})
+	res, _, err := nf.GetKeyValuePairs(context.Background(), "addr", api.AccountQueryOptions{})
 	require.NoError(t, err)
 	require.Equal(t, expectedPairs, res)
 }
@@ -890,7 +890,7 @@ func TestNodeFacade_GetAllESDTTokens(t *testing.T) {
 
 	nf, _ := NewNodeFacade(arg)
 
-	res, _, err := nf.GetAllESDTTokens("addr", api.AccountQueryOptions{})
+	res, _, err := nf.GetAllESDTTokens(context.Background(), "addr", api.AccountQueryOptions{})
 	require.NoError(t, err)
 	require.Equal(t, expectedTokens, res)
 }
@@ -946,7 +946,7 @@ func TestNodeFacade_GetAllIssuedESDTs(t *testing.T) {
 
 	nf, _ := NewNodeFacade(arg)
 
-	res, err := nf.GetAllIssuedESDTs("")
+	res, err := nf.GetAllIssuedESDTs(context.Background(), "")
 	require.NoError(t, err)
 	require.Equal(t, expectedValue, res)
 }
@@ -965,7 +965,7 @@ func TestNodeFacade_GetESDTsWithRole(t *testing.T) {
 
 	nf, _ := NewNodeFacade(args)
 
-	res, _, err := nf.GetESDTsWithRole("address", "role", api.AccountQueryOptions{})
+	res, _, err := nf.GetESDTsWithRole(context.Background(), "address", "role", api.AccountQueryOptions{})
 	require.NoError(t, err)
 	require.Equal(t, expectedResponse, res)
 }
@@ -984,7 +984,7 @@ func TestNodeFacade_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
 
 	nf, _ := NewNodeFacade(args)
 
-	res, _, err := nf.GetNFTTokenIDsRegisteredByAddress("address", api.AccountQueryOptions{})
+	res, _, err := nf.GetNFTTokenIDsRegisteredByAddress(context.Background(), "address", api.AccountQueryOptions{})
 	require.NoError(t, err)
 	require.Equal(t, expectedResponse, res)
 }
@@ -1002,7 +1002,7 @@ func TestNodeFacade_GetAllIssuedESDTsWithError(t *testing.T) {
 
 	nf, _ := NewNodeFacade(arg)
 
-	_, err := nf.GetAllIssuedESDTs("")
+	_, err := nf.GetAllIssuedESDTs(context.Background(), "")
 	require.Equal(t, err, localErr)
 }
 
@@ -2292,7 +2292,7 @@ func TestNodeFacade_GetESDTsRoles(t *testing.T) {
 
 	nf, _ := NewNodeFacade(args)
 
-	res, _, err := nf.GetESDTsRoles("address", api.AccountQueryOptions{})
+	res, _, err := nf.GetESDTsRoles(context.Background(), "address", api.AccountQueryOptions{})
 	require.NoError(t, err)
 	require.Equal(t, expectedResponse, res)
 }

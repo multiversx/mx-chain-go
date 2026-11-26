@@ -33,6 +33,7 @@ type ArgsNewWebServer struct {
 	Facade          shared.FacadeHandler
 	ApiConfig       config.ApiRoutesConfig
 	AntiFloodConfig config.WebServerAntifloodConfig
+	TrieOperations  config.TrieOperationsConfig
 }
 
 type webServer struct {
@@ -40,6 +41,7 @@ type webServer struct {
 	facade          shared.FacadeHandler
 	apiConfig       config.ApiRoutesConfig
 	antiFloodConfig config.WebServerAntifloodConfig
+	trieOperations  config.TrieOperationsConfig
 	httpServer      shared.HttpServerCloser
 	groups          map[string]shared.GroupHandler
 	cancelFunc      func()
@@ -55,6 +57,7 @@ func NewGinWebServerHandler(args ArgsNewWebServer) (*webServer, error) {
 	return &webServer{
 		facade:          args.Facade,
 		antiFloodConfig: args.AntiFloodConfig,
+		trieOperations:  args.TrieOperations,
 		apiConfig:       args.ApiConfig,
 	}, nil
 }
@@ -244,11 +247,7 @@ func (ws *webServer) registerRoutes(ginRouter *gin.Engine) {
 
 func (ws *webServer) createMiddlewareLimiters() ([]shared.MiddlewareProcessor, error) {
 	middlewares := make([]shared.MiddlewareProcessor, 0)
-
-	if ws.apiConfig.Logging.LoggingEnabled {
-		responseLoggerMiddleware := middleware.NewResponseLoggerMiddleware(time.Duration(ws.apiConfig.Logging.ThresholdInMicroSeconds) * time.Microsecond)
-		middlewares = append(middlewares, responseLoggerMiddleware)
-	}
+	middlewares = append(middlewares, middleware.NewTrieOperationsTransport(ws.trieOperations))
 
 	if ws.antiFloodConfig.WebServerAntifloodEnabled {
 		sourceLimiter, err := middleware.NewSourceThrottler(ws.antiFloodConfig.SameSourceRequests)
@@ -269,6 +268,13 @@ func (ws *webServer) createMiddlewareLimiters() ([]shared.MiddlewareProcessor, e
 		}
 
 		middlewares = append(middlewares, globalLimiter)
+	}
+
+	middlewares = append(middlewares, middleware.NewTrieOperationsThrottler(ws.trieOperations))
+
+	if ws.apiConfig.Logging.LoggingEnabled {
+		responseLoggerMiddleware := middleware.NewResponseLoggerMiddleware(time.Duration(ws.apiConfig.Logging.ThresholdInMicroSeconds) * time.Microsecond)
+		middlewares = append(middlewares, responseLoggerMiddleware)
 	}
 
 	return middlewares, nil

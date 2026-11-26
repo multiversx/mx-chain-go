@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -113,6 +114,27 @@ func (d *delegation) createLogEventsForChangeOwner(
 
 	d.createAndAddLogEntryForDelegate(args, big.NewInt(0), globalFund, ownerDelegatorData, dStatus, false)
 	d.createAndAddLogEntryForWithdraw(withdraw, args.CallerAddr, big.NewInt(0), globalFund, ownerDelegatorData, d.numUsers(), true, nil)
+
+	if d.enableEpochsHandler.IsFlagEnabled(common.FixCorrectSmallIntAndGasLimitsFlag) {
+		newOwner := args.Arguments[0]
+		zeroValueByteSlice := make([]byte, 0)
+		activeFund := d.getFundForLogEntry(ownerDelegatorData.ActiveFund)
+		for _, fundKey := range ownerDelegatorData.UnStakedFunds {
+			fund, errFund := d.getFund(fundKey)
+			if errFund != nil {
+				continue
+			}
+			d.createAndAddLogEntryCustom(
+				"unDelegate",
+				newOwner,
+				fund.Value.Bytes(),
+				activeFund.Bytes(),
+				zeroValueByteSlice,
+				globalFund.TotalActive.Bytes(),
+				fundKey,
+			)
+		}
+	}
 
 	entry := &vmcommon.LogEntry{
 		Identifier: []byte(core.BuiltInFunctionChangeOwnerAddress),

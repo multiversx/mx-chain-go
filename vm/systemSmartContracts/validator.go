@@ -807,6 +807,13 @@ func (v *validatorSC) reStakeUnStakedNodes(args *vmcommon.ContractCallInput) vmc
 		return vmcommon.UserError
 	}
 
+	if v.enableEpochsHandler.IsFlagEnabled(common.FixCorrectSmallIntAndGasLimitsFlag) {
+		if args.CallValue.Cmp(zero) != 0 {
+			v.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
+			return vmcommon.UserError
+		}
+	}
+
 	if len(args.Arguments) == 0 {
 		v.eei.AddReturnMessage("need arguments of which node to unStake")
 		return vmcommon.UserError

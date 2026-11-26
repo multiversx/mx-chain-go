@@ -921,6 +921,7 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochSt
 		}
 
 		argEpochStart := &shardchain.ArgsShardEpochStartTrigger{
+			IsImportDBMode:             pcf.importDBConfig.IsImportDBMode,
 			Marshalizer:                pcf.coreData.InternalMarshalizer(),
 			Hasher:                     pcf.coreData.Hasher(),
 			HeaderValidator:            headerValidator,
