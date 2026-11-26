@@ -512,6 +512,8 @@ type StateTriesConfig struct {
 	MaxStateTrieLevelInMemory   uint
 	MaxPeerTrieLevelInMemory    uint
 	StateStatisticsEnabled      bool
+
+	ImportDBPeerSnapshotRoundsInterval uint64
 }
 
 // StateAccessesCollectorConfig will hold information about state accesses collector

@@ -2618,6 +2618,18 @@ func (bp *baseProcessor) commitState(headerHandler data.HeaderHandler) error {
 }
 
 func (bp *baseProcessor) commitStateForHeader(headerHandler data.HeaderHandler, headerHash []byte) error {
+	err := bp.commitStateAndCollectAccesses(headerHandler, headerHash)
+	if err != nil {
+		return err
+	}
+
+	if observer, ok := bp.accountsDB[state.PeerAccountsState].(importDBPeerCommitObserver); ok {
+		observer.RecordImportDBPeerCommit(headerHandler, headerHash)
+	}
+	return nil
+}
+
+func (bp *baseProcessor) commitStateAndCollectAccesses(headerHandler data.HeaderHandler, headerHash []byte) error {
 	if !bp.outportHandler.HasDrivers() {
 		return bp.commitState(headerHandler)
 	}
@@ -2629,7 +2641,6 @@ func (bp *baseProcessor) commitStateForHeader(headerHandler data.HeaderHandler, 
 	if err != nil {
 		bp.stateAccessesCollector.DiscardStateAccessesForHeader(headerHash)
 	}
-
 	return err
 }
 
